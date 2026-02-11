@@ -1,0 +1,62 @@
+;
+; KeSetTimer.inf
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = System ; TODO: specify appropriate Class
+ClassGuid   = {4d36e97d-e325-11ce-bfc1-08002be10318} ; TODO: specify appropriate ClassGuid
+Provider    = %ManufacturerName%
+CatalogFile = KeSetTimer.cat
+DriverVer   = ; TODO: set DriverVer in stampinf property pages
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+KeSetTimer.sys = 1,,
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName% = Standard,NT$ARCH$.10.0...16299 ; %13% support introduced in build 16299
+
+[Standard.NT$ARCH$.10.0...16299]
+%KeSetTimer.DeviceDesc% = KeSetTimer_Device, Root\KeSetTimer ; TODO: edit hw-id
+
+[KeSetTimer_Device.NT]
+CopyFiles = File_Copy
+
+[File_Copy]
+KeSetTimer.sys
+
+;-------------- Service installation
+[KeSetTimer_Device.NT.Services]
+AddService = KeSetTimer,%SPSVCINST_ASSOCSERVICE%, KeSetTimer_Service_Inst
+
+; -------------- KeSetTimer driver install sections
+[KeSetTimer_Service_Inst]
+DisplayName    = %KeSetTimer.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\KeSetTimer.sys
+
+[KeSetTimer_Device.NT.Wdf]
+KmdfService = KeSetTimer, KeSetTimer_wdfsect
+
+[KeSetTimer_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE = 0x00000002
+ManufacturerName = "<Your manufacturer name>" ;TODO: Replace with your manufacturer name
+DiskName = "KeSetTimer Installation Disk"
+KeSetTimer.DeviceDesc = "KeSetTimer Device"
+KeSetTimer.SVCDESC = "KeSetTimer Service"
