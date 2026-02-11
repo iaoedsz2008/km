@@ -1,20 +1,9 @@
-*.csproj   text eol=crlf
-*.vcxproj  text eol=crlf
-*.filters  text eol=crlf
-*.sln      text eol=crlf
+*.vcxproj         binary
+*.vcxproj.filters binary
+*.vcxproj.user    binary
+*.sln             binary
 
 *.inf      binary
 
 *.bat      binary
 *.cmd      binary
-
-*.c        text eol=lf
-*.cc       text eol=lf
-*.cpp      text eol=lf
-*.cxx      text eol=lf
-*.h        text eol=lf
-*.hpp      text eol=lf
-*.md       text eol=lf
-*.txt      text eol=lf
-
-*.patch    text eol=lf
