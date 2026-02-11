@@ -1,0 +1,62 @@
+;
+; PsSetLoadImageNotifyRoutine.inf
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = System ; TODO: specify appropriate Class
+ClassGuid   = {4d36e97d-e325-11ce-bfc1-08002be10318} ; TODO: specify appropriate ClassGuid
+Provider    = %ManufacturerName%
+CatalogFile = PsSetLoadImageNotifyRoutine.cat
+DriverVer   = ; TODO: set DriverVer in stampinf property pages
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+PsSetLoadImageNotifyRoutine.sys = 1,,
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName% = Standard,NT$ARCH$.10.0...16299 ; %13% support introduced in build 16299
+
+[Standard.NT$ARCH$.10.0...16299]
+%PsSetLoadImageNotifyRoutine.DeviceDesc% = PsSetLoadImageNotifyRoutine_Device, Root\PsSetLoadImageNotifyRoutine ; TODO: edit hw-id
+
+[PsSetLoadImageNotifyRoutine_Device.NT]
+CopyFiles = File_Copy
+
+[File_Copy]
+PsSetLoadImageNotifyRoutine.sys
+
+;-------------- Service installation
+[PsSetLoadImageNotifyRoutine_Device.NT.Services]
+AddService = PsSetLoadImageNotifyRoutine,%SPSVCINST_ASSOCSERVICE%, PsSetLoadImageNotifyRoutine_Service_Inst
+
+; -------------- PsSetLoadImageNotifyRoutine driver install sections
+[PsSetLoadImageNotifyRoutine_Service_Inst]
+DisplayName    = %PsSetLoadImageNotifyRoutine.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\PsSetLoadImageNotifyRoutine.sys
+
+[PsSetLoadImageNotifyRoutine_Device.NT.Wdf]
+KmdfService = PsSetLoadImageNotifyRoutine, PsSetLoadImageNotifyRoutine_wdfsect
+
+[PsSetLoadImageNotifyRoutine_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE = 0x00000002
+ManufacturerName = "<Your manufacturer name>" ;TODO: Replace with your manufacturer name
+DiskName = "PsSetLoadImageNotifyRoutine Installation Disk"
+PsSetLoadImageNotifyRoutine.DeviceDesc = "PsSetLoadImageNotifyRoutine Device"
+PsSetLoadImageNotifyRoutine.SVCDESC = "PsSetLoadImageNotifyRoutine Service"

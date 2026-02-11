@@ -1,0 +1,62 @@
+;
+; KeRegisterNmiCallback.inf
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = System ; TODO: specify appropriate Class
+ClassGuid   = {4d36e97d-e325-11ce-bfc1-08002be10318} ; TODO: specify appropriate ClassGuid
+Provider    = %ManufacturerName%
+CatalogFile = KeRegisterNmiCallback.cat
+DriverVer   = ; TODO: set DriverVer in stampinf property pages
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+KeRegisterNmiCallback.sys = 1,,
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName% = Standard,NT$ARCH$.10.0...16299 ; %13% support introduced in build 16299
+
+[Standard.NT$ARCH$.10.0...16299]
+%KeRegisterNmiCallback.DeviceDesc% = KeRegisterNmiCallback_Device, Root\KeRegisterNmiCallback ; TODO: edit hw-id
+
+[KeRegisterNmiCallback_Device.NT]
+CopyFiles = File_Copy
+
+[File_Copy]
+KeRegisterNmiCallback.sys
+
+;-------------- Service installation
+[KeRegisterNmiCallback_Device.NT.Services]
+AddService = KeRegisterNmiCallback,%SPSVCINST_ASSOCSERVICE%, KeRegisterNmiCallback_Service_Inst
+
+; -------------- KeRegisterNmiCallback driver install sections
+[KeRegisterNmiCallback_Service_Inst]
+DisplayName    = %KeRegisterNmiCallback.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\KeRegisterNmiCallback.sys
+
+[KeRegisterNmiCallback_Device.NT.Wdf]
+KmdfService = KeRegisterNmiCallback, KeRegisterNmiCallback_wdfsect
+
+[KeRegisterNmiCallback_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE = 0x00000002
+ManufacturerName = "<Your manufacturer name>" ;TODO: Replace with your manufacturer name
+DiskName = "KeRegisterNmiCallback Installation Disk"
+KeRegisterNmiCallback.DeviceDesc = "KeRegisterNmiCallback Device"
+KeRegisterNmiCallback.SVCDESC = "KeRegisterNmiCallback Service"

@@ -1,0 +1,11 @@
+
+/**
+ * 富强、民主、文明、和谐
+ * 自由、平等、公正、法治
+ * 爱国、敬业、诚信、友善
+ **/
+
+#if !defined(__1e5566a6dfcc5f13a931aadebcff2bd5__)
+#define __1e5566a6dfcc5f13a931aadebcff2bd5__
+
+#endif // !__1e5566a6dfcc5f13a931aadebcff2bd5__

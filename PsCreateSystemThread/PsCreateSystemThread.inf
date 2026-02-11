@@ -1,0 +1,62 @@
+;
+; PsCreateSystemThread.inf
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = System ; TODO: specify appropriate Class
+ClassGuid   = {4d36e97d-e325-11ce-bfc1-08002be10318} ; TODO: specify appropriate ClassGuid
+Provider    = %ManufacturerName%
+CatalogFile = PsCreateSystemThread.cat
+DriverVer   = ; TODO: set DriverVer in stampinf property pages
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+PsCreateSystemThread.sys = 1,,
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName% = Standard,NT$ARCH$.10.0...16299 ; %13% support introduced in build 16299
+
+[Standard.NT$ARCH$.10.0...16299]
+%PsCreateSystemThread.DeviceDesc% = PsCreateSystemThread_Device, Root\PsCreateSystemThread ; TODO: edit hw-id
+
+[PsCreateSystemThread_Device.NT]
+CopyFiles = File_Copy
+
+[File_Copy]
+PsCreateSystemThread.sys
+
+;-------------- Service installation
+[PsCreateSystemThread_Device.NT.Services]
+AddService = PsCreateSystemThread,%SPSVCINST_ASSOCSERVICE%, PsCreateSystemThread_Service_Inst
+
+; -------------- PsCreateSystemThread driver install sections
+[PsCreateSystemThread_Service_Inst]
+DisplayName    = %PsCreateSystemThread.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\PsCreateSystemThread.sys
+
+[PsCreateSystemThread_Device.NT.Wdf]
+KmdfService = PsCreateSystemThread, PsCreateSystemThread_wdfsect
+
+[PsCreateSystemThread_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE = 0x00000002
+ManufacturerName = "<Your manufacturer name>" ;TODO: Replace with your manufacturer name
+DiskName = "PsCreateSystemThread Installation Disk"
+PsCreateSystemThread.DeviceDesc = "PsCreateSystemThread Device"
+PsCreateSystemThread.SVCDESC = "PsCreateSystemThread Service"
