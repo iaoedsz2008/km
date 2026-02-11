@@ -23,6 +23,7 @@
 #pragma warning(disable : 4390) // warning C4390: ';' : empty controlled statement found
 #pragma warning(disable : 4505) // warning C4505: unreferenced local function has been removed
 #pragma warning(disable : 4996) // warning C4996: 'function': was declared deprecated
+
 #if 1
 
 static constexpr size_t _KeServiceDescriptorTable_ = 0x0055A880; // 10.0.17763.316
@@ -296,7 +297,7 @@ SyscallId(UINT32 ID)
 #define XX(__no__, __api__) \
     case __no__:            \
         return #__api__;
-#include "syscall.def"
+#include "10.0.17763.316.def"
     }
 
     return "?";
@@ -385,14 +386,14 @@ HandleSYSCALL(TMP64* Context)
     records[idx].RSI = Context->RSI;
     records[idx].RBP = Context->RBP;
     records[idx].RSP = Context->RSP;
-    records[idx].RIP = *(&(Context->RSP) + 2); // trick.
+    records[idx].RIP = *(&(Context->RSP) + 2); // FIXME: trick.
 
     records[idx].CR3 = __readcr3();
     records[idx].ProcessId = PsGetCurrentProcessId();
     records[idx].ThreadId = PsGetCurrentThreadId();
 
     if (records[idx].ProcessId == ContextPID)
-        KdPrint(("ProcessId: 0x%08X, ThreadId: 0x%08X, EAX: %s, RIP: 0x%016llX\n", records[idx].ProcessId, records[idx].ThreadId, SyscallId((UINT32)records[idx].RAX), records[idx].RIP));
+        KdPrint(("ProcessId: 0x%08X, ThreadId: 0x%08X, EAX: %s, RIP: 0x%016llX\n", (SIZE_T)records[idx].ProcessId, (SIZE_T)records[idx].ThreadId, SyscallId((UINT32)records[idx].RAX), records[idx].RIP));
 }
 
 #endif
