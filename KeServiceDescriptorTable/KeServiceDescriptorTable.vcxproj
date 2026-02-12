@@ -123,9 +123,11 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="anylog.h" />
     <ClInclude Include="KeServiceDescriptorTable.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="anylog.cxx" />
     <ClCompile Include="KeServiceDescriptorTable.cxx" />
   </ItemGroup>
   <ItemGroup>

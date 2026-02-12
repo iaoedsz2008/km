@@ -5,15 +5,15 @@
  * 爱国、敬业、诚信、友善
  **/
 
-#include "KeServiceDescriptorTable.h"
-
-#include "Support.h"
-
 #include <ntifs.h>
 
 #include <ntddk.h>
 
 #include <intrin.h>
+
+#include "KeServiceDescriptorTable.h"
+#include "Support.h"
+#include "anylog.h"
 
 #include "pshpack1.h"
 
@@ -257,8 +257,6 @@ typedef struct DebugSession {
 static DebugSession DebuggingSessions[1];
 static HANDLE ContextPID = NULL;
 static UINT_PTR ContextCR3 = 0;
-static KSYSTEM_TIME Current;
-static HITContext* ContextBuckets = NULL;
 
 static_assert(sizeof(UINT_PTR) == sizeof(void*), "");
 static_assert(sizeof(ULONG_PTR) == sizeof(void*), "");
@@ -268,9 +266,6 @@ static UINT64* ia32_lstar = NULL;
 static UINT64* ia32_cstar = NULL;
 static IDTR64* BackupIdts = NULL;
 static IDTR64* MyIdts = NULL;
-#define MAX_RECORDS 0x2000
-static RECORD64* records = NULL;
-static ULONG CurrentRecord = 0;
 #endif
 
 #if defined(_M_IX86) || defined(__i386__)
@@ -279,10 +274,6 @@ static UINT64* ia32_sysenter_esp = NULL;
 static UINT64* ia32_sysenter_eip = NULL;
 static IDTR32* BackupIdts = NULL;
 static IDTR32* MyIdts = NULL;
-
-#define MAX_RECORDS 0x2000
-static RECORD32* records = NULL;
-static ULONG CurrentRecord = 0;
 
 static UINT_PTR _KiFastCallEntry = NULL;
 static UINT_PTR _KiFastCallEntryCommon = NULL;
@@ -308,9 +299,6 @@ HandleIDT(UINT32 Vector, UINT_PTR StackFrame)
 {
     UNREFERENCED_PARAMETER(Vector);
     UNREFERENCED_PARAMETER(StackFrame);
-
-    if (ContextCR3 != __readcr3())
-        return;
 
     UINT64 ExceptionCode = 0;
 
@@ -344,56 +332,20 @@ HandleIDT(UINT32 Vector, UINT_PTR StackFrame)
     if (Rip > MmUserProbeAddress)
         return;
 
-    ULONG i = (ULONG)InterlockedExchangeAdd((LONG*)&Current.High1Time, 1) % MAX_RECORDS;
-    ContextBuckets[i].Rip = Rip;
-    ContextBuckets[i].Vector = Vector;
-    ContextBuckets[i].Cr3 = ContextCR3; // finished.
+    anylogPrintfA("Interrupt 0x%02X, CR3=0x%016llX, RIP=0x%016llX", Vector, __readcr3(), Rip);
 }
 
 void
 HandleSYSCALL(TMP64* Context)
 {
-    // if (PsGetCurrentProcessId() != ContextPID)
-    //     return;
-
     if (Context->RAX >= 0x1000)
         return;
 
-    ULONG h = *(ULONG*)&Current.High1Time;
-    for (ULONG i = (ULONG)InterlockedExchange((LONG*)&Current.LowPart, *(LONG*)&h); i != h; ++i) {
-        ULONG ii = i % MAX_RECORDS;
-        if (ContextBuckets[ii].Cr3 != ContextCR3)
-            continue;
+    ULONG64 RIP = *(&(Context->RSP) + 2); // FIXME: trick.
 
-        DbgPrint("0x%02X Vector: 0x%02X, Rip: 0x%016llX\n", ii, ContextBuckets[ii].Vector, ContextBuckets[ii].Rip);
-    }
+    anylogUpdate(PsGetCurrentProcessId(), __readcr3());
 
-    ULONG idx = (ULONG)InterlockedIncrement((LONG*)&CurrentRecord) % MAX_RECORDS;
-
-    records[idx].RAX = Context->RAX;
-    records[idx].RBX = Context->RBX;
-    records[idx].RCX = Context->RCX;
-    records[idx].RDX = Context->RDX;
-    records[idx].R8 = Context->R8;
-    records[idx].R9 = Context->R9;
-    records[idx].R10 = Context->R10;
-    records[idx].R11 = Context->R11;
-    records[idx].R12 = Context->R12;
-    records[idx].R13 = Context->R13;
-    records[idx].R14 = Context->R14;
-    records[idx].R15 = Context->R15;
-    records[idx].RDI = Context->RDI;
-    records[idx].RSI = Context->RSI;
-    records[idx].RBP = Context->RBP;
-    records[idx].RSP = Context->RSP;
-    records[idx].RIP = *(&(Context->RSP) + 2); // FIXME: trick.
-
-    records[idx].CR3 = __readcr3();
-    records[idx].ProcessId = PsGetCurrentProcessId();
-    records[idx].ThreadId = PsGetCurrentThreadId();
-
-    if (records[idx].ProcessId == ContextPID)
-        KdPrint(("ProcessId: 0x%08X, ThreadId: 0x%08X, EAX: %s, RIP: 0x%016llX\n", (SIZE_T)records[idx].ProcessId, (SIZE_T)records[idx].ThreadId, SyscallId((UINT32)records[idx].RAX), records[idx].RIP));
+    anylogPrintfA("SYSCALL %s(0x%02X), CR3=0x%016llX, RIP=0x%016llX", SyscallId((UINT32)Context->RAX), Context->RAX, __readcr3(), RIP);
 }
 
 #endif
@@ -737,7 +689,7 @@ _CreateProcessNotifyRoutine(_In_ HANDLE ParentId, _In_ HANDLE ProcessId, _In_ BO
         if (ProcessName->Length == 0)
             break;
 
-        if (wcsstr(ProcessName->Buffer, L"TMP.exe") == NULL)
+        if (wcsstr(ProcessName->Buffer, L"notepad.exe") == NULL)
             break;
 
         ContextPID = ProcessId;
@@ -776,10 +728,8 @@ HelloKeServiceDescriptorTable(UINT8* DllBase)
     // MmMapViewOfSection();
     // __segmentlimit();
 
-    ContextBuckets = (HITContext*)ExAllocatePool(NonPagedPool, sizeof(HITContext) * MAX_RECORDS);
     BackupIdts = (IDTR64*)ExAllocatePool(NonPagedPool, sizeof(IDTR64) * 0x100);
     MyIdts = (IDTR64*)ExAllocatePool(NonPagedPool, sizeof(IDTR64) * 0x100);
-    records = (RECORD64*)ExAllocatePool(NonPagedPool, sizeof(RECORD64) * MAX_RECORDS);
 
 #endif
 
@@ -792,16 +742,10 @@ HelloKeServiceDescriptorTable(UINT8* DllBase)
     ia32_sysenter_esp = (UINT64*)ExAllocatePool(NonPagedPool, 0x1000);
     ia32_sysenter_eip = (UINT64*)ExAllocatePool(NonPagedPool, 0x1000);
 
-    ContextBuckets = (HITContext*)ExAllocatePool(NonPagedPool, sizeof(HITContext) * MAX_RECORDS);
     BackupIdts = (IDTR32*)ExAllocatePool(NonPagedPool, sizeof(IDTR32) * 0x100);
     MyIdts = (IDTR32*)ExAllocatePool(NonPagedPool, sizeof(IDTR32) * 0x100);
-    records = (RECORD32*)ExAllocatePool(NonPagedPool, sizeof(RECORD32) * MAX_RECORDS);
 
 #endif
-
-    Current.LowPart = 0;
-    Current.High1Time = 0;
-    Current.High2Time = 0;
 
     KeIpiGenericCall(AttachSyscall, 0);
     KeIpiGenericCall(AttachIDT, 0);
@@ -821,8 +765,6 @@ GoodbyeKeServiceDescriptorTable(UINT8* DllBase)
 
     ExFreePool(MyIdts);
     ExFreePool(BackupIdts);
-    ExFreePool(ContextBuckets);
-    ExFreePool(records);
 }
 
 EXTERN_C VOID
@@ -831,6 +773,8 @@ DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
     UNREFERENCED_PARAMETER(DriverObject);
 
     GoodbyeKeServiceDescriptorTable(NULL);
+
+    anylogCleanup();
 }
 
 typedef struct _LDR_DATA_TABLE_ENTRY {
@@ -888,6 +832,8 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 
     if (DllBase == NULL)
         return STATUS_NOT_FOUND;
+
+    anylogInit();
 
     DriverObject->DriverUnload = DriverUnload;
 
