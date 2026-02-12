@@ -7,7 +7,6 @@
 
 #include "ExQueueWorkItem.h"
 
-
 #include "Support.h"
 
 #include <ntddk.h>
