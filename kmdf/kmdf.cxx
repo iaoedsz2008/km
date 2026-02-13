@@ -9,6 +9,8 @@
 
 #include "Support.h"
 
+#include <ntifs.h>
+
 #include <ntddk.h>
 
 EXTERN_C VOID

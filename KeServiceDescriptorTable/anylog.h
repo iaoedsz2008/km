@@ -12,6 +12,7 @@ static constexpr int DESCRIPTION_MAX_LENGTH = 0x100;
 static constexpr int DESCRIPTION_MAX_COUNT = 0x1000;
 
 void anylogPrintfA(const char* pszFormat, ...);
+void anylogPrintfW(const WCHAR* pszFormat, ...);
 
 NTSTATUS anylogInit();
 

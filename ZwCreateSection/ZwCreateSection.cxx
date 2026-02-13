@@ -139,9 +139,9 @@ DeferredRoutine(_In_ KDPC* Dpc, _In_opt_ PVOID DeferredContext, _In_opt_ PVOID S
     UNREFERENCED_PARAMETER(SystemArgument2);
 
     LONG64 initialValue = InterlockedExchangeAdd64((LONG64*)SynchronizationA, 1);
-    LONG64 Index = initialValue % DESCRIPTION_MAX_COUNT;
+    LONG64 i = initialValue % DESCRIPTION_MAX_COUNT;
 
-    char* s = Descriptions + (DESCRIPTION_MAX_LENGTH * Index);
+    char* s = Descriptions + (DESCRIPTION_MAX_LENGTH * i);
     RtlStringCbPrintfA(s, DESCRIPTION_MAX_LENGTH, "Hello %lld", initialValue);
 
     InterlockedIncrement64((LONG64*)SynchronizationB);

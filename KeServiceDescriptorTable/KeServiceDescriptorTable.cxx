@@ -281,17 +281,17 @@ static UINT_PTR _KiFastCallEntryCommon = NULL;
 
 #if defined(_M_AMD64) || defined(__x86_64__)
 
-static const char*
+static const WCHAR*
 SyscallId(UINT32 ID)
 {
     switch (ID) {
 #define XX(__no__, __api__) \
     case __no__:            \
-        return #__api__;
+        return L## #__api__;
 #include "10.0.17763.316.def"
     }
 
-    return "?";
+    return L"?";
 }
 
 static void NTAPI
@@ -332,7 +332,7 @@ HandleIDT(UINT32 Vector, UINT_PTR StackFrame)
     if (Rip > MmUserProbeAddress)
         return;
 
-    anylogPrintfA("Interrupt 0x%02X, CR3=0x%016llX, RIP=0x%016llX", Vector, __readcr3(), Rip);
+    anylogPrintfW(L"Interrupt 0x%02X, CR3=0x%016llX, RIP=0x%016llX", Vector, __readcr3(), Rip);
 }
 
 void
@@ -345,7 +345,7 @@ HandleSYSCALL(TMP64* Context)
 
     anylogUpdate(PsGetCurrentProcessId(), __readcr3());
 
-    anylogPrintfA("SYSCALL %s(0x%02X), CR3=0x%016llX, RIP=0x%016llX", SyscallId((UINT32)Context->RAX), Context->RAX, __readcr3(), RIP);
+    anylogPrintfW(L"SYSCALL %s(0x%02X), CR3=0x%016llX, RIP=0x%016llX", SyscallId((UINT32)Context->RAX), Context->RAX, __readcr3(), RIP);
 }
 
 #endif
@@ -705,6 +705,18 @@ _CreateProcessNotifyRoutine(_In_ HANDLE ParentId, _In_ HANDLE ProcessId, _In_ BO
     ObDereferenceObject(Process);
 }
 
+VOID
+_LoadImageNotifyRoutine(_In_opt_ PUNICODE_STRING FullImageName, _In_ HANDLE ProcessId, _In_ PIMAGE_INFO ImageInfo)
+{
+    UNREFERENCED_PARAMETER(ImageInfo);
+
+    if (FullImageName) {
+        anylogPrintfW(L"LoadImageNotifyRoutine PID: %p, %s", ProcessId, FullImageName->Buffer);
+    } else {
+        anylogPrintfW(L"LoadImageNotifyRoutine PID: %p, (null name)", ProcessId);
+    }
+}
+
 void
 HelloKeServiceDescriptorTable(UINT8* DllBase)
 {
@@ -751,6 +763,7 @@ HelloKeServiceDescriptorTable(UINT8* DllBase)
     KeIpiGenericCall(AttachIDT, 0);
 
     PsSetCreateProcessNotifyRoutine(_CreateProcessNotifyRoutine, FALSE);
+    PsSetLoadImageNotifyRoutine(_LoadImageNotifyRoutine);
 }
 
 void
@@ -758,6 +771,7 @@ GoodbyeKeServiceDescriptorTable(UINT8* DllBase)
 {
     UNREFERENCED_PARAMETER(DllBase);
 
+    PsRemoveLoadImageNotifyRoutine(_LoadImageNotifyRoutine);
     PsSetCreateProcessNotifyRoutine(_CreateProcessNotifyRoutine, TRUE);
 
     KeIpiGenericCall(DetachSyscall, 0);

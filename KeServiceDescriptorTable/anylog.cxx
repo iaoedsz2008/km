@@ -28,11 +28,11 @@ typedef struct _PRIVATE_CACHE {
 
 static LONG64* SynchronizationA = {}; // 正在填充的索引.
 static LONG64* SynchronizationB = {}; // 已填充的索引.
-static ULONG64* PIDA = {};             // PID A
-static ULONG64* PIDB = {};             // PID B
-static ULONG64* CR3A = {};             //
-static ULONG64* CR3B = {};             //
-static char* Descriptions = {};       // 每一段有固定长度.
+static ULONG64* PIDA = {};            // PID A
+static ULONG64* PIDB = {};            // PID B
+static ULONG64* CR3A = {};            //
+static ULONG64* CR3B = {};            //
+static WCHAR* Descriptions = {};      // 每一段有固定长度.
 
 static PRIVATE_CACHE PrivateCache[0x100];
 
@@ -136,7 +136,7 @@ ExampleZwUnmapViewOfSection(VOID)
 }
 
 void
-anylogPrintfA(const char* pszFormat, ...)
+anylogPrintfW(const WCHAR* pszFormat, ...)
 {
     do {
         if (*CR3A == __readcr3())
@@ -151,11 +151,11 @@ anylogPrintfA(const char* pszFormat, ...)
     LONG64 initialValue = InterlockedExchangeAdd64((LONG64*)SynchronizationA, 1);
     LONG64 i = initialValue % DESCRIPTION_MAX_COUNT;
 
-    char* s = Descriptions + (DESCRIPTION_MAX_LENGTH * i);
+    WCHAR* s = Descriptions + (DESCRIPTION_MAX_LENGTH * i);
 
     va_list args;
     va_start(args, pszFormat);
-    RtlStringCbVPrintfA(s, DESCRIPTION_MAX_LENGTH, pszFormat, args);
+    RtlStringCbVPrintfW(s, DESCRIPTION_MAX_LENGTH, pszFormat, args);
     va_end(args);
 
     InterlockedIncrement64((LONG64*)SynchronizationB);
@@ -192,13 +192,13 @@ anylogInit()
     CR3A = ((ULONG64*)BaseAddress) + 4;
     CR3B = ((ULONG64*)BaseAddress) + 5;
 
-    MaximumSize.QuadPart = 0x100000;
+    MaximumSize.QuadPart = (DESCRIPTION_MAX_COUNT * DESCRIPTION_MAX_LENGTH * sizeof(WCHAR));
     RtlInitUnicodeString(&ObjectName, L"\\BaseNamedObjects\\578117d97cbb471f3e3e115330f0e614");
     BaseAddress = ExampleZwMapViewOfSection(&ObjectName, &MaximumSize);
     if (BaseAddress == NULL)
         return STATUS_UNSUCCESSFUL;
 
-    Descriptions = (char*)BaseAddress;
+    Descriptions = (WCHAR*)BaseAddress;
 
     return STATUS_SUCCESS;
 }
@@ -214,9 +214,11 @@ anylogCleanup()
 void
 anylogUpdate(HANDLE Pid, ULONG64 CR3)
 {
-    if (*PIDA == (ULONG64)Pid)
+    // TODO: 可以监测到PID为0的进程触发.
+
+    if (*PIDA && *PIDA == (ULONG64)Pid)
         *CR3A = CR3;
 
-    if (*PIDB == (ULONG64)Pid)
+    if (*PIDB && *PIDB == (ULONG64)Pid)
         *CR3B = CR3;
 }
