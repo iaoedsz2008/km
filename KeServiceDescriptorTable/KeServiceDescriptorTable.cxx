@@ -282,7 +282,7 @@ static UINT_PTR _KiFastCallEntryCommon = NULL;
 #if defined(_M_AMD64) || defined(__x86_64__)
 
 static const WCHAR*
-SyscallId(UINT32 ID)
+SyscallId(UINT16 ID)
 {
     switch (ID) {
 #define XX(__no__, __api__) \
@@ -338,14 +338,16 @@ HandleIDT(UINT32 Vector, UINT_PTR StackFrame)
 void
 HandleSYSCALL(TMP64* Context)
 {
-    if (Context->RAX >= 0x1000)
+    UINT16 AX = (UINT16)Context->RAX;
+
+    if (AX >= 0x1000)
         return;
 
     ULONG64 RIP = *(&(Context->RSP) + 2); // FIXME: trick.
 
     anylogUpdate(PsGetCurrentProcessId(), __readcr3());
 
-    anylogPrintfW(L"SYSCALL %s(0x%02X), CR3=0x%016llX, RIP=0x%016llX", SyscallId((UINT32)Context->RAX), Context->RAX, __readcr3(), RIP);
+    anylogPrintfW(L"SYSCALL %s(0x%02X), CR3=0x%016llX, RIP=0x%016llX", SyscallId(AX), AX, __readcr3(), RIP);
 }
 
 #endif
