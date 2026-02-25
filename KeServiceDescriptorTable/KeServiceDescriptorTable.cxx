@@ -317,6 +317,89 @@ HandleIDT(UINT32 Vector, UINT_PTR StackFrame)
         break;
     }
 
+    const WCHAR* Description = L"User Defined Interrupt";
+
+    switch (Vector) {
+    case 0x00:
+        Description = L"Divide Error";
+        break;
+    case 0x01:
+        Description = L"Debug Exception";
+        break;
+    case 0x02:
+        Description = L"NMI Interrupt";
+        break;
+    case 0x03:
+        Description = L"Breakpoint";
+        break;
+    case 0x04:
+        Description = L"Overflow";
+        break;
+    case 0x05:
+        Description = L"BOUND Range Exceeded";
+        break;
+    case 0x06:
+        Description = L"Invalid Opcode";
+        break;
+    case 0x07:
+        Description = L"Device Not Available";
+        break;
+    case 0x08:
+        Description = L"Double Fault";
+        break;
+    case 0x09:
+        Description = L"Coprocessor Segment Overrun";
+        break;
+    case 0x0A:
+        Description = L"Invalid TSS";
+        break;
+    case 0x0B:
+        Description = L"Segment Not Present";
+        break;
+    case 0x0C:
+        Description = L"Stack-Segment Fault";
+        break;
+    case 0x0D:
+        Description = L"General Protection";
+        break;
+    case 0x0E:
+        Description = L"Page Fault";
+        break;
+    case 0x0F:
+        Description = L"Intel reserved";
+        break;
+    case 0x10:
+        Description = L"x87 FPU Floating-Point Error";
+        break;
+    case 0x11:
+        Description = L"Alignment Check";
+        break;
+    case 0x12:
+        Description = L"Machine Check";
+        break;
+    case 0x13:
+        Description = L"SIMD Floating-Point Exception";
+        break;
+    case 0x14:
+        Description = L"Virtualization Exception";
+        break;
+    case 0x15:
+        Description = L"Control Protection Exception";
+        break;
+    case 0x16:
+    case 0x17:
+    case 0x18:
+    case 0x19:
+    case 0x1A:
+    case 0x1B:
+    case 0x1C:
+    case 0x1D:
+    case 0x1E:
+    case 0x1F:
+        Description = L"Intel reserved";
+        break;
+    }
+
     UINT64 Rip = *(UINT64*)(StackFrame + 0x00);
     UINT16 Cs = *(UINT16*)(StackFrame + 0x08);
     UINT64 Rflags = *(UINT64*)(StackFrame + 0x10);
@@ -332,7 +415,7 @@ HandleIDT(UINT32 Vector, UINT_PTR StackFrame)
     if (Rip > MmUserProbeAddress)
         return;
 
-    anylogPrintfW(L"Interrupt 0x%02X, CR3=0x%016llX, RIP=0x%016llX", Vector, __readcr3(), Rip);
+    anylogPrintfW(L"INT 0x%02X(%s), CR3=0x%016llX, RIP=0x%016llX", Vector, Description, __readcr3(), Rip);
 }
 
 void
@@ -347,7 +430,7 @@ HandleSYSCALL(TMP64* Context)
 
     anylogUpdate(PsGetCurrentProcessId(), __readcr3());
 
-    anylogPrintfW(L"SYSCALL %s(0x%02X), CR3=0x%016llX, RIP=0x%016llX", SyscallId(AX), AX, __readcr3(), RIP);
+    anylogPrintfW(L"SYSCALL 0x%02X(%s), CR3=0x%016llX, RIP=0x%016llX", AX, SyscallId(AX), __readcr3(), RIP);
 }
 
 #endif
