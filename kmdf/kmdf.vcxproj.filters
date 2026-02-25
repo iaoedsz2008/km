@@ -27,9 +27,21 @@
     <ClInclude Include="kmdf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AuthenticAMD.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GenuineIntel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="kmdf.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AuthenticAMD.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GenuineIntel.cxx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
