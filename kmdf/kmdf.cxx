@@ -3,6 +3,9 @@
  * 用户为本，科技向善
  **/
 
+#include "AuthenticAMD.h"
+#include "GenuineIntel.h"
+
 #include "kmdf.h"
 
 #include "Support.h"
@@ -11,10 +14,32 @@
 
 #include <ntddk.h>
 
-ULONG_PTR
+static ULONG_PTR
 KipiBroadcastWorker(_In_ ULONG_PTR Argument)
 {
-    return 0;
+    char vendor[0x10] = {};
+
+    uint32_t eax;
+    uint32_t ebx;
+    uint32_t ecx;
+    uint32_t edx;
+
+    __asm_cpuid(0, &eax, &ebx, &ecx, &edx);
+
+    ((uint32_t*)vendor)[0] = ebx;
+    ((uint32_t*)vendor)[1] = edx;
+    ((uint32_t*)vendor)[2] = ecx;
+
+    AuthenticAMD svm;
+    GenuineIntel vmx;
+
+    if (memcmp(vendor, "GenuineIntel", 12) == 0)
+        return vmx.initialize();
+
+    if (memcmp(vendor, "AuthenticAMD", 12) == 0)
+        return svm.initialize();
+
+    return -1;
 }
 
 EXTERN_C VOID
@@ -28,14 +53,11 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 
-    uint32_t eax;
-    uint32_t ebx;
-    uint32_t ecx;
-    uint32_t edx;
-
-    __asm_cpuid(0, &eax, &ebx, &ecx, &edx);
-
-    KeIpiGenericCall(KipiBroadcastWorker, 0);
+    //       return STATUS_UNSUCCESSFUL;
+    // KdBreakPoint();
+    //
+    // if (KeIpiGenericCall(KipiBroadcastWorker, 0))
+    //     return STATUS_UNSUCCESSFUL;
 
     DriverObject->DriverUnload = DriverUnload;
 
