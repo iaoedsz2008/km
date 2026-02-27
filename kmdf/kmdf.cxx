@@ -24,6 +24,8 @@ KipiBroadcastWorker(_In_ ULONG_PTR Argument)
     uint32_t ecx;
     uint32_t edx;
 
+    KdBreakPoint();
+
     __asm_cpuid(0, &eax, &ebx, &ecx, &edx);
 
     ((uint32_t*)vendor)[0] = ebx;
@@ -53,11 +55,8 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 
-    //       return STATUS_UNSUCCESSFUL;
-    // KdBreakPoint();
-    //
-    // if (KeIpiGenericCall(KipiBroadcastWorker, 0))
-    //     return STATUS_UNSUCCESSFUL;
+    if (KeIpiGenericCall(KipiBroadcastWorker, 0))
+        return STATUS_UNSUCCESSFUL;
 
     DriverObject->DriverUnload = DriverUnload;
 

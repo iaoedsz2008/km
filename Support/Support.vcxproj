@@ -143,12 +143,14 @@
       <PreprocessorDefinitions>_DEBUG;WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
@@ -169,12 +171,14 @@
       <PreprocessorDefinitions>_DEBUG;WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
       <PreprocessorDefinitions>WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

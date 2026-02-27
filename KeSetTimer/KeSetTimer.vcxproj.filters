@@ -22,5 +22,15 @@
     <Inf Include="KeSetTimer.inf">
       <Filter>Driver Files</Filter>
     </Inf>
-  </ItemGroup>  
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="KeSetTimer.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="KeSetTimer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

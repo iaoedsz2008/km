@@ -27,9 +27,15 @@
     <ClInclude Include="KeServiceDescriptorTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="anylog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KeServiceDescriptorTable.cxx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="anylog.cxx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
