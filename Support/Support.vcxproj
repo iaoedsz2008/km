@@ -37,6 +37,8 @@
   <ItemGroup>
     <ClInclude Include="lfqueue.h" />
     <ClInclude Include="lfstack.h" />
+    <ClInclude Include="SecureSeed.h" />
+    <ClInclude Include="StringHash.h" />
     <ClInclude Include="Support.h" />
   </ItemGroup>
   <ItemGroup>

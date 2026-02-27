@@ -5,9 +5,9 @@
 
 #include "AuthenticAMD.h"
 
-#include "kmdf.h"
-
+template <>
 int
-AuthenticAMD::initialize()
+initialize<Hash("AuthenticAMD")>()
 {
+    return 0;
 }

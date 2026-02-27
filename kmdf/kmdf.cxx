@@ -8,6 +8,7 @@
 
 #include "kmdf.h"
 
+#include "StringHash.h"
 #include "Support.h"
 
 #include <ntifs.h>
@@ -32,14 +33,14 @@ KipiBroadcastWorker(_In_ ULONG_PTR Argument)
     ((uint32_t*)vendor)[1] = edx;
     ((uint32_t*)vendor)[2] = ecx;
 
-    AuthenticAMD svm;
-    GenuineIntel vmx;
+    KeGetCurrentProcessorIndex();
+    KeGetCurrentProcessorNumber();
 
     if (memcmp(vendor, "GenuineIntel", 12) == 0)
-        return vmx.initialize();
+        return initialize<Hash("GenuineIntel")>();
 
     if (memcmp(vendor, "AuthenticAMD", 12) == 0)
-        return svm.initialize();
+        return initialize<Hash("AuthenticAMD")>();
 
     return -1;
 }
@@ -54,6 +55,8 @@ EXTERN_C NTSTATUS
 DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
+
+    KeGetCurrentProcessorNumber();
 
     if (KeIpiGenericCall(KipiBroadcastWorker, 0))
         return STATUS_UNSUCCESSFUL;

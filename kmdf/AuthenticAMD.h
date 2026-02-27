@@ -6,19 +6,9 @@
 #if !defined(__72014abad6d4f5486f4748c282f475d7__)
 #define __72014abad6d4f5486f4748c282f475d7__
 
-class AuthenticAMD {
-  public:
-    AuthenticAMD()
-    {
-    }
+#include "kmdf.h"
 
-    ~AuthenticAMD()
-    {
-    }
-
-    int initialize();
-
-  private:
-};
+template <>
+int initialize<Hash("AuthenticAMD")>();
 
 #endif // !__72014abad6d4f5486f4748c282f475d7__

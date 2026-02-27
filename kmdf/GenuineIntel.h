@@ -6,19 +6,9 @@
 #if !defined(__398ab4fa7c7ae78c3d6413bc104aff31__)
 #define __398ab4fa7c7ae78c3d6413bc104aff31__
 
-class GenuineIntel {
-  public:
-    GenuineIntel()
-    {
-    }
+#include "kmdf.h"
 
-    ~GenuineIntel()
-    {
-    }
-
-    int initialize();
-
-  private:
-};
+template <>
+int initialize<Hash("GenuineIntel")>();
 
 #endif // !__398ab4fa7c7ae78c3d6413bc104aff31__

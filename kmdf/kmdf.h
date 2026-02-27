@@ -23,6 +23,8 @@ typedef LONG_PTR ssize_t;
 typedef ULONG_PTR uintptr_t;
 typedef ULONG_PTR size_t;
 
+#include "StringHash.h"
+
 #if defined(__clang__) || defined(__GNUC__)
 
 static inline void
@@ -902,5 +904,8 @@ __asm_vmx_vmxon(uint32_t* vmxon_pa)
 #endif
 
 #endif
+
+template <size_t T>
+int initialize();
 
 #endif // !__3a1c6fd0f7b982d2d5718381b6ebc2dc__
