@@ -598,7 +598,7 @@ __asm_rdtsc(void)
 {
     uint32_t low, high;
     __asm__ __volatile__("rdtsc" : "=a"(low), "=d"(high));
-    return ((uint64_t)high << 32) | low;
+    return (((uint64_t)high) << 32) | low;
 }
 
 static inline uint64_t
@@ -606,7 +606,7 @@ __asm_rdtscp(uint32_t* aux)
 {
     uint32_t low, high;
     __asm__ __volatile__("rdtscp" : "=a"(low), "=d"(high), "=c"(*aux));
-    return ((uint64_t)high << 32) | low;
+    return (((uint64_t)high) << 32) | low;
 }
 
 static inline uint16_t
@@ -629,72 +629,52 @@ __asm_svm_stgi(void)
     __asm__ __volatile__("stgi" ::: "memory");
 }
 
-#if defined(__x86_64__)
 static inline void
-__asm_svm_vmload(uint64_t vmcb_pa)
+__asm_svm_vmload(size_t pa)
 {
-    __asm__ __volatile__("vmload %%rax" ::"a"(vmcb_pa) : "memory");
+    __asm__ __volatile__("vmload %%rax" ::"a"(pa) : "memory");
 }
 
 static inline void
-__asm_svm_vmrun(uint64_t vmcb_pa)
+__asm_svm_vmrun(size_t pa)
 {
-    __asm__ __volatile__("vmrun %%rax" ::"a"(vmcb_pa) : "memory");
+    __asm__ __volatile__("vmrun %%rax" ::"a"(pa) : "memory");
 }
 
 static inline void
-__asm_svm_vmsave(uint64_t vmcb_pa)
+__asm_svm_vmsave(size_t pa)
 {
-    __asm__ __volatile__("vmsave %%rax" ::"a"(vmcb_pa) : "memory");
+    __asm__ __volatile__("vmsave %%rax" ::"a"(pa) : "memory");
 }
-
-#else
-
-static inline void
-__asm_svm_vmload(uint32_t vmcb_pa)
-{
-    __asm__ __volatile__("vmload %%eax" ::"a"(vmcb_pa) : "memory");
-}
-
-static inline void
-__asm_svm_vmrun(uint32_t vmcb_pa)
-{
-    __asm__ __volatile__("vmrun %%eax" ::"a"(vmcb_pa) : "memory");
-}
-
-static inline void
-__asm_svm_vmsave(uint32_t vmcb_pa)
-{
-    __asm__ __volatile__("vmsave %%eax" ::"a"(vmcb_pa) : "memory");
-}
-
-#endif
 
 #if defined(__x86_64__)
 
-static inline uint8_t
+static inline size_t
 __asm_vmx_invept(uint64_t type, const void* descriptor)
 {
-    uint8_t error;
+    size_t eflags;
     __asm__ __volatile__("\n invept %1, %2"
-                         "\n setna %0"
-                         : "=q"(error)
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)
                          : "m"(*(const uint64_t*)descriptor), "r"(type)
                          : "cc", "memory");
-    return error;
+    return eflags;
 }
 
-static inline uint8_t
+static inline size_t
 __asm_vmx_invvpid(uint64_t type, const void* descriptor)
 {
-    uint8_t error;
+    size_t eflags;
     __asm__ __volatile__("\n invvpid %1, %2"
-                         "\n setna %0"
-                         : "=q"(error)
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)
                          : "m"(*(const uint64_t*)descriptor), "r"(type)
                          : "cc", "memory");
-    return error;
+    return eflags;
 }
+
 #endif
 
 static inline void
@@ -703,35 +683,18 @@ __asm_vmx_vmcall(void)
     __asm__ __volatile__("vmcall" ::: "memory");
 }
 
-#if defined(__x86_64__)
-
-static inline uint8_t
+static inline uint64_t
 __asm_vmx_vmclear(uint64_t* vmcs_pa)
 {
-    uint8_t error;
+    uint64_t eflags;
     __asm__ __volatile__("\n vmclear %1"
-                         "\n setna %0"
-                         : "=q"(error)
+                         "\n pushfq"
+                         "\n pop %0"
+                         : "=r"(eflags)
                          : "m"(*vmcs_pa)
                          : "cc", "memory");
-    return error;
+    return eflags;
 }
-
-#else
-
-static inline uint8_t
-__asm_vmx_vmclear(uint32_t* vmcs_pa)
-{
-    uint8_t error;
-    __asm__ __volatile__("\n vmclear %1"
-                         "\n setna %0"
-                         : "=q"(error)
-                         : "m"(*vmcs_pa)
-                         : "cc", "memory");
-    return error;
-}
-
-#endif
 
 static inline void
 __asm_vmx_vmfunc(void)
@@ -739,26 +702,28 @@ __asm_vmx_vmfunc(void)
     __asm__ __volatile__("vmfunc" ::: "memory");
 }
 
-static inline uint8_t
+static inline size_t
 __asm_vmx_vmlaunch(void)
 {
-    uint8_t error;
+    size_t eflags;
     __asm__ __volatile__("\n vmlaunch"
-                         "\n setna %0"
-                         : "=q"(error)::"cc", "memory");
-    return error;
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)::"cc", "memory");
+    return eflags;
 }
 
-static inline uint8_t
+static inline size_t
 __asm_vmx_vmptrld(uint64_t* vmcs_pa)
 {
-    uint8_t error;
+    size_t eflags;
     __asm__ __volatile__("\n vmptrld %1"
-                         "\n setna %0"
-                         : "=q"(error)
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)
                          : "m"(*vmcs_pa)
                          : "cc", "memory");
-    return error;
+    return eflags;
 }
 
 static inline void
@@ -780,52 +745,35 @@ __asm_vmx_vmread(size_t field, size_t* value)
     return eflags;
 }
 
-static inline uint8_t
+static inline size_t
 __asm_vmx_vmresume(void)
 {
-    uint8_t error;
+    size_t eflags;
     __asm__ __volatile__("\n vmresume"
-                         "\n setna %0"
-                         : "=q"(error)::"cc", "memory");
-    return error;
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)::"cc", "memory");
+    return eflags;
 }
 
-#if defined(__x86_64__)
-
-static inline uint8_t
-__asm_vmx_vmwrite(uint64_t field, uint64_t value)
+static inline size_t
+__asm_vmx_vmwrite(size_t field, size_t value)
 {
-    uint8_t error;
+    size_t eflags;
     __asm__ __volatile__("\n vmwrite %2, %1"
-                         "\n setna %0"
-                         : "=q"(error)
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)
                          : "r"(field), "r"(value)
                          : "cc");
-    return error;
+    return eflags;
 }
-
-#else
-
-static inline uint8_t
-__asm_vmx_vmwrite(uint32_t field, uint32_t value)
-{
-    uint8_t error;
-    __asm__ __volatile__("\n vmwrite %2, %1"
-                         "\n setna %0"
-                         : "=q"(error)
-                         : "r"(field), "r"(value)
-                         : "cc");
-    return error;
-}
-
-#endif
 
 static inline void
 __asm_vmx_vmxoff(void)
 {
     __asm__ __volatile__("vmxoff" ::: "memory");
 }
-
 
 static inline size_t
 __asm_vmx_vmxon(uint64_t* pa)
