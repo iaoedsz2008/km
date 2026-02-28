@@ -6,19 +6,15 @@
 #if !defined(__cd467977d7bbaeb1a12c8bd31d82e84f__)
 #define __cd467977d7bbaeb1a12c8bd31d82e84f__
 
-#if defined(_KERNEL_MODE)
-
-#include <ntddk.h>
-
-class lfstack {
+class lfstack2 {
   public:
-    lfstack() :
+    lfstack2() :
         Head{},
         Tail{}
     {
     }
 
-    ~lfstack()
+    ~lfstack2()
     {
     }
 
@@ -60,6 +56,45 @@ class lfstack {
     PVOID* Tail;
 };
 
-#endif
+class lfstack {
+  public:
+    lfstack()
+    {
+        Head = NULL;
+    }
+
+    ~lfstack()
+    {
+    }
+
+    inline void
+    push(PVOID Block)
+    {
+        LIST_ENTRY* Old = NULL;
+
+        do {
+            Old = static_cast<LIST_ENTRY*>(InterlockedCompareExchangePointer((PVOID*)&Head, NULL, NULL));
+            static_cast<LIST_ENTRY*>(Block)->Flink = Old;
+        } while (InterlockedCompareExchangePointer((PVOID*)&Head, Block, Old) != Old);
+    }
+
+    inline PVOID
+    pop()
+    {
+        LIST_ENTRY* Old = NULL;
+
+        do {
+            Old = static_cast<LIST_ENTRY*>(InterlockedCompareExchangePointer((PVOID*)&Head, NULL, NULL));
+
+            if (Old == NULL)
+                break;
+        } while (InterlockedCompareExchangePointer((PVOID*)&Head, Old->Flink, Old) != Old);
+
+        return Old;
+    }
+
+  private:
+    LIST_ENTRY* Head;
+};
 
 #endif // !__cd467977d7bbaeb1a12c8bd31d82e84f__

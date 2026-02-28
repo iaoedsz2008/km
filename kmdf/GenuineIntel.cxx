@@ -441,6 +441,13 @@ initialize<Hash("GenuineIntel")>()
     __asm_cr0((__asm_cr0() & ia32_vmx_cr0_fixed1) | ia32_vmx_cr0_fixed0);
     __asm_cr4(((__asm_cr4() | 0x00002000 /*VMXE*/) & ia32_vmx_cr4_fixed1) | ia32_vmx_cr4_fixed0);
 
+    KdBreakPoint();
+
+    auto x = allocate<0x1000>();
+    deallocate<0x1000>(x);
+
+    MmGetPhysicalAddress;
+
     __asm_vmx_vmxon;
     __asm_vmx_vmclear;
     __asm_vmx_vmptrld;
