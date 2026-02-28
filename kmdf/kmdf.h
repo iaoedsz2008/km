@@ -19,6 +19,9 @@ template <size_t>
 void deallocate(PVOID Mem);
 
 template <size_t T>
-int initialize();
+int initialize(PVOID);
+
+template <size_t T>
+int cleanup(PVOID);
 
 #endif // !__3a1c6fd0f7b982d2d5718381b6ebc2dc__

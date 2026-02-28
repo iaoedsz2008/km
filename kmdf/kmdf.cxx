@@ -15,6 +15,8 @@ static lfqueue* Contiguous8K = NULL;
 static lfqueue* Contiguous16K = NULL;
 static lfqueue* Contiguous32K = NULL;
 
+static PVOID vcpus[0x400] = {};
+
 void*
 operator new(SIZE_T size, void* ptr) noexcept
 {
@@ -79,7 +81,7 @@ deallocate<0x8000>(PVOID Mem)
 }
 
 static ULONG_PTR
-KipiBroadcastWorker(_In_ ULONG_PTR Argument)
+load(_In_ ULONG_PTR Argument)
 {
     UNREFERENCED_PARAMETER(Argument);
 
@@ -98,19 +100,57 @@ KipiBroadcastWorker(_In_ ULONG_PTR Argument)
     ((uint32_t*)vendor)[1] = edx;
     ((uint32_t*)vendor)[2] = ecx;
 
+    PVOID vcpu = allocate<0x1000>();
+
+    vcpus[KeGetCurrentProcessorIndex()] = vcpu;
+
     if (memcmp(vendor, "GenuineIntel", 12) == 0)
-        return initialize<Hash("GenuineIntel")>();
+        return initialize<Hash("GenuineIntel")>(vcpu);
 
     if (memcmp(vendor, "AuthenticAMD", 12) == 0)
-        return initialize<Hash("AuthenticAMD")>();
+        return initialize<Hash("AuthenticAMD")>(vcpu);
 
     return -1;
+}
+
+static ULONG_PTR
+unload(_In_ ULONG_PTR Argument)
+{
+    UNREFERENCED_PARAMETER(Argument);
+
+    char vendor[0x10] = {};
+
+    uint32_t eax;
+    uint32_t ebx;
+    uint32_t ecx;
+    uint32_t edx;
+
+    KdBreakPoint();
+
+    __asm_cpuid(0, &eax, &ebx, &ecx, &edx);
+
+    ((uint32_t*)vendor)[0] = ebx;
+    ((uint32_t*)vendor)[1] = edx;
+    ((uint32_t*)vendor)[2] = ecx;
+
+    PVOID vcpu = vcpus[KeGetCurrentProcessorIndex()];
+
+    if (memcmp(vendor, "GenuineIntel", 12) == 0)
+        return cleanup<Hash("GenuineIntel")>(vcpu);
+
+    if (memcmp(vendor, "AuthenticAMD", 12) == 0)
+        return cleanup<Hash("AuthenticAMD")>(vcpu);
+
+    return 0;
 }
 
 EXTERN_C VOID
 DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
+
+    if (KeIpiGenericCall(unload, 0))
+        return;
 
     while (auto m = allocate<0x8000>()) {
         MmFreeContiguousMemory(m);
@@ -185,7 +225,7 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 
     ExFreePool(Ranges);
 
-    if (KeIpiGenericCall(KipiBroadcastWorker, 0))
+    if (KeIpiGenericCall(load, 0))
         return STATUS_UNSUCCESSFUL;
 
     DriverObject->DriverUnload = DriverUnload;

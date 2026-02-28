@@ -7,7 +7,7 @@
 
 template <>
 int
-initialize<Hash("GenuineIntel")>()
+initialize<Hash("GenuineIntel")>(PVOID vcpu)
 {
     uint32_t eax;
     uint32_t ebx;
@@ -443,18 +443,70 @@ initialize<Hash("GenuineIntel")>()
 
     KdBreakPoint();
 
-    auto x = allocate<0x1000>();
-    deallocate<0x1000>(x);
+    PVOID vmcsGuest = allocate<0x1000>();
+    PVOID vmcsHost = allocate<0x1000>();
 
-    MmGetPhysicalAddress;
+    if ((SIZE_T)vmcsGuest & 0xFFF)
+        return -1;
 
-    __asm_vmx_vmxon;
-    __asm_vmx_vmclear;
-    __asm_vmx_vmptrld;
-    __asm_vmx_vmptrst;
+    if ((SIZE_T)vmcsHost & 0xFFF)
+        return -1;
+
+    memset(vmcsGuest, 0, 0x1000);
+    memset(vmcsHost, 0, 0x1000);
+
+    /**
+     * Bits 30:0: VMCS revision identifier
+     * Bit 31: shadow-VMCS indicator (see Section 27.10)
+     **/
+    *(uint32_t*)vmcsGuest = (uint32_t)__asm_rdmsr(0x00000480 /* IA32_VMX_BASIC */) & 0x7FFFFFFF;
+    *(uint32_t*)vmcsHost = (uint32_t)__asm_rdmsr(0x00000480 /* IA32_VMX_BASIC */) & 0x7FFFFFFF;
+
+    PHYSICAL_ADDRESS vmcsGuestPA = MmGetPhysicalAddress(vmcsGuest);
+    PHYSICAL_ADDRESS vmcsHostPA = MmGetPhysicalAddress(vmcsHost);
+
+    uint8_t Status = 0;
+
+#define EFLAGS_CF_MASK   (1 << 0x00)
+#define EFLAGS_PF_MASK   (1 << 0x02)
+#define EFLAGS_AF_MASK   (1 << 0x04)
+#define EFLAGS_ZF_MASK   (1 << 0x06)
+#define EFLAGS_SF_MASK   (1 << 0x07)
+#define EFLAGS_TF_MASK   (1 << 0x08)
+#define EFLAGS_IF_MASK   (1 << 0x09)
+#define EFLAGS_DF_MASK   (1 << 0x0A)
+#define EFLAGS_OF_MASK   (1 << 0x0B)
+#define EFLAGS_IOPL_MASK (0x3000)
+#define EFLAGS_NT_MASK   (1 << 0x0E)
+#define EFLAGS_RF_MASK   (1 << 0x10)
+#define EFLAGS_VM_MASK   (1 << 0x11)
+#define EFLAGS_AC_MASK   (1 << 0x12)
+#define EFLAGS_VIF_MASK  (1 << 0x13)
+#define EFLAGS_VIP_MASK  (1 << 0x14)
+#define EFLAGS_ID_MASK   (1 << 0x15)
+
+    Status = __asm_vmx_vmxon((uint64_t*)&vmcsHostPA.QuadPart);
+    if (Status & EFLAGS_ZF_MASK) {
+        size_t e;
+        __asm_vmx_vmread(0x00004400, &e);
+        e = 0;
+    }
+
+    Status &= (EFLAGS_CF_MASK | EFLAGS_PF_MASK | EFLAGS_AF_MASK | EFLAGS_ZF_MASK | EFLAGS_SF_MASK | EFLAGS_OF_MASK);
+
+    Status = __asm_vmx_vmclear((uint64_t*)&vmcsGuestPA.QuadPart);
+    Status = __asm_vmx_vmptrld((uint64_t*)&vmcsGuestPA.QuadPart);
 
     __asm_vmx_vmwrite;
     // __asm_vmx_vmread(0x4400 /*VMX_VMCS32_RO_VM_INSTR_ERROR*/, NULL);
 
+    return 0;
+}
+
+template <>
+int
+cleanup<Hash("GenuineIntel")>(PVOID vcpu)
+{
+    __asm_vmx_vmxoff();
     return 0;
 }

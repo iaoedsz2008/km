@@ -7,7 +7,14 @@
 
 template <>
 int
-initialize<Hash("AuthenticAMD")>()
+initialize<Hash("AuthenticAMD")>(PVOID vcpu)
+{
+    return 0;
+}
+
+template <>
+int
+cleanup<Hash("AuthenticAMD")>(PVOID vcpu)
 {
     return 0;
 }
