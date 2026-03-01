@@ -5,88 +5,6 @@
 
 #include "GenuineIntel.h"
 
-static constexpr uint32_t IA32_TIME_STAMP_COUNTER = 0x00000010;
-static constexpr uint32_t IA32_APIC_BASE = 0x0000001B;
-static constexpr uint32_t IA32_FEATURE_CONTROL = 0x0000003A;
-static constexpr uint32_t IA32_TSC_ADJUST = 0x0000003B;
-static constexpr uint32_t IA32_SPEC_CTRL = 0x00000048;
-static constexpr uint32_t IA32_SMBASE = 0x0000009E;
-static constexpr uint32_t IA32_PMC0 = 0x000000C1;
-static constexpr uint32_t IA32_PMC1 = 0x000000C2;
-static constexpr uint32_t IA32_PMC2 = 0x000000C3;
-static constexpr uint32_t IA32_PMC3 = 0x000000C4;
-static constexpr uint32_t IA32_PMC4 = 0x000000C5;
-static constexpr uint32_t IA32_PMC5 = 0x000000C6;
-static constexpr uint32_t IA32_PMC6 = 0x000000C7;
-static constexpr uint32_t IA32_PMC7 = 0x000000C8;
-static constexpr uint32_t IA32_PMC8 = 0x000000C9;
-static constexpr uint32_t IA32_PMC9 = 0x000000CA;
-static constexpr uint32_t IA32_CORE_CAPABILITIES = 0x000000CF;
-static constexpr uint32_t IA32_MPERF = 0x000000E7;
-static constexpr uint32_t IA32_APERF = 0x000000E8;
-static constexpr uint32_t IA32_ARCH_CAPABILITIES = 0x0000010A;
-static constexpr uint32_t IA32_PERF_STATUS = 0x00000198;
-static constexpr uint32_t IA32_PERF_CTL = 0x00000199;
-static constexpr uint32_t IA32_MISC_ENABLE = 0x000001A0;
-static constexpr uint32_t IA32_DEBUGCTL = 0x000001D9;
-static constexpr uint32_t IA32_SMRR_PHYSBASE = 0x000001F2;
-static constexpr uint32_t IA32_SMRR_PHYSMASK = 0x000001F3;
-static constexpr uint32_t IA32_MTRR_PHYSBASE0 = 0x00000200;
-static constexpr uint32_t IA32_MTRR_PHYSMASK0 = 0x00000201;
-static constexpr uint32_t IA32_MTRR_PHYSBASE1 = 0x00000202;
-static constexpr uint32_t IA32_MTRR_PHYSMASK1 = 0x00000203;
-static constexpr uint32_t IA32_MTRR_PHYSBASE2 = 0x00000204;
-static constexpr uint32_t IA32_MTRR_PHYSMASK2 = 0x00000205;
-static constexpr uint32_t IA32_MTRR_PHYSBASE3 = 0x00000206;
-static constexpr uint32_t IA32_MTRR_PHYSMASK3 = 0x00000207;
-static constexpr uint32_t IA32_MTRR_PHYSBASE4 = 0x00000208;
-static constexpr uint32_t IA32_MTRR_PHYSMASK4 = 0x00000209;
-static constexpr uint32_t IA32_MTRR_PHYSBASE5 = 0x0000020A;
-static constexpr uint32_t IA32_MTRR_PHYSMASK5 = 0x0000020B;
-static constexpr uint32_t IA32_MTRR_PHYSBASE6 = 0x0000020C;
-static constexpr uint32_t IA32_MTRR_PHYSMASK6 = 0x0000020D;
-static constexpr uint32_t IA32_MTRR_PHYSBASE7 = 0x0000020E;
-static constexpr uint32_t IA32_MTRR_PHYSMASK7 = 0x0000020F;
-static constexpr uint32_t IA32_MTRR_PHYSBASE8 = 0x00000210;
-static constexpr uint32_t IA32_MTRR_PHYSMASK8 = 0x00000211;
-static constexpr uint32_t IA32_MTRR_PHYSBASE9 = 0x00000212;
-static constexpr uint32_t IA32_MTRR_PHYSMASK9 = 0x00000213;
-static constexpr uint32_t IA32_PERF_CAPABILITIES = 0x00000345;
-static constexpr uint32_t IA32_VMX_BASIC = 0x00000480;
-static constexpr uint32_t IA32_VMX_PINBASED_CTLS = 0x00000481;
-static constexpr uint32_t IA32_VMX_PROCBASED_CTLS = 0x00000482;
-static constexpr uint32_t IA32_VMX_EXIT_CTLS = 0x00000483;
-static constexpr uint32_t IA32_VMX_ENTRY_CTLS = 0x00000484;
-static constexpr uint32_t IA32_VMX_MISC = 0x00000485;
-static constexpr uint32_t IA32_VMX_CR0_FIXED0 = 0x00000486;
-static constexpr uint32_t IA32_VMX_CR0_FIXED1 = 0x00000487;
-static constexpr uint32_t IA32_VMX_CR4_FIXED0 = 0x00000488;
-static constexpr uint32_t IA32_VMX_CR4_FIXED1 = 0x00000489;
-static constexpr uint32_t IA32_VMX_VMCS_ENUM = 0x0000048A;
-static constexpr uint32_t IA32_VMX_PROCBASED_CTLS2 = 0x0000048B;
-static constexpr uint32_t IA32_VMX_EPT_VPID_CAP = 0x0000048C;
-static constexpr uint32_t IA32_VMX_TRUE_PINBASED_CTLS = 0x0000048D;
-static constexpr uint32_t IA32_VMX_TRUE_PROCBASED_CTLS = 0x0000048E;
-static constexpr uint32_t IA32_VMX_TRUE_EXIT_CTLS = 0x0000048F;
-static constexpr uint32_t IA32_VMX_TRUE_ENTRY_CTLS = 0x00000490;
-static constexpr uint32_t IA32_VMX_VMFUNC = 0x00000491;
-static constexpr uint32_t IA32_VMX_PROCBASED_CTLS3 = 0x00000492;
-static constexpr uint32_t IA32_VMX_EXIT_CTLS2 = 0x00000493;
-static constexpr uint32_t IA32_DEBUG_INTERFACE = 0x00000C80;
-static constexpr uint32_t IA32_LBR_CTL = 0x000014CE;
-static constexpr uint32_t IA32_LBR_DEPTH = 0x000014CF;
-static constexpr uint32_t IA32_LBR_x_FROM_IP = 0x00001500;
-static constexpr uint32_t IA32_LBR_x_TO_IP = 0x00001600;
-static constexpr uint32_t IA32_EFER = 0xC0000080;
-static constexpr uint32_t IA32_STAR = 0xC0000081;
-static constexpr uint32_t IA32_LSTAR = 0xC0000082;
-static constexpr uint32_t IA32_CSTAR = 0xC0000083;
-static constexpr uint32_t IA32_FMASK = 0xC0000084;
-static constexpr uint32_t IA32_FS_BASE = 0xC0000100;
-static constexpr uint32_t IA32_GS_BASE = 0xC0000101;
-static constexpr uint32_t IA32_KERNEL_GS_BASE = 0xC0000102;
-static constexpr uint32_t IA32_TSC_AUX = 0xC0000103;
-
 // Taken: VirtualBox/include/VBox/vmm/hm_vmx.h
 
 /** @name VMCS fields and encoding.
@@ -828,36 +746,10 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     {
         field32 = {};
 
-        /**
-         * If this control is 1, external interrupts cause VM exits. Otherwise, they are delivered normally.
-         * If this control is 1, the value of RFLAGS.IF does not affect interrupt blocking.
-         **/
         field32 |= (1 << 0); // External-interrupt exiting
-
-        /**
-         * If this control is 1, non-maskable interrupts (NMIs) cause VM exits. Otherwise, they are
-         * delivered normally using vector 2. This control also determines interactions between IRET and
-         * blocking by NMI (see Section 28.3).
-         **/
         field32 |= (1 << 3); // NMI exiting
-
-        /**
-         * If this control is 1, NMIs are never blocked and the “blocking by NMI” bit (bit 3) in the
-         * interruptibility-state field indicates “virtual-NMI blocking” (see Table 27-3). This control also
-         * interacts with the “NMI-window exiting” VM-execution control (see Section 27.6.2).
-         **/
         field32 |= (1 << 5); // Virtual NMIs
-
-        /**
-         * If this control is 1, the VMX-preemption timer counts down in VMX non-root operation;
-         * A VM exit occurs when the timer counts down to zero; see Section 28.2.
-         **/
         field32 |= (1 << 6); // Activate VMX-preemption timer
-
-        /**
-         * If this control is 1, the processor treats interrupts with the posted-interrupt notification vector specially,
-         * updating the virtual-APIC page with posted-interrupt requests
-         **/
         field32 |= (1 << 7); // Process posted interrupts
 
         // If bit 55 in the IA32_VMX_BASIC MSR is read as 1, all information about the allowed settings of the pin-based VM-execution controls is contained in the IA32_VMX_TRUE_PINBASED_CTLS MSR. Assuming that software knows that the default1 class of pin-based VM-execution controls contains bits 1, 2, and 4, there is no need for software to consult the IA32_VMX_PINBASED_CTLS MSR.
@@ -907,16 +799,58 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     {
         field32 = {};
 
-        if (ia32_vmx_basic & (1ULL << 55))
-            field32 = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_PROCBASED_CTLS2, field32);
-        else
-            field32 = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS2, field32);
+        // field32 |= (1U << 0x00); // Virtualize APIC accesses
+        // field32 |= (1U << 0x01); // Enable EPT
+        // field32 |= (1U << 0x02); // Descriptor-table exiting
+        // field32 |= (1U << 0x03); // Enable RDTSCP
+        // field32 |= (1U << 0x04); // Virtualize x2APIC mode
+        // field32 |= (1U << 0x05); // Enable VPID
+        // field32 |= (1U << 0x06); // WBINVD exiting
+        // field32 |= (1U << 0x07); // Unrestricted guest
+        // field32 |= (1U << 0x08); // APIC-register virtualization
+        // field32 |= (1U << 0x09); // Virtual-interrupt delivery
+        // field32 |= (1U << 0x0A); // PAUSE-loop exiting
+        // field32 |= (1U << 0x0B); // RDRAND exiting
+        // field32 |= (1U << 0x0C); // Enable INVPCID
+        // field32 |= (1U << 0x0D); // Enable VM functions
+        // field32 |= (1U << 0x0E); // VMCS shadowing
+        // field32 |= (1U << 0x0F); // Enable ENCLS exiting
+        // field32 |= (1U << 0x10); // RDSEED exiting
+        // field32 |= (1U << 0x11); // Enable PML
+        // field32 |= (1U << 0x12); // EPT-violation #VE
+        // field32 |= (1U << 0x13); // Conceal VMX from PT
+        // field32 |= (1U << 0x14); // Enable XSAVES/XRSTORS
+        // field32 |= (1U << 0x15); // PASID translation
+        // field32 |= (1U << 0x16); // Mode-based execute control for EPT
+        // field32 |= (1U << 0x17); // Sub-page write permissions for EPT
+        // field32 |= (1U << 0x18); // Intel PT uses guest physical addresses
+        // field32 |= (1U << 0x19); // Use TSC scaling
+        // field32 |= (1U << 0x1A); // Enable user wait and pause
+        // field32 |= (1U << 0x1B); // Enable PCONFIG
+        // field32 |= (1U << 0x1C); //
+        // field32 |= (1U << 0x1D); //
+        // field32 |= (1U << 0x1E); // VMM bus-lock detection
+        // field32 |= (1U << 0x1F); // Instruction timeout
+
+        field32 = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS2, field32);
         __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC2, field32);
     }
 
     // A.3.4 Tertiary Processor-Based VM-Execution Controls
     {
         field32 = {};
+
+        // field32 |= (1U << 0x00); // LOADIWKEY exiting
+        // field32 |= (1U << 0x01); // Enable HLAT
+        // field32 |= (1U << 0x02); // EPT paging-write control
+        // field32 |= (1U << 0x03); // Guest-paging verification
+        // field32 |= (1U << 0x04); // IPI virtualization
+        // field32 |= (1U << 0x05); // SEAM guest-physical address width
+        // field32 |= (1U << 0x06); // Enable MSR-list instructions
+        // field32 |= (1U << 0x07); // Virtualize IA32_SPEC_CTRL
+        // field32 |= (1U << 0x09); // Enable PBNDKB
+
+        field32 = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS3, field32);
         __asm_vmx_vmwrite(VMX_VMCS64_CTRL_PROC_EXEC3_FULL, field32);
     }
 
@@ -956,14 +890,92 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         field32 |= (1U << 0x01); // Load FRED
         field32 |= (1U << 0x03); // Prematurely busy shadow stack
 
-        if (ia32_vmx_basic & (1ULL << 55))
-            field32 = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_EXIT_CTLS, field32);
-        else
-            field32 = (uint32_t)vmx_format_controls(IA32_VMX_EXIT_CTLS, field32);
-        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC, field32);
+        field32 = (uint32_t)vmx_format_controls(IA32_VMX_EXIT_CTLS2, field32);
+        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC2, field32);
     }
 
     // A.5 VM-ENTRY CONTROLS
+    {
+        field32 = {};
+
+        field32 |= (1U << 0x00); // Save FRED
+        field32 |= (1U << 0x01); // Load FRED
+        field32 |= (1U << 0x03); // Prematurely busy shadow stack
+
+        if (ia32_vmx_basic & (1ULL << 55))
+            field32 = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_ENTRY_CTLS, field32);
+        else
+            field32 = (uint32_t)vmx_format_controls(IA32_VMX_ENTRY_CTLS, field32);
+        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_ENTRY, field32);
+    }
+
+    size_t result = {};
+
+    // Control Fields
+    {
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_CTRL_EXCEPTION_BITMAP, 0);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR0_MASK, 0);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR4_MASK, 0);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR0_READ_SHADOW, ctx.cr0);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR4_READ_SHADOW, ctx.cr4);
+    }
+
+    // Host Fields
+    {
+    }
+
+    // Guest Fields
+    {
+    }
+
+    // Natural-Width Control Fields
+    {
+    }
+    // Natural-Width Read-Only Data Field
+    {
+    }
+    // Natural-Width Guest-State Fields
+    {
+    }
+    // Natural-Width Host-State Fields
+    {
+    }
+
+    // 64-Bit Control Fields
+    {
+    }
+    // 64-Bit Read-Only Data Field
+    {
+    }
+    // 64-Bit Guest-State Fields
+    {
+    }
+    // 64-Bit Host-State Fields
+    {
+    }
+
+    // 32-Bit Control Fields
+    {
+    }
+    // 32-Bit Read-Only Data Field
+    {
+    }
+    // 32-Bit Guest-State Fields
+    {
+    }
+    // 32-Bit Host-State Fields
+    {
+    }
+
+    // 16-Bit Control Fields
+    {
+    }
+    // 16-Bit Guest-State Fields
+    {
+    }
+    // 16-Bit Host-State Fields
+    {
+    }
 
     return 0;
 }

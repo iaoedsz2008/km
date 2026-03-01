@@ -136,10 +136,12 @@ unload(_In_ ULONG_PTR Argument)
     PVOID vcpu = vcpus[KeGetCurrentProcessorIndex()];
 
     if (memcmp(vendor, "GenuineIntel", 12) == 0)
-        return cleanup<Hash("GenuineIntel")>(vcpu);
+        cleanup<Hash("GenuineIntel")>(vcpu);
 
     if (memcmp(vendor, "AuthenticAMD", 12) == 0)
-        return cleanup<Hash("AuthenticAMD")>(vcpu);
+        cleanup<Hash("AuthenticAMD")>(vcpu);
+
+    deallocate<0x1000>(vcpu);
 
     return 0;
 }
