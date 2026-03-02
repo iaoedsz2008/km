@@ -519,32 +519,44 @@ __asm_lar(uint16_t selector)
     return val;
 }
 
-typedef struct _IA32_DESCRIPTOR_TABLE {
-    uint16_t limit;
-    void* base;
-} __attribute__((packed)) IA32_DESCRIPTOR_TABLE;
-static_assert(sizeof(IA32_DESCRIPTOR_TABLE) == 10, "");
+typedef struct _IA32_GDT_REGISTER {
+    uint16_t SegmentLimit;
+    void* SegmentBase;
+} __attribute__((packed)) IA32_GDT_REGISTER;
+static_assert(sizeof(IA32_GDT_REGISTER) == 10, "");
+
+typedef struct _IA32_LDT_REGISTER {
+    uint16_t SegmentLimit;
+    void* SegmentBase;
+} __attribute__((packed)) IA32_LDT_REGISTER;
+static_assert(sizeof(IA32_LDT_REGISTER) == 10, "");
+
+typedef struct _IA32_IDT_REGISTER {
+    uint16_t SegmentLimit;
+    void* SegmentBase;
+} __attribute__((packed)) IA32_IDT_REGISTER;
+static_assert(sizeof(IA32_IDT_REGISTER) == 10, "");
 
 static inline void
-__asm_lgdt(const IA32_DESCRIPTOR_TABLE* gdt)
+__asm_lgdt(const IA32_GDT_REGISTER* gdt)
 {
     __asm__ __volatile__("lgdt %0" ::"m"(*gdt) : "memory");
 }
 
 static inline void
-__asm_sgdt(IA32_DESCRIPTOR_TABLE* gdt)
+__asm_sgdt(IA32_GDT_REGISTER* gdt)
 {
     __asm__ __volatile__("sgdt %0" : "=m"(*gdt));
 }
 
 static inline void
-__asm_lidt(const IA32_DESCRIPTOR_TABLE* idt)
+__asm_lidt(const IA32_GDT_REGISTER* idt)
 {
     __asm__ __volatile__("lidt %0" ::"m"(*idt) : "memory");
 }
 
 static inline void
-__asm_sidt(IA32_DESCRIPTOR_TABLE* idt)
+__asm_sidt(IA32_GDT_REGISTER* idt)
 {
     __asm__ __volatile__("sidt %0" : "=m"(*idt));
 }
