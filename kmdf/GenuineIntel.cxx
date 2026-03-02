@@ -240,6 +240,55 @@
 #define VMX_VMCS_HOST_RSP                          0x6C14
 #define VMX_VMCS_HOST_RIP                          0x6C16
 
+static KSPIN_LOCK kSpinLock;
+
+static size_t
+__lsb(uint16_t selector)
+{
+    IA32_DESCRIPTOR_TABLE gdtr;
+    size_t SegmentBase = {};
+    size_t SegmentLimit = {};
+
+    __asm_sgdt(&gdtr);
+
+    uint16_t RPL = selector & 0x00000003;
+    uint16_t TI = selector & 0x00000004;
+    uint16_t I = selector & 0x0000FFF8;
+
+    if (TI) {
+        // use local descriptor table
+    } else {
+        // use global descriptor table
+        uint64_t descriptor = ((uint64_t*)gdtr.base)[I];
+
+        // 3.4.5 Segment Descriptors
+
+        auto TYPE = ((descriptor >> 0x28) & 0x0000000F); // TYPE - Segment type
+        auto S = ((descriptor >> 0x2C) & 0x00000001);    // S - Descriptor type (0 = system; 1 = code or data)
+        auto DPL = ((descriptor >> 0x2D) & 0x00000003);  // DPL - Descriptor privilege level
+        auto P = ((descriptor >> 0x2F) & 0x00000001);    // P - Segment present
+        auto AVL = ((descriptor >> 0x34) & 0x00000001);  // AVL - Available for use by system software
+        auto L = ((descriptor >> 0x35) & 0x00000001);    // L - 64-bit code segment (IA-32e mode only)
+        auto DB = ((descriptor >> 0x36) & 0x00000001);   // D/B - Default operation size (0 = 16-bit segment; 1 = 32-bit segment)
+        auto G = ((descriptor >> 0x37) & 0x00000001);    // G - Granularity
+
+        SegmentLimit |= ((descriptor >> 0x00) & 0x0000FFFF) << 0x00;
+        SegmentLimit |= ((descriptor >> 0x30) & 0x0000000F) << 0x10;
+
+        SegmentBase |= ((descriptor >> 0x10) & 0x0000FFFF) << 0x00;
+        SegmentBase |= ((descriptor >> 0x20) & 0x000000FF) << 0x10;
+        SegmentBase |= ((descriptor >> 0x38) & 0x000000FF) << 0x18;
+
+#if INTPTR_MAX == INT64_MAX
+        if (S == 0) {
+            SegmentBase |= ((descriptor + 1)->bits << 32) & 0xFFFFFFFF00000000;
+        }
+#endif
+    }
+
+    return result;
+}
+
 static FORCEINLINE uint64_t
 vmx_format_controls(uint32_t msr, uint64_t bits)
 {
@@ -249,6 +298,42 @@ vmx_format_controls(uint32_t msr, uint64_t bits)
     bits |= (v & 0xFFFFFFFFULL); /* bit == 1 in low word  ==> must be one  */
 
     return bits;
+}
+
+// See: Format of Access Rights
+static FORCEINLINE uint32_t
+vmx_format_access_rights(uint64_t access_rights)
+{
+    uint32_t result = {};
+
+    if (access_rights) {
+
+        result |= (((access_rights >> 0x08) & 0x0000000F) << 0x00); // 3:0 Segment type
+        result |= (((access_rights >> 0x0C) & 0x00000001) << 0x04); // 4 S - Descriptor type (0 = system; 1 = code or data)
+        result |= (((access_rights >> 0x0D) & 0x00000003) << 0x05); // 6:5 DPL - Descriptor privilege level
+        result |= (((access_rights >> 0x0F) & 0x00000001) << 0x07); // 7 P - Segment present
+        result |= (((access_rights >> 0x14) & 0x00000001) << 0x0C); // 12 AVL - Available for use by system software
+        result |= (((access_rights >> 0x15) & 0x00000001) << 0x0D); // 13 Reserved (except for CS) L - 64-bit mode active (for CS only)
+        result |= (((access_rights >> 0x16) & 0x00000001) << 0x0E); // 14 D/B - Default operation size (0 = 16-bit segment; 1 = 32-bit segment)
+        result |= (((access_rights >> 0x17) & 0x00000001) << 0x0F); // 15 G - Granularity
+    } else {
+        result |= (1U << 0x10); // 16 Segment unusable (0 = usable; 1 = unusable)
+    }
+
+    return result;
+}
+
+static __attribute__((naked)) void
+vmx_vmexit(void)
+{
+    __asm__ __volatile__("nop\n\t"
+                         "ret" ::
+                             :);
+}
+
+static void
+initializeEPT()
+{
 }
 
 template <>
@@ -466,6 +551,12 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         ;
     if (ecx & 0x08000000) // If 1, supports RDTSCP and IA32_TSC_AUX.
         ;
+
+    __asm_cr0();
+    __asm_cr1();
+    __asm_cr2();
+    __asm_cr4();
+
     uint64_t msr;
 
     uint64_t ia32_time_stamp_counter = __asm_rdmsr(IA32_TIME_STAMP_COUNTER);
@@ -680,6 +771,10 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     __asm_cr4(((__asm_cr4() | 0x00002000 /*VMXE*/) & ia32_vmx_cr4_fixed1) | ia32_vmx_cr4_fixed0);
 
     KdBreakPoint();
+
+    KeAcquireSpinLockAtDpcLevel(&kSpinLock);
+    initializeEPT();
+    KeReleaseSpinLockFromDpcLevel(&kSpinLock);
 
     PVOID vmcsGuest = allocate<0x1000>();
     PVOID vmcsHost = allocate<0x1000>();
@@ -916,16 +1011,118 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         result |= __asm_vmx_vmwrite(VMX_VMCS32_CTRL_EXCEPTION_BITMAP, 0);
         result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR0_MASK, 0);
         result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR4_MASK, 0);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR0_READ_SHADOW, ctx.cr0);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR4_READ_SHADOW, ctx.cr4);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR0_READ_SHADOW, __asm_cr0());
+        result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR4_READ_SHADOW, __asm_cr4());
     }
 
     // Host Fields
     {
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RSP, (uint64_t)vcpu + 0x10000 - 0x10);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RIP, (uint64_t)&vmx_vmexit);
+
+        // RPL and TI have to be 0
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_CS_SEL, __asm_cs() & 0xF8);
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_DS_SEL, __asm_ds() & 0xF8);
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_ES_SEL, __asm_es() & 0xF8);
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_FS_SEL, __asm_fs() & 0xF8);
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_GS_SEL, __asm_gs() & 0xF8);
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_SS_SEL, __asm_ss() & 0xF8);
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_TR_SEL, __asm_tr() & 0xF8);
+
+#if INTPTR_MAX == INT64_MAX
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_FS_BASE, __asm_rdmsr(IA32_FS_BASE));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_GS_BASE, __asm_rdmsr(IA32_GS_BASE));
+#else
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_FS_BASE, __lsb(ctx.fs));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_GS_BASE, __lsb(ctx.gs));
+#endif
+
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_TR_BASE, __lsb(ctx.tr));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_GDTR_BASE, gdtr.base); // 居然没有设置limit的接口...
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_IDTR_BASE, idtr.base); // 居然没有设置limit的接口...
+
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_HOST_SYSENTER_CS, __asm_rdmsr(IA32_SYSENTER_CS));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_SYSENTER_ESP, __asm_rdmsr(IA32_SYSENTER_ESP));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_SYSENTER_EIP, __asm_rdmsr(IA32_SYSENTER_EIP));
+
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR0, ctx.cr0);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR3, ctx.cr3);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR4, ctx.cr4);
     }
 
     // Guest Fields
     {
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SYSENTER_CS, __asm_rdmsr(IA32_SYSENTER_CS));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SYSENTER_ESP, __asm_rdmsr(IA32_SYSENTER_ESP));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SYSENTER_EIP, __asm_rdmsr(IA32_SYSENTER_EIP));
+
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_RSP, ctx.rsp);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_RIP, ctx.rip);
+
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_RFLAGS, ctx.rflags);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CR0, __asm_cr0());
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CR3, __asm_cr3());
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CR4, __asm_cr4());
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DR7, __asm_dr7());
+
+        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_VMCS_LINK_PTR_HIGH, 0xFFFFFFFFFFFFFFFF);
+        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_VMCS_LINK_PTR_FULL, 0xFFFFFFFFFFFFFFFF);
+        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_DEBUGCTL_HIGH, 0xFFFFFFFFFFFFFFFF);
+        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_DEBUGCTL_FULL, __asm_rdmsr(IA32_DEBUGCTL));
+
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_CS_SEL, __asm_cs());
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_DS_SEL, __asm_ds());
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_ES_SEL, __asm_es());
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_FS_SEL, __asm_fs());
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_GS_SEL, __asm_gs());
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_SS_SEL, __asm_ss());
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_LDTR_SEL, ctx.ldtr);
+        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_TR_SEL, __asm_tr());
+
+#if INTPTR_MAX == INT64_MAX
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CS_BASE, 0);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DS_BASE, 0);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_ES_BASE, 0);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_FS_BASE, __asm_rdmsr(0xC0000100));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_GS_BASE, __asm_rdmsr(0xC0000101));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SS_BASE, 0);
+#else
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CS_BASE, __lsb(ctx.cs));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DS_BASE, __lsb(ctx.ds));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_ES_BASE, __lsb(ctx.es));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_FS_BASE, __lsb(ctx.fs));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_GS_BASE, __lsb(ctx.gs));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SS_BASE, __lsb(ctx.ss));
+#endif
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_LDTR_BASE, __lsb(ctx.ldtr));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_TR_BASE, __lsb(ctx.tr));
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_GDTR_BASE, gdtr.base);
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GDTR_LIMIT, gdtr.limit);
+        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_IDTR_BASE, idtr.base);
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_IDTR_LIMIT, idtr.limit);
+
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_CS_LIMIT, __asm_lsl(ctx.cs));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_DS_LIMIT, __asm_lsl(ctx.ds));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_ES_LIMIT, __asm_lsl(ctx.es));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_FS_LIMIT, __asm_lsl(ctx.fs));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GS_LIMIT, __asm_lsl(ctx.gs));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SS_LIMIT, __asm_lsl(ctx.ss));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_LDTR_LIMIT, __asm_lsl(ctx.ldtr));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_TR_LIMIT, __asm_lsl(ctx.tr));
+
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_CS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.cs)));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_DS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.ds)));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_ES_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.es)));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_FS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.fs)));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.gs)));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.ss)));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_LDTR_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.ldtr)));
+        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_TR_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.tr)));
+
+        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE0_FULL, 0);
+        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE1_FULL, 0);
+        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE2_FULL, 0);
+        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE3_FULL, 0);
     }
 
     // Natural-Width Control Fields

@@ -64,6 +64,20 @@ __asm_cr0(uint64_t val)
 }
 
 static inline uint64_t
+__asm_cr1(void)
+{
+    uint64_t val;
+    __asm__ __volatile__("mov %%cr1, %0" : "=r"(val));
+    return val;
+}
+
+static inline void
+__asm_cr1(uint64_t val)
+{
+    __asm__ __volatile__("mov %0, %%cr1" ::"r"(val) : "memory");
+}
+
+static inline uint64_t
 __asm_cr2(void)
 {
     uint64_t val;
@@ -425,6 +439,20 @@ __asm_ss(uint16_t val)
     __asm__ __volatile__("mov %0, %%ss" ::"r"(val) : "memory");
 }
 
+static inline uint16_t
+__asm_tr(void)
+{
+    uint16_t val;
+    __asm__ __volatile__("mov %%tr, %0" : "=r"(val));
+    return val;
+}
+
+static inline void
+__asm_tr(uint16_t val)
+{
+    __asm__ __volatile__("mov %0, %%tr" ::"r"(val) : "memory");
+}
+
 #if defined(__x86_64__)
 
 static inline uint64_t
@@ -491,31 +519,32 @@ __asm_lar(uint16_t selector)
     return val;
 }
 
-typedef struct {
+typedef struct _IA32_DESCRIPTOR_TABLE {
     uint16_t limit;
     void* base;
-} __attribute__((packed)) descriptor_table_t;
+} __attribute__((packed)) IA32_DESCRIPTOR_TABLE;
+static_assert(sizeof(IA32_DESCRIPTOR_TABLE) == 10, "");
 
 static inline void
-__asm_lgdt(const descriptor_table_t* gdt)
+__asm_lgdt(const IA32_DESCRIPTOR_TABLE* gdt)
 {
     __asm__ __volatile__("lgdt %0" ::"m"(*gdt) : "memory");
 }
 
 static inline void
-__asm_sgdt(descriptor_table_t* gdt)
+__asm_sgdt(IA32_DESCRIPTOR_TABLE* gdt)
 {
     __asm__ __volatile__("sgdt %0" : "=m"(*gdt));
 }
 
 static inline void
-__asm_lidt(const descriptor_table_t* idt)
+__asm_lidt(const IA32_DESCRIPTOR_TABLE* idt)
 {
     __asm__ __volatile__("lidt %0" ::"m"(*idt) : "memory");
 }
 
 static inline void
-__asm_sidt(descriptor_table_t* idt)
+__asm_sidt(IA32_DESCRIPTOR_TABLE* idt)
 {
     __asm__ __volatile__("sidt %0" : "=m"(*idt));
 }
@@ -548,12 +577,20 @@ __asm_ltr(uint16_t selector)
     __asm__ __volatile__("ltr %0" ::"r"(selector) : "memory");
 }
 
+static inline uint16_t
+__asm_str(void)
+{
+    uint16_t val;
+    __asm__ __volatile__("str %0" : "=r"(val));
+    return val;
+}
+
 static inline uint64_t
 __asm_rdmsr(uint32_t msr)
 {
     uint32_t low, high;
     __asm__ __volatile__("rdmsr" : "=a"(low), "=d"(high) : "c"(msr));
-    return ((uint64_t)high << 32) | low;
+    return (((uint64_t)high << 32) | (uint64_t)low);
 }
 
 static inline void
@@ -607,14 +644,6 @@ __asm_rdtscp(uint32_t* aux)
     uint32_t low, high;
     __asm__ __volatile__("rdtscp" : "=a"(low), "=d"(high), "=c"(*aux));
     return (((uint64_t)high) << 32) | low;
-}
-
-static inline uint16_t
-__asm_str(void)
-{
-    uint16_t val;
-    __asm__ __volatile__("str %0" : "=r"(val));
-    return val;
 }
 
 static inline void
