@@ -260,11 +260,11 @@ __lsb(uint16_t selector)
     } else {
         // use global descriptor table
 #if defined(_M_AMD64) || defined(__x86_64__)
-        uint64_t descriptor = ((uint64_t*)GDTR.SegmentBase)[I * 2];
+        uint64_t descriptor = ((uint64_t*)GDTR.BaseAddress)[I * 2];
 #endif
 
 #if defined(_M_IX86) || defined(__i386__)
-        uint64_t descriptor = ((uint64_t*)GDTR.base)[I];
+        uint64_t descriptor = ((uint64_t*)GDTR.BaseAddress)[I];
 #endif
 
         // 3.4.5 Segment Descriptors
@@ -285,9 +285,9 @@ __lsb(uint16_t selector)
         SegmentBase |= ((descriptor >> 0x20) & 0x000000FF) << 0x10;
         SegmentBase |= ((descriptor >> 0x38) & 0x000000FF) << 0x18;
 
-#if INTPTR_MAX == INT64_MAX
+#if defined(_M_AMD64) || defined(__x86_64__)
         if (S == 0) {
-            descriptor = ((uint64_t*)GDTR.SegmentBase)[I * 2 + 1];
+            descriptor = ((uint64_t*)GDTR.BaseAddress)[I * 2 + 1];
             SegmentBase |= descriptor & 0xFFFFFFFF00000000;
         }
 #endif
@@ -333,7 +333,7 @@ vmx_format_access_rights(uint64_t access_rights)
 static __attribute__((naked)) void
 vmx_vmexit(void)
 {
-    __asm__ __volatile__("nop\n\t"
+    __asm__ __volatile__("int3\n\t"
                          "ret" ::
                              :);
 }
@@ -559,12 +559,125 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     if (ecx & 0x08000000) // If 1, supports RDTSCP and IA32_TSC_AUX.
         ;
 
-    __asm_cr0();
-    __asm_cr1();
-    __asm_cr2();
-    __asm_cr4();
+    uint64_t CR0 = __asm_cr0();
+    // uint64_t CR1 = __asm_cr1();
+    uint64_t CR2 = __asm_cr2(); // Page-Fault Linear Address
+    uint64_t CR3 = __asm_cr3();
+    uint64_t CR4 = __asm_cr4();
 
-    uint64_t msr;
+    if (CR0 & (1U << 0x00)) // CR0.PE Protection Enable (bit 0 of CR0)
+        ;
+    if (CR0 & (1U << 0x01)) // CR0.MP Monitor Coprocessor (bit 1 of CR0)
+        ;
+    if (CR0 & (1U << 0x02)) // CR0.EM Emulation (bit 2 of CR0)
+        ;
+    if (CR0 & (1U << 0x03)) // CR0.TS Task Switched (bit 3 of CR0)
+        ;
+    if (CR0 & (1U << 0x04)) // CR0.ET Extension Type (bit 4 of CR0)
+        ;
+    if (CR0 & (1U << 0x05)) // CR0.NE Numeric Error (bit 5 of CR0)
+        ;
+    if (CR0 & (1U << 0x10)) // CR0.WP Write Protect (bit 16 of CR0)
+        ;
+    if (CR0 & (1U << 0x12)) // CR0.AM Alignment Mask (bit 18 of CR0)
+        ;
+    if (CR0 & (1U << 0x1D)) // CR0.NW Not Write-through (bit 29 of CR0)
+        ;
+    if (CR0 & (1U << 0x1E)) // CR0.CD Cache Disable (bit 30 of CR0)
+        ;
+    if (CR0 & (1U << 0x1F)) // CR0.PG Paging (bit 31 of CR0)
+        ;
+
+    if (CR3 & (1ULL << 0x03)) // CR3.PWT Page-level Write-Through (bit 3 of CR3)
+        ;
+    if (CR3 & (1ULL << 0x04)) // CR3.PCD Page-level Cache Disable (bit 4 of CR3)
+        ;
+    if (CR3 & (1ULL << 0x3D)) // CR3.LAM_U57 User LAM57 enable (bit 61 of CR3)
+        ;
+    if (CR3 & (1ULL << 0x3E)) // CR3.LAM_U48 User LAM48 enable (bit 62 of CR3)
+        ;
+
+    if (CR4 & (1ULL << 0x00)) // CR4.VME Virtual-8086 Mode Extensions (bit 0 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x01)) // CR4.PVI Protected-Mode Virtual Interrupts (bit 1 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x02)) // CR4.TSD Time Stamp Disable (bit 2 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x03)) // CR4.DE Debugging Extensions (bit 3 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x04)) // CR4.PSE Page Size Extensions (bit 4 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x05)) // CR4.PAE Physical Address Extension (bit 5 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x06)) // CR4.MCE Machine-Check Enable (bit 6 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x07)) // CR4.PGE Page Global Enable (bit 7 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x08)) // CR4.PCE Performance-Monitoring Counter Enable (bit 8 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x09)) // CR4.OSFXSR Operating System Support for FXSAVE and FXRSTOR instructions (bit 9 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x0A)) // CR4.OSXMMEXCPT Operating System Support for Unmasked SIMD Floating-Point Exceptions (bit 10 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x0B)) // CR4.UMIP User-Mode Instruction Prevention (bit 11 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x0C)) // CR4.LA57 57-bit linear addresses (bit 12 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x0D)) // CR4.VMXE VMX-Enable Bit (bit 13 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x0E)) // CR4.SMXE SMX-Enable Bit (bit 14 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x0F))
+        ;
+    if (CR4 & (1ULL << 0x10)) // CR4.FSGSBASE FSGSBASE-Enable Bit (bit 16 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x11)) // CR4.PCIDE PCID-Enable Bit (bit 17 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x12)) // CR4.OSXSAVE XSAVE and Processor Extended States-Enable Bit (bit 18 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x13)) // CR4.KL Key-Locker-Enable Bit (bit 19 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x14)) // CR4.SMEP SMEP-Enable Bit (bit 20 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x15)) // CR4.SMAP SMAP-Enable Bit (bit 21 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x16)) // CR4.PKE Enable protection keys for user-mode pages (bit 22 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x17)) // CR4.CET Control-flow Enforcement Technology (bit 23 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x18)) // CR4.PKS Enable protection keys for supervisor-mode pages (bit 24 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x19)) // CR4.UINTR User Interrupts Enable Bit (bit 25 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x1A))
+        ;
+    if (CR4 & (1ULL << 0x1B)) // CR4.LASS Linear-address-space Separation (bit 27 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x1C)) // CR4.LAM_SUP Supervisor LAM enable (bit 28 of CR4)
+        ;
+    if (CR4 & (1ULL << 0x1D))
+        ;
+    if (CR4 & (1ULL << 0x1E))
+        ;
+    if (CR4 & (1ULL << 0x1F))
+        ;
+    if (CR4 & (1ULL << 0x20)) // CR4.FRED FRED enable (bit 32 of CR4)
+        ;
+
+    uint16_t CS = __asm_cs();
+    uint16_t DS = __asm_ds();
+    uint16_t ES = __asm_es();
+    uint16_t FS = __asm_fs();
+    uint16_t GS = __asm_gs();
+    uint16_t SS = __asm_ss();
+    uint16_t TR = __asm_str();
+    uint16_t LDTR = __asm_sldt();
+
+    IA32_GDT_REGISTER GDTR;
+    IA32_IDT_REGISTER IDTR;
+
+    __asm_sgdt(&GDTR);
+    __asm_sidt(&IDTR);
 
     uint64_t ia32_time_stamp_counter = __asm_rdmsr(IA32_TIME_STAMP_COUNTER);
     uint64_t ia32_apic_base = __asm_rdmsr(IA32_APIC_BASE);
@@ -572,6 +685,8 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
 
     CONTEXT Context;
     RtlCaptureContext(&Context);
+
+    KdBreakPoint();
 
     /**
      * If this bit is clear, VMXON causes a general-protection exception.
@@ -759,8 +874,11 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     uint64_t ia32_lbr_depth = __asm_rdmsr(IA32_LBR_DEPTH);
 
     for (uint32_t i = 0; i < 0x20; ++i) {
+        uint64_t msr;
         msr = __asm_rdmsr(IA32_LBR_x_FROM_IP + i);
         msr = __asm_rdmsr(IA32_LBR_x_TO_IP + i);
+
+        UNREFERENCED_PARAMETER(msr);
     }
 
     uint64_t ia32_efer = __asm_rdmsr(IA32_EFER);
@@ -774,17 +892,15 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     uint64_t ia32_kernel_gs_base = __asm_rdmsr(IA32_KERNEL_GS_BASE);
     uint64_t ia32_tsc_aux = __asm_rdmsr(IA32_TSC_AUX);
 
-    __asm_cr0((__asm_cr0() & ia32_vmx_cr0_fixed1) | ia32_vmx_cr0_fixed0);
-    __asm_cr4(((__asm_cr4() | 0x00002000 /*VMXE*/) & ia32_vmx_cr4_fixed1) | ia32_vmx_cr4_fixed0);
-
-    KdBreakPoint();
+    __asm_cr0((CR0 & ia32_vmx_cr0_fixed1) | ia32_vmx_cr0_fixed0);
+    __asm_cr4(((CR4 | 0x00002000 /*VMXE*/) & ia32_vmx_cr4_fixed1) | ia32_vmx_cr4_fixed0);
 
     KeAcquireSpinLockAtDpcLevel(&kSpinLock);
     initializeEPT();
     KeReleaseSpinLockFromDpcLevel(&kSpinLock);
 
-    PVOID vmcsGuest = allocate<0x1000>();
-    PVOID vmcsHost = allocate<0x1000>();
+    PVOID vmcsGuest = allocateContiguous<0x1000>();
+    PVOID vmcsHost = allocateContiguous<0x1000>();
 
     if ((SIZE_T)vmcsGuest & 0xFFF)
         return -1;
@@ -805,7 +921,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     PHYSICAL_ADDRESS vmcsGuestPA = MmGetPhysicalAddress(vmcsGuest);
     PHYSICAL_ADDRESS vmcsHostPA = MmGetPhysicalAddress(vmcsHost);
 
-    uint8_t Status = 0;
+    size_t Status = {};
 
 #define EFLAGS_CF_MASK   (1 << 0x00)
 #define EFLAGS_PF_MASK   (1 << 0x02)
@@ -828,9 +944,8 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     Status = __asm_vmx_vmxon((uint64_t*)&vmcsHostPA.QuadPart);
     if (Status & EFLAGS_ZF_MASK) {
         size_t e;
-        __asm_vmx_vmread(0x00004400, &e);
+        __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
         e = 0;
-
         return -1;
     }
 
@@ -839,297 +954,311 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     Status = __asm_vmx_vmclear((uint64_t*)&vmcsGuestPA.QuadPart);
     Status = __asm_vmx_vmptrld((uint64_t*)&vmcsGuestPA.QuadPart);
 
-    size_t field;
-    uint16_t field16;
-    uint32_t field32;
-    uint64_t field64;
+    uint64_t PinBasedVmExecutionControls = {};
+    uint64_t PrimaryProcessorBasedVmExecutionControls = {};
+    uint64_t SecondaryProcessorBasedVmExecutionControls = {};
+    uint64_t TertiaryProcessorBasedVmExecutionControls = {};
+    uint64_t PrimaryVmExitControls = {};
+    uint64_t SecondaryVmExitControls = {};
+    uint64_t VmEntryControls = {};
 
     // A.3.1 Pin-Based VM-Execution Controls
     {
-        field32 = {};
-
-        field32 |= (1 << 0); // External-interrupt exiting
-        field32 |= (1 << 3); // NMI exiting
-        field32 |= (1 << 5); // Virtual NMIs
-        field32 |= (1 << 6); // Activate VMX-preemption timer
-        field32 |= (1 << 7); // Process posted interrupts
+        // PinBasedVmExecutionControls |= (1ULL << 0); // External-interrupt exiting
+        // PinBasedVmExecutionControls |= (1ULL << 3); // NMI exiting
+        // PinBasedVmExecutionControls |= (1ULL << 5); // Virtual NMIs
+        // PinBasedVmExecutionControls |= (1ULL << 6); // Activate VMX-preemption timer
+        // PinBasedVmExecutionControls |= (1ULL << 7); // Process posted interrupts
 
         // If bit 55 in the IA32_VMX_BASIC MSR is read as 1, all information about the allowed settings of the pin-based VM-execution controls is contained in the IA32_VMX_TRUE_PINBASED_CTLS MSR. Assuming that software knows that the default1 class of pin-based VM-execution controls contains bits 1, 2, and 4, there is no need for software to consult the IA32_VMX_PINBASED_CTLS MSR.
         if (ia32_vmx_basic & (1ULL << 55))
-            field32 = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_PINBASED_CTLS, field32);
+            PinBasedVmExecutionControls = vmx_format_controls(IA32_VMX_TRUE_PINBASED_CTLS, PinBasedVmExecutionControls);
         else
-            field32 = (uint32_t)vmx_format_controls(IA32_VMX_PINBASED_CTLS, field32);
+            PinBasedVmExecutionControls = vmx_format_controls(IA32_VMX_PINBASED_CTLS, PinBasedVmExecutionControls);
 
-        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PIN_EXEC, field32);
+        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PIN_EXEC, PinBasedVmExecutionControls);
     }
 
     // A.3.2 Primary Processor-Based VM-Execution Controls
     {
-        field32 = {};
-
-        // field32 |= (1U << 0x02); // Interrupt-window exiting
-        // field32 |= (1U << 0x03); // Use TSC offsetting
-        // field32 |= (1U << 0x07); // HLT exiting
-        // field32 |= (1U << 0x09); // INVLPG exiting
-        // field32 |= (1U << 0x0A); // MWAIT exiting
-        // field32 |= (1U << 0x0B); // RDPMC exiting
-        // field32 |= (1U << 0x0C); // RDTSC exiting
-        // field32 |= (1U << 0x0F); // CR3-load exiting
-        // field32 |= (1U << 0x10); // CR3-store exiting
-        // field32 |= (1U << 0x11); // Activate tertiary controls
-        // field32 |= (1U << 0x13); // CR8-load exiting
-        // field32 |= (1U << 0x14); // CR8-store exiting
-        // field32 |= (1U << 0x15); // Use TPR shadow
-        // field32 |= (1U << 0x16); // NMI-window exiting
-        // field32 |= (1U << 0x17); // MOV-DR exiting
-        // field32 |= (1U << 0x18); // Unconditional I/O exiting
-        // field32 |= (1U << 0x19); // Use I/O bitmaps
-        // field32 |= (1U << 0x1B); // Monitor trap flag
-        // field32 |= (1U << 0x1C); // Use MSR bitmaps
-        // field32 |= (1U << 0x1D); // MONITOR exiting
-        // field32 |= (1U << 0x1E); // PAUSE exiting
-        field32 |= (1U << 0x1F); // Activate secondary controls
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x02); // Interrupt-window exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x03); // Use TSC offsetting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x07); // HLT exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x09); // INVLPG exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x0A); // MWAIT exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x0B); // RDPMC exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x0C); // RDTSC exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x0F); // CR3-load exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x10); // CR3-store exiting
+        PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x11); // Activate tertiary controls
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x13); // CR8-load exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x14); // CR8-store exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x15); // Use TPR shadow
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x16); // NMI-window exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x17); // MOV-DR exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x18); // Unconditional I/O exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x19); // Use I/O bitmaps
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x1B); // Monitor trap flag
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x1C); // Use MSR bitmaps
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x1D); // MONITOR exiting
+        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x1E); // PAUSE exiting
+        PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x1F); // Activate secondary controls
 
         if (ia32_vmx_basic & (1ULL << 55))
-            field32 = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_PROCBASED_CTLS, field32);
+            PrimaryProcessorBasedVmExecutionControls = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_PROCBASED_CTLS, PrimaryProcessorBasedVmExecutionControls);
         else
-            field32 = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS, field32);
-        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC, field32);
+            PrimaryProcessorBasedVmExecutionControls = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS, PrimaryProcessorBasedVmExecutionControls);
+        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC, PrimaryProcessorBasedVmExecutionControls);
     }
 
     // A.3.3 Secondary Processor-Based VM-Execution Controls
     {
-        field32 = {};
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x00); // Virtualize APIC accesses
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x01); // Enable EPT
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x02); // Descriptor-table exiting
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x03); // Enable RDTSCP
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x04); // Virtualize x2APIC mode
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x05); // Enable VPID
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x06); // WBINVD exiting
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x07); // Unrestricted guest
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x08); // APIC-register virtualization
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x09); // Virtual-interrupt delivery
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0A); // PAUSE-loop exiting
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0B); // RDRAND exiting
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0C); // Enable INVPCID
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0D); // Enable VM functions
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0E); // VMCS shadowing
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0F); // Enable ENCLS exiting
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x10); // RDSEED exiting
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x11); // Enable PML
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x12); // EPT-violation #VE
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x13); // Conceal VMX from PT
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x14); // Enable XSAVES/XRSTORS
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x15); // PASID translation
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x16); // Mode-based execute control for EPT
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x17); // Sub-page write permissions for EPT
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x18); // Intel PT uses guest physical addresses
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x19); // Use TSC scaling
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x1A); // Enable user wait and pause
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x1B); // Enable PCONFIG
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x1C); //
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x1D); //
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x1E); // VMM bus-lock detection
+        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x1F); // Instruction timeout
 
-        // field32 |= (1U << 0x00); // Virtualize APIC accesses
-        // field32 |= (1U << 0x01); // Enable EPT
-        // field32 |= (1U << 0x02); // Descriptor-table exiting
-        // field32 |= (1U << 0x03); // Enable RDTSCP
-        // field32 |= (1U << 0x04); // Virtualize x2APIC mode
-        // field32 |= (1U << 0x05); // Enable VPID
-        // field32 |= (1U << 0x06); // WBINVD exiting
-        // field32 |= (1U << 0x07); // Unrestricted guest
-        // field32 |= (1U << 0x08); // APIC-register virtualization
-        // field32 |= (1U << 0x09); // Virtual-interrupt delivery
-        // field32 |= (1U << 0x0A); // PAUSE-loop exiting
-        // field32 |= (1U << 0x0B); // RDRAND exiting
-        // field32 |= (1U << 0x0C); // Enable INVPCID
-        // field32 |= (1U << 0x0D); // Enable VM functions
-        // field32 |= (1U << 0x0E); // VMCS shadowing
-        // field32 |= (1U << 0x0F); // Enable ENCLS exiting
-        // field32 |= (1U << 0x10); // RDSEED exiting
-        // field32 |= (1U << 0x11); // Enable PML
-        // field32 |= (1U << 0x12); // EPT-violation #VE
-        // field32 |= (1U << 0x13); // Conceal VMX from PT
-        // field32 |= (1U << 0x14); // Enable XSAVES/XRSTORS
-        // field32 |= (1U << 0x15); // PASID translation
-        // field32 |= (1U << 0x16); // Mode-based execute control for EPT
-        // field32 |= (1U << 0x17); // Sub-page write permissions for EPT
-        // field32 |= (1U << 0x18); // Intel PT uses guest physical addresses
-        // field32 |= (1U << 0x19); // Use TSC scaling
-        // field32 |= (1U << 0x1A); // Enable user wait and pause
-        // field32 |= (1U << 0x1B); // Enable PCONFIG
-        // field32 |= (1U << 0x1C); //
-        // field32 |= (1U << 0x1D); //
-        // field32 |= (1U << 0x1E); // VMM bus-lock detection
-        // field32 |= (1U << 0x1F); // Instruction timeout
-
-        field32 = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS2, field32);
-        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC2, field32);
+        SecondaryProcessorBasedVmExecutionControls = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS2, SecondaryProcessorBasedVmExecutionControls);
+        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC2, SecondaryProcessorBasedVmExecutionControls);
     }
 
     // A.3.4 Tertiary Processor-Based VM-Execution Controls
     {
-        field32 = {};
+        // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x00); // LOADIWKEY exiting
+        // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x01); // Enable HLAT
+        // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x02); // EPT paging-write control
+        // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x03); // Guest-paging verification
+        // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x04); // IPI virtualization
+        // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x05); // SEAM guest-physical address width
+        // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x06); // Enable MSR-list instructions
+        // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x07); // Virtualize IA32_SPEC_CTRL
+        // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x09); // Enable PBNDKB
 
-        // field32 |= (1U << 0x00); // LOADIWKEY exiting
-        // field32 |= (1U << 0x01); // Enable HLAT
-        // field32 |= (1U << 0x02); // EPT paging-write control
-        // field32 |= (1U << 0x03); // Guest-paging verification
-        // field32 |= (1U << 0x04); // IPI virtualization
-        // field32 |= (1U << 0x05); // SEAM guest-physical address width
-        // field32 |= (1U << 0x06); // Enable MSR-list instructions
-        // field32 |= (1U << 0x07); // Virtualize IA32_SPEC_CTRL
-        // field32 |= (1U << 0x09); // Enable PBNDKB
-
-        field32 = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS3, field32);
-        __asm_vmx_vmwrite(VMX_VMCS64_CTRL_PROC_EXEC3_FULL, field32);
+        TertiaryProcessorBasedVmExecutionControls = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS3, TertiaryProcessorBasedVmExecutionControls);
+        __asm_vmx_vmwrite(VMX_VMCS64_CTRL_PROC_EXEC3_FULL, TertiaryProcessorBasedVmExecutionControls);
     }
 
     // A.4.1 Primary VM-Exit Controls
     {
-        field32 = {};
-        field32 |= (1U << 0x02); // Save debug controls
-        field32 |= (1U << 0x09); // Host address-space size
-        field32 |= (1U << 0x0C); // Load IA32_PERF_GLOBAL_CTRL
-        field32 |= (1U << 0x0F); // Acknowledge interrupt on exit
-        field32 |= (1U << 0x12); // Save IA32_PAT
-        field32 |= (1U << 0x13); // Load IA32_PAT
-        field32 |= (1U << 0x14); // Save IA32_EFER
-        field32 |= (1U << 0x15); // Load IA32_EFER
-        field32 |= (1U << 0x16); // Save VMX-preemption timer value
-        field32 |= (1U << 0x17); // Clear IA32_BNDCFGS
-        field32 |= (1U << 0x18); // Conceal VMX from PT
-        field32 |= (1U << 0x19); // Clear IA32_RTIT_CTL
-        field32 |= (1U << 0x1A); // Clear IA32_LBR_CTL
-        field32 |= (1U << 0x1B); // Clear UINV
-        field32 |= (1U << 0x1C); // Load CET state
-        field32 |= (1U << 0x1D); // Load PKRS
-        field32 |= (1U << 0x1E); // Save IA32_PERF_GLOBAL_CTL
-        field32 |= (1U << 0x1F); // Activate secondary controls
+        PrimaryVmExitControls = {};
+
+        // PrimaryVmExitControls |= (1ULL << 0x02); // Save debug controls
+        // PrimaryVmExitControls |= (1ULL << 0x09); // Host address-space size
+        // PrimaryVmExitControls |= (1ULL << 0x0C); // Load IA32_PERF_GLOBAL_CTRL
+        // PrimaryVmExitControls |= (1ULL << 0x0F); // Acknowledge interrupt on exit
+        // PrimaryVmExitControls |= (1ULL << 0x12); // Save IA32_PAT
+        // PrimaryVmExitControls |= (1ULL << 0x13); // Load IA32_PAT
+        // PrimaryVmExitControls |= (1ULL << 0x14); // Save IA32_EFER
+        // PrimaryVmExitControls |= (1ULL << 0x15); // Load IA32_EFER
+        // PrimaryVmExitControls |= (1ULL << 0x16); // Save VMX-preemption timer value
+        // PrimaryVmExitControls |= (1ULL << 0x17); // Clear IA32_BNDCFGS
+        // PrimaryVmExitControls |= (1ULL << 0x18); // Conceal VMX from PT
+        // PrimaryVmExitControls |= (1ULL << 0x19); // Clear IA32_RTIT_CTL
+        // PrimaryVmExitControls |= (1ULL << 0x1A); // Clear IA32_LBR_CTL
+        // PrimaryVmExitControls |= (1ULL << 0x1B); // Clear UINV
+        // PrimaryVmExitControls |= (1ULL << 0x1C); // Load CET state
+        // PrimaryVmExitControls |= (1ULL << 0x1D); // Load PKRS
+        // PrimaryVmExitControls |= (1ULL << 0x1E); // Save IA32_PERF_GLOBAL_CTL
+        PrimaryVmExitControls |= (1ULL << 0x1F); // Activate secondary controls
+
         if (ia32_vmx_basic & (1ULL << 55))
-            field32 = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_EXIT_CTLS, field32);
+            PrimaryVmExitControls = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_EXIT_CTLS, PrimaryVmExitControls);
         else
-            field32 = (uint32_t)vmx_format_controls(IA32_VMX_EXIT_CTLS, field32);
-        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_EXIT, field32);
+            PrimaryVmExitControls = (uint32_t)vmx_format_controls(IA32_VMX_EXIT_CTLS, PrimaryVmExitControls);
+        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_EXIT, PrimaryVmExitControls);
     }
 
     // A.4.2 Secondary VM-Exit Controls
     {
-        field32 = {};
+        SecondaryVmExitControls = {};
 
-        field32 |= (1U << 0x00); // Save FRED
-        field32 |= (1U << 0x01); // Load FRED
-        field32 |= (1U << 0x03); // Prematurely busy shadow stack
+        // SecondaryVmExitControls |= (1ULL << 0x00); // Save FRED
+        // SecondaryVmExitControls |= (1ULL << 0x01); // Load FRED
+        // SecondaryVmExitControls |= (1ULL << 0x03); // Prematurely busy shadow stack
 
-        field32 = (uint32_t)vmx_format_controls(IA32_VMX_EXIT_CTLS2, field32);
-        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC2, field32);
+        SecondaryVmExitControls = (uint32_t)vmx_format_controls(IA32_VMX_EXIT_CTLS2, SecondaryVmExitControls);
+        __asm_vmx_vmwrite(0x00002044 /*Secondary VM-exit controls (full)*/, SecondaryVmExitControls);
     }
 
     // A.5 VM-ENTRY CONTROLS
     {
-        field32 = {};
-
-        field32 |= (1U << 0x00); // Save FRED
-        field32 |= (1U << 0x01); // Load FRED
-        field32 |= (1U << 0x03); // Prematurely busy shadow stack
+        // VmEntryControls |= (1ULL << 0x00); // Save FRED
+        // VmEntryControls |= (1ULL << 0x01); // Load FRED
+        // VmEntryControls |= (1ULL << 0x03); // Prematurely busy shadow stack
 
         if (ia32_vmx_basic & (1ULL << 55))
-            field32 = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_ENTRY_CTLS, field32);
+            VmEntryControls = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_ENTRY_CTLS, VmEntryControls);
         else
-            field32 = (uint32_t)vmx_format_controls(IA32_VMX_ENTRY_CTLS, field32);
-        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_ENTRY, field32);
+            VmEntryControls = (uint32_t)vmx_format_controls(IA32_VMX_ENTRY_CTLS, VmEntryControls);
+        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_ENTRY, VmEntryControls);
     }
-
-    size_t result = {};
 
     // Control Fields
     {
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_CTRL_EXCEPTION_BITMAP, 0);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR0_MASK, 0);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR4_MASK, 0);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR0_READ_SHADOW, __asm_cr0());
-        result |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR4_READ_SHADOW, __asm_cr4());
+        if (PrimaryProcessorBasedVmExecutionControls & (1ULL << 0x19)) // Use I/O bitmaps
+            ;
+
+        if (PrimaryProcessorBasedVmExecutionControls & (1ULL << 0x1C)) // Use MSR bitmaps
+            ;
+
+        if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x01)) // Enable EPT
+            ;
+
+        if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x05)) // Enable VPID
+            ;
+
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_CTRL_EXCEPTION_BITMAP, 0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR0_MASK, 0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR4_MASK, 0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR0_READ_SHADOW, CR0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR4_READ_SHADOW, CR4);
     }
+
+    KdBreakPoint();
 
     // Host Fields
     {
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RSP, (uint64_t)vcpu + 0x10000 - 0x10);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RIP, (uint64_t)&vmx_vmexit);
+        size_t stack = (size_t)allocate<0x8000>();
+
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RSP, stack + 0x8000 - 0x10);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RIP, (uint64_t)&vmx_vmexit);
 
         // RPL and TI have to be 0
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_CS_SEL, __asm_cs() & 0xF8);
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_DS_SEL, __asm_ds() & 0xF8);
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_ES_SEL, __asm_es() & 0xF8);
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_FS_SEL, __asm_fs() & 0xF8);
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_GS_SEL, __asm_gs() & 0xF8);
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_SS_SEL, __asm_ss() & 0xF8);
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_TR_SEL, __asm_tr() & 0xF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_CS_SEL, CS & 0xF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_DS_SEL, DS & 0xF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_ES_SEL, ES & 0xF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_FS_SEL, FS & 0xF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_GS_SEL, GS & 0xF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_SS_SEL, SS & 0xF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_TR_SEL, TR & 0xF8);
 
-#if INTPTR_MAX == INT64_MAX
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_FS_BASE, __asm_rdmsr(IA32_FS_BASE));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_GS_BASE, __asm_rdmsr(IA32_GS_BASE));
-#else
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_FS_BASE, __lsb(ctx.fs));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_GS_BASE, __lsb(ctx.gs));
+#if defined(_M_AMD64) || defined(__x86_64__)
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_FS_BASE, __asm_rdmsr(IA32_FS_BASE));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_GS_BASE, __asm_rdmsr(IA32_GS_BASE));
 #endif
 
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_TR_BASE, __lsb(__asm_tr()));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_GDTR_BASE, gdtr.base); // 居然没有设置limit的接口...
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_IDTR_BASE, idtr.base); // 居然没有设置limit的接口...
+#if defined(_M_IX86) || defined(__i386__)
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_FS_BASE, __lsb(FS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_GS_BASE, __lsb(GS));
+#endif
 
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_HOST_SYSENTER_CS, __asm_rdmsr(IA32_SYSENTER_CS));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_SYSENTER_ESP, __asm_rdmsr(IA32_SYSENTER_ESP));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_SYSENTER_EIP, __asm_rdmsr(IA32_SYSENTER_EIP));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_TR_BASE, __lsb(TR));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_GDTR_BASE, (size_t)GDTR.BaseAddress); // 竟然没有设置limit的接口...
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_IDTR_BASE, (size_t)IDTR.BaseAddress); // 竟然没有设置limit的接口...
 
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR0, ctx.cr0);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR3, ctx.cr3);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR4, ctx.cr4);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_HOST_SYSENTER_CS, __asm_rdmsr(IA32_SYSENTER_CS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_SYSENTER_ESP, __asm_rdmsr(IA32_SYSENTER_ESP));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_SYSENTER_EIP, __asm_rdmsr(IA32_SYSENTER_EIP));
+
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR0, CR0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR3, CR3);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR4, CR4);
     }
 
     // Guest Fields
     {
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SYSENTER_CS, __asm_rdmsr(IA32_SYSENTER_CS));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SYSENTER_ESP, __asm_rdmsr(IA32_SYSENTER_ESP));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SYSENTER_EIP, __asm_rdmsr(IA32_SYSENTER_EIP));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SYSENTER_CS, __asm_rdmsr(IA32_SYSENTER_CS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SYSENTER_ESP, __asm_rdmsr(IA32_SYSENTER_ESP));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SYSENTER_EIP, __asm_rdmsr(IA32_SYSENTER_EIP));
 
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_RSP, ctx.rsp);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_RIP, ctx.rip);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_RSP, Context.Rsp);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_RIP, Context.Rip);
 
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_RFLAGS, ctx.rflags);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CR0, __asm_cr0());
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CR3, __asm_cr3());
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CR4, __asm_cr4());
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DR7, __asm_dr7());
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_RFLAGS, Context.EFlags);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CR0, CR0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CR3, CR3);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CR4, CR4);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DR7, __asm_dr7());
 
-        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_VMCS_LINK_PTR_HIGH, 0xFFFFFFFFFFFFFFFF);
-        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_VMCS_LINK_PTR_FULL, 0xFFFFFFFFFFFFFFFF);
-        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_DEBUGCTL_HIGH, 0xFFFFFFFFFFFFFFFF);
-        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_DEBUGCTL_FULL, __asm_rdmsr(IA32_DEBUGCTL));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_VMCS_LINK_PTR_HIGH, 0xFFFFFFFFFFFFFFFF);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_VMCS_LINK_PTR_FULL, 0xFFFFFFFFFFFFFFFF);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_DEBUGCTL_HIGH, 0xFFFFFFFFFFFFFFFF);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_DEBUGCTL_FULL, __asm_rdmsr(IA32_DEBUGCTL));
 
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_CS_SEL, __asm_cs());
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_DS_SEL, __asm_ds());
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_ES_SEL, __asm_es());
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_FS_SEL, __asm_fs());
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_GS_SEL, __asm_gs());
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_SS_SEL, __asm_ss());
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_LDTR_SEL, ctx.ldtr);
-        result |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_TR_SEL, __asm_tr());
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_CS_SEL, CS);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_DS_SEL, DS);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_ES_SEL, ES);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_FS_SEL, FS);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_GS_SEL, GS);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_SS_SEL, SS);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_LDTR_SEL, LDTR);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_TR_SEL, TR);
 
-#if INTPTR_MAX == INT64_MAX
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CS_BASE, 0);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DS_BASE, 0);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_ES_BASE, 0);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_FS_BASE, __asm_rdmsr(0xC0000100));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_GS_BASE, __asm_rdmsr(0xC0000101));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SS_BASE, 0);
-#else
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CS_BASE, __lsb(ctx.cs));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DS_BASE, __lsb(ctx.ds));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_ES_BASE, __lsb(ctx.es));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_FS_BASE, __lsb(ctx.fs));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_GS_BASE, __lsb(ctx.gs));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SS_BASE, __lsb(ctx.ss));
+#if defined(_M_AMD64) || defined(__x86_64__)
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CS_BASE, 0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DS_BASE, 0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_ES_BASE, 0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_FS_BASE, __asm_rdmsr(IA32_FS_BASE));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_GS_BASE, __asm_rdmsr(IA32_GS_BASE));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SS_BASE, 0);
 #endif
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_LDTR_BASE, __lsb(ctx.ldtr));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_TR_BASE, __lsb(ctx.tr));
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_GDTR_BASE, gdtr.base);
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GDTR_LIMIT, gdtr.limit);
-        result |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_IDTR_BASE, idtr.base);
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_IDTR_LIMIT, idtr.limit);
 
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_CS_LIMIT, __asm_lsl(ctx.cs));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_DS_LIMIT, __asm_lsl(ctx.ds));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_ES_LIMIT, __asm_lsl(ctx.es));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_FS_LIMIT, __asm_lsl(ctx.fs));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GS_LIMIT, __asm_lsl(ctx.gs));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SS_LIMIT, __asm_lsl(ctx.ss));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_LDTR_LIMIT, __asm_lsl(ctx.ldtr));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_TR_LIMIT, __asm_lsl(ctx.tr));
+#if defined(_M_IX86) || defined(__i386__)
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CS_BASE, __lsb(CS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DS_BASE, __lsb(DS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_ES_BASE, __lsb(ES));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_FS_BASE, __lsb(FS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_GS_BASE, __lsb(GS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SS_BASE, __lsb(SS));
+#endif
 
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_CS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.cs)));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_DS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.ds)));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_ES_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.es)));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_FS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.fs)));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.gs)));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.ss)));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_LDTR_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.ldtr)));
-        result |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_TR_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ctx.tr)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_LDTR_BASE, __lsb(LDTR));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_TR_BASE, __lsb(TR));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_GDTR_BASE, (size_t)GDTR.BaseAddress);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GDTR_LIMIT, GDTR.Limit);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_IDTR_BASE, (size_t)IDTR.BaseAddress);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_IDTR_LIMIT, IDTR.Limit);
 
-        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE0_FULL, 0);
-        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE1_FULL, 0);
-        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE2_FULL, 0);
-        result |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE3_FULL, 0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_CS_LIMIT, __asm_lsl(CS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_DS_LIMIT, __asm_lsl(DS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_ES_LIMIT, __asm_lsl(ES));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_FS_LIMIT, __asm_lsl(FS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GS_LIMIT, __asm_lsl(GS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SS_LIMIT, __asm_lsl(SS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_LDTR_LIMIT, __asm_lsl(LDTR));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_TR_LIMIT, __asm_lsl(TR));
+
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_CS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(CS)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_DS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(DS)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_ES_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ES)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_FS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(FS)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(GS)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(SS)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_LDTR_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(LDTR)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_TR_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(TR)));
+
+        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE0_FULL, 0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE1_FULL, 0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE2_FULL, 0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE3_FULL, 0);
     }
 
     // Natural-Width Control Fields
@@ -1179,6 +1308,18 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     }
     // 16-Bit Host-State Fields
     {
+    }
+
+    KdBreakPoint();
+
+    Status = __asm_vmx_vmlaunch();
+
+    if (Status & EFLAGS_ZF_MASK) {
+        size_t e;
+        __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
+        e = 0;
+
+        return -1;
     }
 
     return 0;

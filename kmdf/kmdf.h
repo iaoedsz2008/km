@@ -18,6 +18,12 @@ PVOID allocate();
 template <size_t>
 void deallocate(PVOID Mem);
 
+template <size_t>
+PVOID allocateContiguous();
+
+template <size_t>
+void deallocateContiguous(PVOID Mem);
+
 template <size_t T>
 int initialize(PVOID);
 

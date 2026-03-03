@@ -10,6 +10,11 @@
 
 #include "lfqueue.h"
 
+static lfqueue* Mem4K = NULL;
+static lfqueue* Mem8K = NULL;
+static lfqueue* Mem16K = NULL;
+static lfqueue* Mem32K = NULL;
+
 static lfqueue* Contiguous4K = NULL;
 static lfqueue* Contiguous8K = NULL;
 static lfqueue* Contiguous16K = NULL;
@@ -28,54 +33,110 @@ template <>
 PVOID
 allocate<0x1000>()
 {
-    return Contiguous4K->pop();
+    return Mem4K->pop();
 }
 
 template <>
 void
 deallocate<0x1000>(PVOID Mem)
 {
-    Contiguous4K->push(Mem);
+    Mem4K->push(Mem);
 }
 
 template <>
 PVOID
 allocate<0x2000>()
 {
-    return Contiguous8K->pop();
+    return Mem8K->pop();
 }
 
 template <>
 void
 deallocate<0x2000>(PVOID Mem)
 {
-    Contiguous8K->push(Mem);
+    Mem8K->push(Mem);
 }
 
 template <>
 PVOID
 allocate<0x4000>()
 {
-    return Contiguous16K->pop();
+    return Mem16K->pop();
 }
 
 template <>
 void
 deallocate<0x4000>(PVOID Mem)
 {
-    Contiguous16K->push(Mem);
+    Mem16K->push(Mem);
 }
 
 template <>
 PVOID
 allocate<0x8000>()
 {
-    return Contiguous32K->pop();
+    return Mem32K->pop();
 }
 
 template <>
 void
 deallocate<0x8000>(PVOID Mem)
+{
+    Mem32K->push(Mem);
+}
+
+template <>
+PVOID
+allocateContiguous<0x1000>()
+{
+    return Contiguous4K->pop();
+}
+
+template <>
+void
+deallocateContiguous<0x1000>(PVOID Mem)
+{
+    Contiguous4K->push(Mem);
+}
+
+template <>
+PVOID
+allocateContiguous<0x2000>()
+{
+    return Contiguous8K->pop();
+}
+
+template <>
+void
+deallocateContiguous<0x2000>(PVOID Mem)
+{
+    Contiguous8K->push(Mem);
+}
+
+template <>
+PVOID
+allocateContiguous<0x4000>()
+{
+    return Contiguous16K->pop();
+}
+
+template <>
+void
+deallocateContiguous<0x4000>(PVOID Mem)
+{
+    Contiguous16K->push(Mem);
+}
+
+template <>
+PVOID
+allocateContiguous<0x8000>()
+{
+    return Contiguous32K->pop();
+}
+
+template <>
+void
+deallocateContiguous<0x8000>(PVOID Mem)
 {
     Contiguous32K->push(Mem);
 }
@@ -100,7 +161,7 @@ load(_In_ ULONG_PTR Argument)
     ((uint32_t*)vendor)[1] = edx;
     ((uint32_t*)vendor)[2] = ecx;
 
-    PVOID vcpu = allocate<0x1000>();
+    PVOID vcpu = allocateContiguous<0x1000>();
 
     vcpus[KeGetCurrentProcessorIndex()] = vcpu;
 
@@ -141,7 +202,7 @@ unload(_In_ ULONG_PTR Argument)
     if (memcmp(vendor, "AuthenticAMD", 12) == 0)
         cleanup<Hash("AuthenticAMD")>(vcpu);
 
-    deallocate<0x1000>(vcpu);
+    deallocateContiguous<0x1000>(vcpu);
 
     return 0;
 }
@@ -154,19 +215,19 @@ DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
     if (KeIpiGenericCall(unload, 0))
         return;
 
-    while (auto m = allocate<0x8000>()) {
+    while (auto m = allocateContiguous<0x8000>()) {
         MmFreeContiguousMemory(m);
     }
 
-    while (auto m = allocate<0x4000>()) {
+    while (auto m = allocateContiguous<0x4000>()) {
         MmFreeContiguousMemory(m);
     }
 
-    while (auto m = allocate<0x2000>()) {
+    while (auto m = allocateContiguous<0x2000>()) {
         MmFreeContiguousMemory(m);
     }
 
-    while (auto m = allocate<0x1000>()) {
+    while (auto m = allocateContiguous<0x1000>()) {
         MmFreeContiguousMemory(m);
     }
 
@@ -190,25 +251,49 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
     Contiguous8K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
     Contiguous16K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
     Contiguous32K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
+    Mem4K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
+    Mem8K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
+    Mem16K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
+    Mem32K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
 
     for (ULONG i = 0; i < KeQueryActiveProcessorCount(NULL); ++i) {
         for (size_t k = 0; k < 16; k++) {
             auto m = MmAllocateContiguousMemory(0x1000, HighestAcceptableAddress);
-            deallocate<0x1000>(m);
+            deallocateContiguous<0x1000>(m);
         }
 
         for (size_t k = 0; k < 8; k++) {
             auto m = MmAllocateContiguousMemory(0x2000, HighestAcceptableAddress);
-            deallocate<0x2000>(m);
+            deallocateContiguous<0x2000>(m);
         }
 
         for (size_t k = 0; k < 4; k++) {
             auto m = MmAllocateContiguousMemory(0x4000, HighestAcceptableAddress);
-            deallocate<0x4000>(m);
+            deallocateContiguous<0x4000>(m);
         }
 
         for (size_t k = 0; k < 2; k++) {
             auto m = MmAllocateContiguousMemory(0x8000, HighestAcceptableAddress);
+            deallocateContiguous<0x8000>(m);
+        }
+
+        for (size_t k = 0; k < 16; k++) {
+            auto m = ExAllocatePool(NonPagedPool, 0x1000);
+            deallocate<0x1000>(m);
+        }
+
+        for (size_t k = 0; k < 8; k++) {
+            auto m = ExAllocatePool(NonPagedPool, 0x2000);
+            deallocate<0x2000>(m);
+        }
+
+        for (size_t k = 0; k < 4; k++) {
+            auto m = ExAllocatePool(NonPagedPool, 0x4000);
+            deallocate<0x4000>(m);
+        }
+
+        for (size_t k = 0; k < 2; k++) {
+            auto m = ExAllocatePool(NonPagedPool, 0x8000);
             deallocate<0x8000>(m);
         }
     }

@@ -439,20 +439,6 @@ __asm_ss(uint16_t val)
     __asm__ __volatile__("mov %0, %%ss" ::"r"(val) : "memory");
 }
 
-static inline uint16_t
-__asm_tr(void)
-{
-    uint16_t val;
-    __asm__ __volatile__("mov %%tr, %0" : "=r"(val));
-    return val;
-}
-
-static inline void
-__asm_tr(uint16_t val)
-{
-    __asm__ __volatile__("mov %0, %%tr" ::"r"(val) : "memory");
-}
-
 #if defined(__x86_64__)
 
 static inline uint64_t
@@ -520,20 +506,14 @@ __asm_lar(uint16_t selector)
 }
 
 typedef struct _IA32_GDT_REGISTER {
-    uint16_t SegmentLimit;
-    void* SegmentBase;
+    uint16_t Limit;
+    void* BaseAddress;
 } __attribute__((packed)) IA32_GDT_REGISTER;
 static_assert(sizeof(IA32_GDT_REGISTER) == 10, "");
 
-typedef struct _IA32_LDT_REGISTER {
-    uint16_t SegmentLimit;
-    void* SegmentBase;
-} __attribute__((packed)) IA32_LDT_REGISTER;
-static_assert(sizeof(IA32_LDT_REGISTER) == 10, "");
-
 typedef struct _IA32_IDT_REGISTER {
-    uint16_t SegmentLimit;
-    void* SegmentBase;
+    uint16_t Limit;
+    void* BaseAddress;
 } __attribute__((packed)) IA32_IDT_REGISTER;
 static_assert(sizeof(IA32_IDT_REGISTER) == 10, "");
 
@@ -550,13 +530,13 @@ __asm_sgdt(IA32_GDT_REGISTER* gdt)
 }
 
 static inline void
-__asm_lidt(const IA32_GDT_REGISTER* idt)
+__asm_lidt(const IA32_IDT_REGISTER* idt)
 {
     __asm__ __volatile__("lidt %0" ::"m"(*idt) : "memory");
 }
 
 static inline void
-__asm_sidt(IA32_GDT_REGISTER* idt)
+__asm_sidt(IA32_IDT_REGISTER* idt)
 {
     __asm__ __volatile__("sidt %0" : "=m"(*idt));
 }
