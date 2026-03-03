@@ -251,24 +251,17 @@ __lsb(uint16_t selector)
 
     __asm_sgdt(&GDTR);
 
-    uint16_t RPL = selector & 0x00000003;
-    uint16_t TI = selector & 0x00000004;
-    uint16_t I = selector & 0x0000FFF8;
+    uint16_t RPL = (selector >> 0x00) & 0x00000003;
+    uint16_t TI = (selector >> 0x02) & 0x00000001;
+    uint16_t I = (selector >> 0x03) & 0x00001FFF;
 
     if (TI) {
         // use local descriptor table
     } else {
         // use global descriptor table
-#if defined(_M_AMD64) || defined(__x86_64__)
-        uint64_t descriptor = ((uint64_t*)GDTR.BaseAddress)[I * 2];
-#endif
-
-#if defined(_M_IX86) || defined(__i386__)
         uint64_t descriptor = ((uint64_t*)GDTR.BaseAddress)[I];
-#endif
 
         // 3.4.5 Segment Descriptors
-
         auto TYPE = ((descriptor >> 0x28) & 0x0000000F); // TYPE - Segment type
         auto S = ((descriptor >> 0x2C) & 0x00000001);    // S - Descriptor type (0 = system; 1 = code or data)
         auto DPL = ((descriptor >> 0x2D) & 0x00000003);  // DPL - Descriptor privilege level
@@ -287,8 +280,8 @@ __lsb(uint16_t selector)
 
 #if defined(_M_AMD64) || defined(__x86_64__)
         if (S == 0) {
-            descriptor = ((uint64_t*)GDTR.BaseAddress)[I * 2 + 1];
-            SegmentBase |= descriptor & 0xFFFFFFFF00000000;
+            descriptor = ((uint64_t*)GDTR.BaseAddress)[I + 1];
+            SegmentBase |= (descriptor << 32) & 0xFFFFFFFF00000000;
         }
 #endif
     }
@@ -314,7 +307,6 @@ vmx_format_access_rights(uint64_t access_rights)
     uint32_t result = {};
 
     if (access_rights) {
-
         result |= (((access_rights >> 0x08) & 0x0000000F) << 0x00); // 3:0 Segment type
         result |= (((access_rights >> 0x0C) & 0x00000001) << 0x04); // 4 S - Descriptor type (0 = system; 1 = code or data)
         result |= (((access_rights >> 0x0D) & 0x00000003) << 0x05); // 6:5 DPL - Descriptor privilege level
@@ -683,11 +675,6 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     uint64_t ia32_apic_base = __asm_rdmsr(IA32_APIC_BASE);
     uint64_t ia32_feature_control = __asm_rdmsr(IA32_FEATURE_CONTROL); // Control Features in Intel 64 Processor (R/W)
 
-    CONTEXT Context;
-    RtlCaptureContext(&Context);
-
-    KdBreakPoint();
-
     /**
      * If this bit is clear, VMXON causes a general-protection exception.
      * If the lock bit is set, WRMSR to this MSR causes a general-protection exception;
@@ -775,6 +762,10 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     uint64_t ia32_aperf = __asm_rdmsr(IA32_APERF);
 
     uint64_t ia32_arch_capabilities = __asm_rdmsr(IA32_ARCH_CAPABILITIES);
+
+    uint64_t ia32_sysenter_cs = __asm_rdmsr(IA32_SYSENTER_CS);
+    uint64_t ia32_sysenter_esp = __asm_rdmsr(IA32_SYSENTER_ESP);
+    uint64_t ia32_sysenter_eip = __asm_rdmsr(IA32_SYSENTER_EIP);
 
     uint64_t ia32_perf_status = __asm_rdmsr(IA32_PERF_STATUS);
     uint64_t ia32_perf_ctl = __asm_rdmsr(IA32_PERF_CTL);
@@ -892,8 +883,16 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     uint64_t ia32_kernel_gs_base = __asm_rdmsr(IA32_KERNEL_GS_BASE);
     uint64_t ia32_tsc_aux = __asm_rdmsr(IA32_TSC_AUX);
 
+    CONTEXT Context;
+    RtlCaptureContext(&Context);
+
+    KdBreakPoint();
+
     __asm_cr0((CR0 & ia32_vmx_cr0_fixed1) | ia32_vmx_cr0_fixed0);
     __asm_cr4(((CR4 | 0x00002000 /*VMXE*/) & ia32_vmx_cr4_fixed1) | ia32_vmx_cr4_fixed0);
+
+    CR0 = __asm_cr0();
+    CR4 = __asm_cr4();
 
     KeAcquireSpinLockAtDpcLevel(&kSpinLock);
     initializeEPT();
@@ -949,10 +948,21 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         return -1;
     }
 
-    Status &= (EFLAGS_CF_MASK | EFLAGS_PF_MASK | EFLAGS_AF_MASK | EFLAGS_ZF_MASK | EFLAGS_SF_MASK | EFLAGS_OF_MASK);
-
     Status = __asm_vmx_vmclear((uint64_t*)&vmcsGuestPA.QuadPart);
+    if (Status & EFLAGS_ZF_MASK) {
+        size_t e;
+        __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
+        e = 0;
+        return -1;
+    }
+
     Status = __asm_vmx_vmptrld((uint64_t*)&vmcsGuestPA.QuadPart);
+    if (Status & EFLAGS_ZF_MASK) {
+        size_t e;
+        __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
+        e = 0;
+        return -1;
+    }
 
     uint64_t PinBasedVmExecutionControls = {};
     uint64_t PrimaryProcessorBasedVmExecutionControls = {};
@@ -976,7 +986,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         else
             PinBasedVmExecutionControls = vmx_format_controls(IA32_VMX_PINBASED_CTLS, PinBasedVmExecutionControls);
 
-        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PIN_EXEC, PinBasedVmExecutionControls);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PIN_EXEC, PinBasedVmExecutionControls);
     }
 
     // A.3.2 Primary Processor-Based VM-Execution Controls
@@ -1008,7 +1018,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
             PrimaryProcessorBasedVmExecutionControls = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_PROCBASED_CTLS, PrimaryProcessorBasedVmExecutionControls);
         else
             PrimaryProcessorBasedVmExecutionControls = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS, PrimaryProcessorBasedVmExecutionControls);
-        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC, PrimaryProcessorBasedVmExecutionControls);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC, PrimaryProcessorBasedVmExecutionControls);
     }
 
     // A.3.3 Secondary Processor-Based VM-Execution Controls
@@ -1047,7 +1057,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x1F); // Instruction timeout
 
         SecondaryProcessorBasedVmExecutionControls = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS2, SecondaryProcessorBasedVmExecutionControls);
-        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC2, SecondaryProcessorBasedVmExecutionControls);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC2, SecondaryProcessorBasedVmExecutionControls);
     }
 
     // A.3.4 Tertiary Processor-Based VM-Execution Controls
@@ -1063,7 +1073,14 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x09); // Enable PBNDKB
 
         TertiaryProcessorBasedVmExecutionControls = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS3, TertiaryProcessorBasedVmExecutionControls);
-        __asm_vmx_vmwrite(VMX_VMCS64_CTRL_PROC_EXEC3_FULL, TertiaryProcessorBasedVmExecutionControls);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_PROC_EXEC3_FULL, TertiaryProcessorBasedVmExecutionControls);
+   
+        if (Status & EFLAGS_ZF_MASK) {
+            size_t e;
+            __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
+            e = 0;
+            return -1;
+        }
     }
 
     // A.4.1 Primary VM-Exit Controls
@@ -1093,7 +1110,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
             PrimaryVmExitControls = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_EXIT_CTLS, PrimaryVmExitControls);
         else
             PrimaryVmExitControls = (uint32_t)vmx_format_controls(IA32_VMX_EXIT_CTLS, PrimaryVmExitControls);
-        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_EXIT, PrimaryVmExitControls);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_CTRL_EXIT, PrimaryVmExitControls);
     }
 
     // A.4.2 Secondary VM-Exit Controls
@@ -1105,20 +1122,34 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         // SecondaryVmExitControls |= (1ULL << 0x03); // Prematurely busy shadow stack
 
         SecondaryVmExitControls = (uint32_t)vmx_format_controls(IA32_VMX_EXIT_CTLS2, SecondaryVmExitControls);
-        __asm_vmx_vmwrite(0x00002044 /*Secondary VM-exit controls (full)*/, SecondaryVmExitControls);
+        Status |= __asm_vmx_vmwrite(0x00002044 /*Secondary VM-exit controls (full)*/, SecondaryVmExitControls);
     }
 
     // A.5 VM-ENTRY CONTROLS
     {
-        // VmEntryControls |= (1ULL << 0x00); // Save FRED
-        // VmEntryControls |= (1ULL << 0x01); // Load FRED
-        // VmEntryControls |= (1ULL << 0x03); // Prematurely busy shadow stack
+        VmEntryControls |= (1ULL << 0x02); // 2 Load debug controls
+        VmEntryControls |= (1ULL << 0x09); // 9 IA-32e mode guest
+
+        // VmEntryControls |= (1ULL << 0x0A); // 10 Entry to SMM
+        // VmEntryControls |= (1ULL << 0x0B); // 11 Deactivate dual-monitor treatment
+        // VmEntryControls |= (1ULL << 0x0D); // 13 Load IA32_PERF_GLOBAL_CTRL
+        // VmEntryControls |= (1ULL << 0x0E); // 14 Load IA32_PAT
+        // VmEntryControls |= (1ULL << 0x0F); // 15 Load IA32_EFER
+        // VmEntryControls |= (1ULL << 0x10); // 16 Load IA32_BNDCFGS
+        // VmEntryControls |= (1ULL << 0x11); // 17 Conceal VMX from PT
+        // VmEntryControls |= (1ULL << 0x12); // 18 Load IA32_RTIT_CTL
+        // VmEntryControls |= (1ULL << 0x13); // 19 Load UINV
+        // VmEntryControls |= (1ULL << 0x14); // 20 Load CET state
+        // VmEntryControls |= (1ULL << 0x15); // 21 Load guest IA32_LBR_CTL
+        // VmEntryControls |= (1ULL << 0x16); // 22 Load PKRS
+        // VmEntryControls |= (1ULL << 0x17); // 23 Load FRED
+        // VmEntryControls |= (1ULL << 0x19); // 25 Allow SEAM-guest telemetry
 
         if (ia32_vmx_basic & (1ULL << 55))
             VmEntryControls = (uint32_t)vmx_format_controls(IA32_VMX_TRUE_ENTRY_CTLS, VmEntryControls);
         else
             VmEntryControls = (uint32_t)vmx_format_controls(IA32_VMX_ENTRY_CTLS, VmEntryControls);
-        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_ENTRY, VmEntryControls);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_CTRL_ENTRY, VmEntryControls);
     }
 
     // Control Fields
@@ -1148,7 +1179,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     {
         size_t stack = (size_t)allocate<0x8000>();
 
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RSP, stack + 0x8000 - 0x10);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RSP, stack + 0x8000 - 0x20);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RIP, (uint64_t)&vmx_vmexit);
 
         // RPL and TI have to be 0
@@ -1161,8 +1192,8 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_TR_SEL, TR & 0xF8);
 
 #if defined(_M_AMD64) || defined(__x86_64__)
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_FS_BASE, __asm_rdmsr(IA32_FS_BASE));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_GS_BASE, __asm_rdmsr(IA32_GS_BASE));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_FS_BASE, ia32_fs_base);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_GS_BASE, ia32_gs_base);
 #endif
 
 #if defined(_M_IX86) || defined(__i386__)
@@ -1174,9 +1205,9 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_GDTR_BASE, (size_t)GDTR.BaseAddress); // 竟然没有设置limit的接口...
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_IDTR_BASE, (size_t)IDTR.BaseAddress); // 竟然没有设置limit的接口...
 
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_HOST_SYSENTER_CS, __asm_rdmsr(IA32_SYSENTER_CS));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_SYSENTER_ESP, __asm_rdmsr(IA32_SYSENTER_ESP));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_SYSENTER_EIP, __asm_rdmsr(IA32_SYSENTER_EIP));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_HOST_SYSENTER_CS, ia32_sysenter_cs);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_SYSENTER_ESP, ia32_sysenter_esp);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_SYSENTER_EIP, ia32_sysenter_eip);
 
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR0, CR0);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR3, CR3);
@@ -1185,9 +1216,9 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
 
     // Guest Fields
     {
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SYSENTER_CS, __asm_rdmsr(IA32_SYSENTER_CS));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SYSENTER_ESP, __asm_rdmsr(IA32_SYSENTER_ESP));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SYSENTER_EIP, __asm_rdmsr(IA32_SYSENTER_EIP));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SYSENTER_CS, ia32_sysenter_cs);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SYSENTER_ESP, ia32_sysenter_esp);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SYSENTER_EIP, ia32_sysenter_eip);
 
         Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_RSP, Context.Rsp);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_RIP, Context.Rip);
@@ -1201,7 +1232,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_VMCS_LINK_PTR_HIGH, 0xFFFFFFFFFFFFFFFF);
         Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_VMCS_LINK_PTR_FULL, 0xFFFFFFFFFFFFFFFF);
         Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_DEBUGCTL_HIGH, 0xFFFFFFFFFFFFFFFF);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_DEBUGCTL_FULL, __asm_rdmsr(IA32_DEBUGCTL));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_DEBUGCTL_FULL, ia32_debugctl);
 
         Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_CS_SEL, CS);
         Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_DS_SEL, DS);
@@ -1216,8 +1247,8 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CS_BASE, 0);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DS_BASE, 0);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_ES_BASE, 0);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_FS_BASE, __asm_rdmsr(IA32_FS_BASE));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_GS_BASE, __asm_rdmsr(IA32_GS_BASE));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_FS_BASE, ia32_fs_base);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_GS_BASE, ia32_gs_base);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SS_BASE, 0);
 #endif
 
