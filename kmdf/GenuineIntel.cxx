@@ -1022,7 +1022,8 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     }
 
     // A.3.3 Secondary Processor-Based VM-Execution Controls
-    {
+    if (PrimaryProcessorBasedVmExecutionControls & (1ULL << 0x1F)) { // Activate secondary controls
+
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x00); // Virtualize APIC accesses
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x01); // Enable EPT
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x02); // Descriptor-table exiting
@@ -1061,7 +1062,8 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     }
 
     // A.3.4 Tertiary Processor-Based VM-Execution Controls
-    {
+    if (PrimaryProcessorBasedVmExecutionControls & (1ULL << 0x11)) { // Activate tertiary controls
+
         // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x00); // LOADIWKEY exiting
         // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x01); // Enable HLAT
         // TertiaryProcessorBasedVmExecutionControls |= (1ULL << 0x02); // EPT paging-write control
@@ -1074,7 +1076,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
 
         TertiaryProcessorBasedVmExecutionControls = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS3, TertiaryProcessorBasedVmExecutionControls);
         Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_PROC_EXEC3_FULL, TertiaryProcessorBasedVmExecutionControls);
-   
+
         if (Status & EFLAGS_ZF_MASK) {
             size_t e;
             __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
@@ -1085,8 +1087,6 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
 
     // A.4.1 Primary VM-Exit Controls
     {
-        PrimaryVmExitControls = {};
-
         // PrimaryVmExitControls |= (1ULL << 0x02); // Save debug controls
         // PrimaryVmExitControls |= (1ULL << 0x09); // Host address-space size
         // PrimaryVmExitControls |= (1ULL << 0x0C); // Load IA32_PERF_GLOBAL_CTRL
@@ -1114,8 +1114,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     }
 
     // A.4.2 Secondary VM-Exit Controls
-    {
-        SecondaryVmExitControls = {};
+    if (PrimaryVmExitControls & (1ULL << 0x1F)) { // Activate secondary controls
 
         // SecondaryVmExitControls |= (1ULL << 0x00); // Save FRED
         // SecondaryVmExitControls |= (1ULL << 0x01); // Load FRED
