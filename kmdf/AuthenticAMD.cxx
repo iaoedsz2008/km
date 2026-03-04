@@ -18,6 +18,185 @@ initialize<Hash("AuthenticAMD")>(PVOID vcpu)
 
     uint64_t msr;
 
+    __asm_cpuid(0x00000000, &eax, &ebx, &ecx, &edx);
+
+    if (eax < 0x80000000)
+        return -1;
+
+    __asm_cpuid(0x00000001, &eax, &ebx, &ecx, &edx);
+
+    if (ecx & (1U << 0x00)) // SSE3 - SSE3 instruction support
+        ;
+    if (ecx & (1U << 0x01)) // PCLMULQDQ - PCLMULQDQ instruction support
+        ;
+    if (ecx & (1U << 0x03)) // MONITOR - MONITOR/MWAIT instructions
+        ;
+    if (ecx & (1U << 0x09)) // SSSE3 - Supplemental SSE3 instruction support
+        ;
+    if (ecx & (1U << 0x0C)) // FMA - FMA instruction support
+        ;
+    if (ecx & (1U << 0x0D)) // CMPXCHG16B - CMPXCHG16B instruction support
+        ;
+    if (ecx & (1U << 0x13)) // SSE41 - SSE4.1 instruction support
+        ;
+    if (ecx & (1U << 0x14)) // SSE42 - SSE4.2 instruction support
+        ;
+    if (ecx & (1U << 0x15)) // x2APIC - x2APIC support
+        ;
+    if (ecx & (1U << 0x16)) // MOVBE - MOVBE instruction support.
+        ;
+    if (ecx & (1U << 0x17)) // POPCNT - POPCNT instruction
+        ;
+    if (ecx & (1U << 0x19)) // AES - AES instruction support
+        ;
+    if (ecx & (1U << 0x1A)) // XSAVE - XSAVE (and related) instructions are supported by hardware
+        ;
+    if (ecx & (1U << 0x1B)) // OSXSAVE - XSAVE (and related) instructions are enabled
+        ;
+    if (ecx & (1U << 0x1C)) // AVX - AVX instruction support
+        ;
+    if (ecx & (1U << 0x1D)) // F16C - Half-precision convert instruction support
+        ;
+    if (ecx & (1U << 0x1E)) // RDRAND - RDRAND instruction support
+        ;
+
+    if (edx & (1U << 0x00)) // FPU - x87 floating point unit on-chip
+        ;
+    if (edx & (1U << 0x01)) // VME - Virtual-mode enhancements
+        ;
+    if (edx & (1U << 0x02)) // DE - Debugging extensions
+        ;
+    if (edx & (1U << 0x03)) // PSE - Page-size extensions
+        ;
+    if (edx & (1U << 0x04)) // TSC - Time stamp counter
+        ;
+    if (edx & (1U << 0x05)) // MSR - AMD model-specific registers
+        ;
+    if (edx & (1U << 0x06)) // PAE - Physical-address extensions
+        ;
+    if (edx & (1U << 0x07)) // MCE - Machine check exception
+        ;
+    if (edx & (1U << 0x08)) // CMPXCHG8B - CMPXCHG8B instruction
+        ;
+    if (edx & (1U << 0x09)) // APIC - Advanced programmable interrupt controller
+        ;
+    if (edx & (1U << 0x0B)) // SysEnterSysExit - SYSENTER and SYSEXIT instructions
+        ;
+    if (edx & (1U << 0x0C)) // MTRR - Memory-type range registers
+        ;
+    if (edx & (1U << 0x0D)) // PGE - Page global extension
+        ;
+    if (edx & (1U << 0x0E)) // MCA - Machine check architecture
+        ;
+    if (edx & (1U << 0x0F)) // CMOV - Conditional move instructions
+        ;
+    if (edx & (1U << 0x10)) // PAT - Page attribute table
+        ;
+    if (edx & (1U << 0x11)) // PSE36 - Page-size extensions
+        ;
+    if (edx & (1U << 0x13)) // CLFSH - CLFLUSH instruction support
+        ;
+    if (edx & (1U << 0x17)) // MMX - MMX instructions.
+        ;
+    if (edx & (1U << 0x18)) // FXSR - FXSAVE and FXRSTOR instructions
+        ;
+    if (edx & (1U << 0x19)) // SSE - SSE instruction support
+        ;
+    if (edx & (1U << 0x1A)) // SSE2 - SSE2 instruction support
+        ;
+    if (edx & (1U << 0x1C)) // HTT - Hyper-threading technology
+        ;
+
+    __asm_cpuid_ex(0x00000007, 0, &eax, &ebx, &ecx, &edx);
+    int MaxSubFn = eax;
+
+    if (ebx & (1U << 0x00)) // FSGSBASE - FS and GS base read/write instruction support
+        ;
+    if (ebx & (1U << 0x01)) // TSCADJUST - TSC Adjust MSR (3Bh) support
+        ;
+    if (ebx & (1U << 0x03)) // BMI1 - Bit manipulation group 1 instruction support.
+        ;
+    if (ebx & (1U << 0x05)) // AVX2 - AVX2 instruction subset support.
+        ;
+    if (ebx & (1U << 0x07)) // SMEP - Supervisor mode execution prevention.
+        ;
+    if (ebx & (1U << 0x08)) // BMI2 - Bit manipulation group 2 instruction support.
+        ;
+    if (ebx & (1U << 0x09)) // ERMS - Enhanced REP MOVSB/STOSB support.
+        ;
+    if (ebx & (1U << 0x0A)) // INVPCID - INVPCID instruction support.
+        ;
+    if (ebx & (1U << 0x0C)) // PQM - Platform QOS Monitoring support
+        ;
+    if (ebx & (1U << 0x0F)) // PQE - Platform QOS Enforcement support
+        ;
+    if (ebx & (1U << 0x10)) // AVX512F - AVX512 Foundation
+        ;
+    if (ebx & (1U << 0x11)) // AVX512DQ - AVX512 Doubleword/Quadword Packed Integer instructions
+        ;
+    if (ebx & (1U << 0x12)) // RDSEED - RDSEED instruction support
+        ;
+    if (ebx & (1U << 0x13)) // ADX - ADCX, ADOX instruction support
+        ;
+    if (ebx & (1U << 0x14)) // SMAP - Supervisor mode access prevention.
+        ;
+    if (ebx & (1U << 0x15)) // AVX512_IFMA - AVX512 Integer Fused Multiply-Add instructions support
+        ;
+    if (ebx & (1U << 0x17)) // CLFLUSHOPT - CLFLUSHOPT instruction support.
+        ;
+    if (ebx & (1U << 0x18)) // CLWB - CLWB instruction support.
+        ;
+    if (ebx & (1U << 0x1C)) // AVX512CD - AVX512 Conflict Detection for Vectorizing Loops
+        ;
+    if (ebx & (1U << 0x1D)) // SHA - Secure Hash Algorithm instruction extension
+        ;
+    if (ebx & (1U << 0x1E)) // AVX512BW - AVX512 Byte/Word Packed Integer instructions
+        ;
+    if (ebx & (1U << 0x1F)) // AVX512VL - AVX512 instructions are extended to 128 and 256 bits
+        ;
+
+    if (ecx & (1U << 0x01)) // AVX512_VBMI - AVX512 vector byte permutation instructions support.
+        ;
+    if (ecx & (1U << 0x02)) // UMIP - User mode instruction prevention support.
+        ;
+    if (ecx & (1U << 0x03)) // PKU - Memory Protection Keys supported.
+        ;
+    if (ecx & (1U << 0x04)) // OSPKE - OS has enabled Memory Protection Keys and use of the RDPKRU/WRPKRU instructions by setting CR4.PKE=1.
+        ;
+    if (ecx & (1U << 0x06)) // AVX512_VBMI2 - AVX512 vector byte permutation instruction 2 support.
+        ;
+    if (ecx & (1U << 0x07)) // CET_SS - Shadow Stacks supported.
+        ;
+    if (ecx & (1U << 0x08)) // GFNI - Galois Field New instructions support.
+        ;
+    if (ecx & (1U << 0x09)) // VAES - VAES 256-bit instructions support.
+        ;
+    if (ecx & (1U << 0x0A)) // VPCMULQDQ - VPCLMULQDQ 256-bit instruction support.
+        ;
+    if (ecx & (1U << 0x0B)) // AVX512_VNNI - AVX512 vector neural network instructions support.
+        ;
+    if (ecx & (1U << 0x0C)) // AVX512_BITALG - AVX512 bit algorithm instructions VPSHUFBITQMB and VPOPCNTB/W support.
+        ;
+    if (ecx & (1U << 0x0E)) // AVX512_VPOPCNTDQ - AVX-512 VPOPCNTD/Q instruction support.
+        ;
+    if (ecx & (1U << 0x0F)) // LA57 - 5-Level paging support.
+        ;
+    if (ecx & (1U << 0x16)) // RDPID - RDPID instruction and TSC_AUX MSR support.
+        ;
+    if (ecx & (1U << 0x18)) // BUSLOCKTRAP - Bus Lock Trap (#DB) support.
+        ;
+    if (ecx & (1U << 0x1B)) // MOVDIRI - MOVDIRI instruction support.
+        ;
+    if (ecx & (1U << 0x1C)) // MOVDIR64B - MOVDIR64B instruction support.
+        ;
+
+    __asm_cpuid_ex(0x00000007, 1, &eax, &ebx, &ecx, &edx);
+
+    if (edx & (1U << 0x04)) // AVX_VNNI - AVX Neural Network instructions
+        ;
+    if (edx & (1U << 0x05)) // AVX512_BF16 - AVX512 BFloat16 instructions
+        ;
+
     __asm_cpuid(0x80000001, &eax, &ebx, &ecx, &edx);
     __asm_cpuid(0x8000000A, &eax, &ebx, &ecx, &edx);
 
