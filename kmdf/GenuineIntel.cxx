@@ -1027,16 +1027,22 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x00); // Virtualize APIC accesses
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x01); // Enable EPT
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x02); // Descriptor-table exiting
-        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x03); // Enable RDTSCP
+
+        SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x03); // Enable RDTSCP
+
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x04); // Virtualize x2APIC mode
-        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x05); // Enable VPID
+
+        SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x05); // Enable VPID
+
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x06); // WBINVD exiting
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x07); // Unrestricted guest
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x08); // APIC-register virtualization
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x09); // Virtual-interrupt delivery
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0A); // PAUSE-loop exiting
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0B); // RDRAND exiting
-        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0C); // Enable INVPCID
+
+        SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0C); // Enable INVPCID
+
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0D); // Enable VM functions
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0E); // VMCS shadowing
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x0F); // Enable ENCLS exiting
@@ -1044,7 +1050,9 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x11); // Enable PML
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x12); // EPT-violation #VE
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x13); // Conceal VMX from PT
-        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x14); // Enable XSAVES/XRSTORS
+
+        SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x14); // Enable XSAVES/XRSTORS
+
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x15); // PASID translation
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x16); // Mode-based execute control for EPT
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x17); // Sub-page write permissions for EPT
@@ -1076,19 +1084,14 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
 
         TertiaryProcessorBasedVmExecutionControls = (uint32_t)vmx_format_controls(IA32_VMX_PROCBASED_CTLS3, TertiaryProcessorBasedVmExecutionControls);
         Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_PROC_EXEC3_FULL, TertiaryProcessorBasedVmExecutionControls);
-
-        if (Status & EFLAGS_ZF_MASK) {
-            size_t e;
-            __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
-            e = 0;
-            return -1;
-        }
     }
 
     // A.4.1 Primary VM-Exit Controls
     {
         // PrimaryVmExitControls |= (1ULL << 0x02); // Save debug controls
-        // PrimaryVmExitControls |= (1ULL << 0x09); // Host address-space size
+#if defined(_M_AMD64) || defined(__x86_64__)
+        PrimaryVmExitControls |= (1ULL << 0x09); // Host address-space size
+#endif
         // PrimaryVmExitControls |= (1ULL << 0x0C); // Load IA32_PERF_GLOBAL_CTRL
         // PrimaryVmExitControls |= (1ULL << 0x0F); // Acknowledge interrupt on exit
         // PrimaryVmExitControls |= (1ULL << 0x12); // Save IA32_PAT
@@ -1127,8 +1130,9 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     // A.5 VM-ENTRY CONTROLS
     {
         VmEntryControls |= (1ULL << 0x02); // 2 Load debug controls
+#if defined(_M_AMD64) || defined(__x86_64__)
         VmEntryControls |= (1ULL << 0x09); // 9 IA-32e mode guest
-
+#endif
         // VmEntryControls |= (1ULL << 0x0A); // 10 Entry to SMM
         // VmEntryControls |= (1ULL << 0x0B); // 11 Deactivate dual-monitor treatment
         // VmEntryControls |= (1ULL << 0x0D); // 13 Load IA32_PERF_GLOBAL_CTRL
@@ -1163,7 +1167,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
             ;
 
         if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x05)) // Enable VPID
-            ;
+            Status |= __asm_vmx_vmwrite(VMX_VMCS16_VPID, __asm_rdpid() + 1);
 
         Status |= __asm_vmx_vmwrite(VMX_VMCS32_CTRL_EXCEPTION_BITMAP, 0);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR0_MASK, 0);
