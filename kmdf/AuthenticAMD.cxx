@@ -437,6 +437,84 @@ initialize<Hash("AuthenticAMD")>(PVOID vcpu)
     } while (0);
 
     do {
+        uint64_t CR0 = __asm_cr0();
+        // uint64_t CR1 = __asm_cr1();
+        uint64_t CR2 = __asm_cr2(); // Page-Fault Linear Address
+        uint64_t CR3 = __asm_cr3();
+        uint64_t CR4 = __asm_cr4();
+
+        if (CR0 & (1U << 0x00)) // CR0.PE Protection Enable (bit 0 of CR0)
+            ;
+        if (CR0 & (1U << 0x01)) // CR0.MP Monitor Coprocessor (bit 1 of CR0)
+            ;
+        if (CR0 & (1U << 0x02)) // CR0.EM Emulation (bit 2 of CR0)
+            ;
+        if (CR0 & (1U << 0x03)) // CR0.TS Task Switched (bit 3 of CR0)
+            ;
+        if (CR0 & (1U << 0x04)) // CR0.ET Extension Type (bit 4 of CR0)
+            ;
+        if (CR0 & (1U << 0x05)) // CR0.NE Numeric Error (bit 5 of CR0)
+            ;
+        if (CR0 & (1U << 0x10)) // CR0.WP Write Protect (bit 16 of CR0)
+            ;
+        if (CR0 & (1U << 0x12)) // CR0.AM Alignment Mask (bit 18 of CR0)
+            ;
+        if (CR0 & (1U << 0x1D)) // CR0.NW Not Write-through (bit 29 of CR0)
+            ;
+        if (CR0 & (1U << 0x1E)) // CR0.CD Cache Disable (bit 30 of CR0)
+            ;
+        if (CR0 & (1U << 0x1F)) // CR0.PG Paging (bit 31 of CR0)
+            ;
+
+        if (CR3 & (1ULL << 0x03)) // CR3.PWT Page-level Write-Through (bit 3 of CR3)
+            ;
+        if (CR3 & (1ULL << 0x04)) // CR3.PCD Page-level Cache Disable (bit 4 of CR3)
+            ;
+
+        if (CR4 & (1ULL << 0x00)) // CR4.VME Virtual-8086 Mode Extensions (bit 0 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x01)) // CR4.PVI Protected-Mode Virtual Interrupts (bit 1 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x02)) // CR4.TSD Time Stamp Disable (bit 2 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x03)) // CR4.DE Debugging Extensions (bit 3 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x04)) // CR4.PSE Page Size Extensions (bit 4 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x05)) // CR4.PAE Physical Address Extension (bit 5 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x06)) // CR4.MCE Machine-Check Enable (bit 6 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x07)) // CR4.PGE Page Global Enable (bit 7 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x08)) // CR4.PCE Performance-Monitoring Counter Enable (bit 8 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x09)) // CR4.OSFXSR Operating System Support for FXSAVE and FXRSTOR instructions (bit 9 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x0A)) // CR4.OSXMMEXCPT Operating System Support for Unmasked SIMD Floating-Point Exceptions (bit 10 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x0B)) // CR4.UMIP User-Mode Instruction Prevention (bit 11 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x0C)) // CR4.LA57 57-bit linear addresses (bit 12 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x10)) // CR4.FSGSBASE FSGSBASE-Enable Bit (bit 16 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x11)) // CR4.PCIDE PCID-Enable Bit (bit 17 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x12)) // CR4.OSXSAVE XSAVE and Processor Extended States-Enable Bit (bit 18 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x14)) // CR4.SMEP SMEP-Enable Bit (bit 20 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x15)) // CR4.SMAP SMAP-Enable Bit (bit 21 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x16)) // CR4.PKE Enable protection keys for user-mode pages (bit 22 of CR4)
+            ;
+        if (CR4 & (1ULL << 0x17)) // CR4.CET Control-flow Enforcement Technology (bit 23 of CR4)
+            ;
+
+    } while (0);
+
+    do {
         uint64_t msr;
 
         msr = __asm_rdmsr(IA32_EFER);
@@ -469,6 +547,7 @@ initialize<Hash("AuthenticAMD")>(PVOID vcpu)
         msr = __asm_rdmsr(0xC0010112); // SMM_ADDR
         msr = __asm_rdmsr(0xC0010113); // SMM_MASK
         msr = __asm_rdmsr(0xC0010114); // VM_CR SVM "SVM Related MSRs" on page 583
+
         msr = __asm_rdmsr(0xC0010115); // IGNNE SVM "SVM Related MSRs" on page 583
         msr = __asm_rdmsr(0xC0010116); // SMM_CTL SVM "SVM Related MSRs" on page 583
         msr = __asm_rdmsr(0xC0010117); // VM_HSAVE_PA SVM "SVM Related MSRs" on page 583
