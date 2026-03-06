@@ -5,9 +5,9 @@
 
 #include "ExRegisterCallback.h"
 
-#include "Support.h"
-
 #include <ntddk.h>
+
+#include "Support.h"
 
 static PCALLBACK_OBJECT g_CallbackObject = nullptr;
 static PVOID g_CallbackRegistration = nullptr;

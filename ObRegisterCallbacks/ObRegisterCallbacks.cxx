@@ -5,9 +5,9 @@
 
 #include "ObRegisterCallbacks.h"
 
-#include "Support.h"
-
 #include <ntddk.h>
+
+#include "Support.h"
 
 PVOID ObCallbacks;
 

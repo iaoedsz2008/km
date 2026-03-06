@@ -31,8 +31,8 @@ static constexpr int DESCRIPTION_MAX_COUNT = 0x1000;
 
 static PRIVATE_CACHE PrivateCache[0x100];
 
-static lfqueue* allocated = {};
-static lfqueue* unallocated = {};
+static lfqueue2* allocated = {};
+static lfqueue2* unallocated = {};
 
 void*
 operator new(SIZE_T size, void* ptr) noexcept
@@ -164,11 +164,11 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 
-    PVOID a = ExAllocatePool(NonPagedPool, sizeof(lfqueue));
-    PVOID b = ExAllocatePool(NonPagedPool, sizeof(lfqueue));
+    PVOID a = ExAllocatePool(NonPagedPool, sizeof(lfqueue2));
+    PVOID b = ExAllocatePool(NonPagedPool, sizeof(lfqueue2));
 
-    allocated = new (a) lfqueue();
-    unallocated = new (b) lfqueue();
+    allocated = new (a) lfqueue2();
+    unallocated = new (b) lfqueue2();
 
     for (size_t i = 0; i < sizeof(PrivateCache) / sizeof(*PrivateCache); ++i) {
         auto* e = PrivateCache + i;

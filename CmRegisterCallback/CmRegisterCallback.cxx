@@ -5,9 +5,9 @@
 
 #include "CmRegisterCallback.h"
 
-#include "Support.h"
-
 #include <ntddk.h>
+
+#include "Support.h"
 
 static LARGE_INTEGER Cookie;
 

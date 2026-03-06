@@ -7,8 +7,6 @@
 
 #include <ntddk.h>
 
-#include <intrin.h>
-
 #include "KeServiceDescriptorTable.h"
 #include "Support.h"
 #include "anylog.h"
@@ -22,7 +20,7 @@
 #pragma warning(disable : 4505) // warning C4505: unreferenced local function has been removed
 #pragma warning(disable : 4996) // warning C4996: 'function': was declared deprecated
 
-#if 1
+#if 0
 
 static constexpr size_t _KeServiceDescriptorTable_ = 0x0055A880; // 10.0.17763.316
 
@@ -33,20 +31,6 @@ static constexpr size_t _KeServiceDescriptorTable_ = 0x0055A880; // 10.0.17763.3
 static constexpr size_t _KeServiceDescriptorTable_ = 0x00E018C0; // 10.0.19041.1348
 
 #endif
-
-typedef struct GDTR32_ {
-    UINT16 limit; //
-    UINT32 base;  //
-} GDTR32, IDTR32;
-
-static_assert(sizeof(GDTR32) == 0x06, "");
-
-typedef struct GDTR64_ {
-    UINT16 limit; //
-    UINT64 base;  //
-} GDTR64, IDTR64;
-
-static_assert(sizeof(GDTR64) == 0x0A, "");
 
 typedef struct IDT_GATE_DESCRIPTOR32_ {
     UINT_PTR OffsetA : 16;         //
@@ -262,8 +246,8 @@ static_assert(sizeof(ULONG_PTR) == sizeof(void*), "");
 #if defined(_M_AMD64) || defined(__x86_64__)
 static UINT64* ia32_lstar = NULL;
 static UINT64* ia32_cstar = NULL;
-static IDTR64* BackupIdts = NULL;
-static IDTR64* MyIdts = NULL;
+static IA32_IDT_REGISTER* BackupIdts = NULL;
+static IA32_IDT_REGISTER* MyIdts = NULL;
 #endif
 
 #if defined(_M_IX86) || defined(__i386__)
@@ -286,7 +270,8 @@ SyscallId(UINT16 ID)
 #define XX(__no__, __api__) \
     case __no__:            \
         return L## #__api__;
-#include "10.0.17763.316.def"
+//#include "10.0.17763.316.def"
+#include "10.0.19041.1348.def"
     }
 
     return L"?";
@@ -413,7 +398,7 @@ HandleIDT(UINT32 Vector, UINT_PTR StackFrame)
     if (Rip > MmUserProbeAddress)
         return;
 
-    anylogPrintfW(L"INT 0x%02X(%s), CR3=0x%016llX, RIP=0x%016llX", Vector, Description, __readcr3(), Rip);
+    anylogPrintfW(L"INT 0x%02X(%s), CR3=0x%016llX, RIP=0x%016llX", Vector, Description, __asm_cr3(), Rip);
 }
 
 void
@@ -426,9 +411,9 @@ HandleSYSCALL(TMP64* Context)
 
     ULONG64 RIP = *(&(Context->RSP) + 2); // FIXME: trick.
 
-    anylogUpdate(PsGetCurrentProcessId(), __readcr3());
+    anylogUpdate(PsGetCurrentProcessId(), __asm_cr3());
 
-    anylogPrintfW(L"SYSCALL 0x%02X(%s), CR3=0x%016llX, RIP=0x%016llX", AX, SyscallId(AX), __readcr3(), RIP);
+    anylogPrintfW(L"SYSCALL 0x%02X(%s), CR3=0x%016llX, RIP=0x%016llX", AX, SyscallId(AX), __asm_cr3(), RIP);
 }
 
 #endif
@@ -543,23 +528,23 @@ AttachSyscall(_In_ ULONG_PTR Argument)
 
 #if defined(_M_AMD64) || defined(__x86_64__)
 
-    UINT64 ia32_time_stamp_counter = __readmsr(0x00000010 /*IA32_TIME_STAMP_COUNTER*/);
-    UINT64 ia32_apic_base = __readmsr(0x0000001B /*IA32_APIC_BASE*/);
-    UINT64 ia32_feature_control = __readmsr(0x0000003A /*IA32_FEATURE_CONTROL*/);
-    UINT64 ia32_tsc_adjust = __readmsr(0x0000003B /*IA32_TSC_ADJUST*/);
-    UINT64 ia32_smm_monitor_ctl = __readmsr(0x0000009B /*IA32_SMM_MONITOR_CTL*/);
-    UINT64 ia32_smbase = __readmsr(0x0000009E /*IA32_SMBASE*/);
-    UINT64 ia32_core_capabilities = __readmsr(0x000000CF /*IA32_CORE_CAPABILITIES*/);
-    UINT64 ia32_arch_capabilities = __readmsr(0x0000010A /*IA32_ARCH_CAPABILITIES*/);
-    UINT64 ia32_debugctl = __readmsr(0x000001D9 /*IA32_DEBUGCTL*/);
-    UINT64 ia32_efer = __readmsr(0xC0000080 /*IA32_EFER*/);
-    UINT64 ia32_star = __readmsr(0xC0000081 /*IA32_STAR*/);
-    ia32_lstar[CurrentProcessorIndex] = __readmsr(0xC0000082 /*IA32_LSTAR*/);
-    ia32_cstar[CurrentProcessorIndex] = __readmsr(0xC0000083 /*IA32_CSTAR*/);
-    UINT64 ia32_fmask = __readmsr(0xC0000084 /*IA32_FMASK*/);
-    UINT64 ia32_fs_base = __readmsr(0xC0000100 /*IA32_FS_BASE*/);
-    UINT64 ia32_gs_base = __readmsr(0xC0000101 /*IA32_GS_BASE*/);
-    UINT64 ia32_kernel_gs_base = __readmsr(0xC0000102 /*IA32_KERNEL_GS_BASE*/);
+    UINT64 ia32_time_stamp_counter = __asm_rdmsr(0x00000010 /*IA32_TIME_STAMP_COUNTER*/);
+    UINT64 ia32_apic_base = __asm_rdmsr(0x0000001B /*IA32_APIC_BASE*/);
+    UINT64 ia32_feature_control = __asm_rdmsr(0x0000003A /*IA32_FEATURE_CONTROL*/);
+    UINT64 ia32_tsc_adjust = __asm_rdmsr(0x0000003B /*IA32_TSC_ADJUST*/);
+    UINT64 ia32_smm_monitor_ctl = __asm_rdmsr(0x0000009B /*IA32_SMM_MONITOR_CTL*/);
+    UINT64 ia32_smbase = __asm_rdmsr(0x0000009E /*IA32_SMBASE*/);
+    UINT64 ia32_core_capabilities = __asm_rdmsr(0x000000CF /*IA32_CORE_CAPABILITIES*/);
+    UINT64 ia32_arch_capabilities = __asm_rdmsr(0x0000010A /*IA32_ARCH_CAPABILITIES*/);
+    UINT64 ia32_debugctl = __asm_rdmsr(0x000001D9 /*IA32_DEBUGCTL*/);
+    UINT64 ia32_efer = __asm_rdmsr(0xC0000080 /*IA32_EFER*/);
+    UINT64 ia32_star = __asm_rdmsr(0xC0000081 /*IA32_STAR*/);
+    ia32_lstar[CurrentProcessorIndex] = __asm_rdmsr(0xC0000082 /*IA32_LSTAR*/);
+    ia32_cstar[CurrentProcessorIndex] = __asm_rdmsr(0xC0000083 /*IA32_CSTAR*/);
+    UINT64 ia32_fmask = __asm_rdmsr(0xC0000084 /*IA32_FMASK*/);
+    UINT64 ia32_fs_base = __asm_rdmsr(0xC0000100 /*IA32_FS_BASE*/);
+    UINT64 ia32_gs_base = __asm_rdmsr(0xC0000101 /*IA32_GS_BASE*/);
+    UINT64 ia32_kernel_gs_base = __asm_rdmsr(0xC0000102 /*IA32_KERNEL_GS_BASE*/);
 
     UINT64 rip = ia32_lstar[CurrentProcessorIndex];
     UINT16 cs = (ia32_star >> 0x20) & 0xFFFF;
@@ -580,15 +565,15 @@ AttachSyscall(_In_ ULONG_PTR Argument)
     *(UINT_PTR*)(RelA) = (UINT_PTR)&HandleSYSCALL;
     *(UINT_PTR*)(RelB) = rip + 0x27;
 
-    __writemsr(0xC0000082 /*IA32_LSTAR*/, (UINT64)syscall);
+    __asm_wrmsr(0xC0000082 /*IA32_LSTAR*/, (UINT64)syscall);
 
 #endif
 
 #if defined(_M_IX86) || defined(__i386__)
 
-    ia32_sysenter_cs[CurrentProcessorIndex] = __readmsr(0x0174 /*IA32_SYSENTER_CS*/);
-    ia32_sysenter_esp[CurrentProcessorIndex] = __readmsr(0x0175 /*IA32_SYSENTER_ESP*/);
-    ia32_sysenter_eip[CurrentProcessorIndex] = __readmsr(0x0176 /*IA32_SYSENTER_EIP*/);
+    ia32_sysenter_cs[CurrentProcessorIndex] = __asm_rdmsr(0x0174 /*IA32_SYSENTER_CS*/);
+    ia32_sysenter_esp[CurrentProcessorIndex] = __asm_rdmsr(0x0175 /*IA32_SYSENTER_ESP*/);
+    ia32_sysenter_eip[CurrentProcessorIndex] = __asm_rdmsr(0x0176 /*IA32_SYSENTER_EIP*/);
 
     UINT8* sysenter = (UINT8*)ExAllocatePool(NonPagedPoolExecute, 0x1000);
 
@@ -600,7 +585,7 @@ AttachSyscall(_In_ ULONG_PTR Argument)
     *(UINT32*)(RelA + 0x01) = (UINT32)((UINT_PTR)&HandleSYSENTER - (UINT_PTR)RelA - 5);
     *(UINT32*)(RelB + 0x01) = (UINT32)((UINT_PTR)_KiFastCallEntryCommon - (UINT_PTR)RelB - 5); // TODO: KiFastCallEntryCommon符号在windows7中被隐藏.
 
-    __writemsr(0x0176 /*IA32_SYSENTER_EIP*/, (UINT64)sysenter);
+    __asm_wrmsr(0x0176 /*IA32_SYSENTER_EIP*/, (UINT64)sysenter);
 #endif
 
     return 0;
@@ -614,12 +599,12 @@ DetachSyscall(_In_ ULONG_PTR Argument)
     ULONG CurrentProcessorIndex = KeGetCurrentProcessorIndex();
 
 #if defined(_M_AMD64) || defined(__x86_64__)
-    __writemsr(0xC0000082 /*IA32_LSTAR*/, ia32_lstar[CurrentProcessorIndex]);
-    __writemsr(0xC0000083 /*IA32_CSTAR*/, ia32_cstar[CurrentProcessorIndex]);
+    __asm_wrmsr(0xC0000082 /*IA32_LSTAR*/, ia32_lstar[CurrentProcessorIndex]);
+    __asm_wrmsr(0xC0000083 /*IA32_CSTAR*/, ia32_cstar[CurrentProcessorIndex]);
 #endif
 
 #if defined(_M_IX86) || defined(__i386__)
-    __writemsr(0x0176 /*IA32_SYSENTER_EIP*/, ia32_sysenter_eip[CurrentProcessorIndex]);
+    __asm_wrmsr(0x0176 /*IA32_SYSENTER_EIP*/, ia32_sysenter_eip[CurrentProcessorIndex]);
 #endif
 
     return 0;
@@ -635,7 +620,7 @@ AttachIDT(_In_ ULONG_PTR Argument)
     PsGetCurrentProcessId();
     PsGetCurrentThreadId();
 
-    __sidt(&BackupIdts[CurrentProcessorIndex]);
+    __asm_sidt(&BackupIdts[CurrentProcessorIndex]);
 
 #if defined(_M_IX86) || defined(__i386__)
     IDT_GATE_DESCRIPTOR32* idt = (IDT_GATE_DESCRIPTOR32*)ExAllocatePool(NonPagedPool, 0x1000);
@@ -651,10 +636,10 @@ AttachIDT(_In_ ULONG_PTR Argument)
     IDT_GATE_DESCRIPTOR64* idt = (IDT_GATE_DESCRIPTOR64*)ExAllocatePool(NonPagedPool, 0x1000);
     ISR64* procedures = (ISR64*)ExAllocatePool(NonPagedPoolExecute, sizeof(ISR64) * 0x100);
 
-    memcpy(idt, (PVOID)BackupIdts[CurrentProcessorIndex].base, 0x1000);
+    memcpy(idt, (PVOID)BackupIdts[CurrentProcessorIndex].BaseAddress, 0x1000);
 
-    MyIdts[CurrentProcessorIndex].base = (UINT64)idt;
-    MyIdts[CurrentProcessorIndex].limit = BackupIdts[CurrentProcessorIndex].limit;
+    MyIdts[CurrentProcessorIndex].BaseAddress = (PVOID)idt;
+    MyIdts[CurrentProcessorIndex].Limit = BackupIdts[CurrentProcessorIndex].Limit;
 #endif
 
     DbgPrint("CurrentProcessorIndex:%d, procedures: 0x%p\n", CurrentProcessorIndex, procedures);
@@ -731,7 +716,7 @@ AttachIDT(_In_ ULONG_PTR Argument)
     MmHighestUserAddress;
 
     KdBreakPoint();
-    __lidt(&MyIdts[CurrentProcessorIndex]);
+    __asm_lidt(&MyIdts[CurrentProcessorIndex]);
 
     return 0;
 }
@@ -743,7 +728,7 @@ DetachIDT(_In_ ULONG_PTR Argument)
 
     ULONG CurrentProcessorIndex = KeGetCurrentProcessorIndex();
 
-    __lidt(&BackupIdts[CurrentProcessorIndex]);
+    __asm_lidt(&BackupIdts[CurrentProcessorIndex]);
 
     return 0;
 }
@@ -823,8 +808,8 @@ HelloKeServiceDescriptorTable(UINT8* DllBase)
     // MmMapViewOfSection();
     // __segmentlimit();
 
-    BackupIdts = (IDTR64*)ExAllocatePool(NonPagedPool, sizeof(IDTR64) * 0x100);
-    MyIdts = (IDTR64*)ExAllocatePool(NonPagedPool, sizeof(IDTR64) * 0x100);
+    BackupIdts = (IA32_IDT_REGISTER*)ExAllocatePool(NonPagedPool, sizeof(IA32_IDT_REGISTER) * 0x100);
+    MyIdts = (IA32_IDT_REGISTER*)ExAllocatePool(NonPagedPool, sizeof(IA32_IDT_REGISTER) * 0x100);
 
 #endif
 

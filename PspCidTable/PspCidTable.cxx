@@ -5,9 +5,9 @@
 
 #include "PspCidTable.h"
 
-#include "Support.h"
-
 #include <ntddk.h>
+
+#include "Support.h"
 
 EXTERN_C VOID
 DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
