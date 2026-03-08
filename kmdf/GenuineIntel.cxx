@@ -544,11 +544,22 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
 
     __asm_cpuid(0x80000001, &eax, &ebx, &ecx, &edx); // Extended Processor Signature and Feature Bits
 
-    if (ecx & 0x00100000) // If 1, supports Execute Disable Bit
+    if (ecx & (1U << 0x00)) // LAHF_SAHF_64 If 1, supports the LAHF/SAHF instructions in 64-bit mode.
         ;
-    if (ecx & 0x04000000) // If 1, supports 1-GByte pages
+    if (ecx & (1U << 0x05)) // LZCNT If 1, supports the LZCNT instruction.
         ;
-    if (ecx & 0x08000000) // If 1, supports RDTSCP and IA32_TSC_AUX
+    if (ecx & (1U << 0x08)) // PREFETCHW If 1, supports the PREFETCHW instruction.
+        ;
+
+    if (edx & (1U << 0x0B)) // SYSCALL_SYSRET_64 If 1, supports SYSCALL/SYSRET.
+        ;
+    if (edx & (1U << 0x14)) // EXECUTE_DIS If 1, supports Execute Disable Bit.
+        ;
+    if (edx & (1U << 0x1A)) // PAGE_1GB If 1, supports 1-GByte pages.
+        ;
+    if (edx & (1U << 0x1B)) // RDTSCP If 1, supports RDTSCP and IA32_TSC_AUX.
+        ;
+    if (edx & (1U << 0x1D)) // INTEL64 If 1, supports Intel® 64 Architecture.
         ;
 
     uint64_t CR0 = __asm_cr0();
@@ -557,27 +568,27 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     uint64_t CR3 = __asm_cr3();
     uint64_t CR4 = __asm_cr4();
 
-    if (CR0 & (1U << 0x00)) // CR0.PE Protection Enable (bit 0 of CR0)
+    if (CR0 & (1ULL << 0x00)) // CR0.PE Protection Enable (bit 0 of CR0)
         ;
-    if (CR0 & (1U << 0x01)) // CR0.MP Monitor Coprocessor (bit 1 of CR0)
+    if (CR0 & (1ULL << 0x01)) // CR0.MP Monitor Coprocessor (bit 1 of CR0)
         ;
-    if (CR0 & (1U << 0x02)) // CR0.EM Emulation (bit 2 of CR0)
+    if (CR0 & (1ULL << 0x02)) // CR0.EM Emulation (bit 2 of CR0)
         ;
-    if (CR0 & (1U << 0x03)) // CR0.TS Task Switched (bit 3 of CR0)
+    if (CR0 & (1ULL << 0x03)) // CR0.TS Task Switched (bit 3 of CR0)
         ;
-    if (CR0 & (1U << 0x04)) // CR0.ET Extension Type (bit 4 of CR0)
+    if (CR0 & (1ULL << 0x04)) // CR0.ET Extension Type (bit 4 of CR0)
         ;
-    if (CR0 & (1U << 0x05)) // CR0.NE Numeric Error (bit 5 of CR0)
+    if (CR0 & (1ULL << 0x05)) // CR0.NE Numeric Error (bit 5 of CR0)
         ;
-    if (CR0 & (1U << 0x10)) // CR0.WP Write Protect (bit 16 of CR0)
+    if (CR0 & (1ULL << 0x10)) // CR0.WP Write Protect (bit 16 of CR0)
         ;
-    if (CR0 & (1U << 0x12)) // CR0.AM Alignment Mask (bit 18 of CR0)
+    if (CR0 & (1ULL << 0x12)) // CR0.AM Alignment Mask (bit 18 of CR0)
         ;
-    if (CR0 & (1U << 0x1D)) // CR0.NW Not Write-through (bit 29 of CR0)
+    if (CR0 & (1ULL << 0x1D)) // CR0.NW Not Write-through (bit 29 of CR0)
         ;
-    if (CR0 & (1U << 0x1E)) // CR0.CD Cache Disable (bit 30 of CR0)
+    if (CR0 & (1ULL << 0x1E)) // CR0.CD Cache Disable (bit 30 of CR0)
         ;
-    if (CR0 & (1U << 0x1F)) // CR0.PG Paging (bit 31 of CR0)
+    if (CR0 & (1ULL << 0x1F)) // CR0.PG Paging (bit 31 of CR0)
         ;
 
     if (CR3 & (1ULL << 0x03)) // CR3.PWT Page-level Write-Through (bit 3 of CR3)
@@ -882,6 +893,31 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     uint64_t ia32_gs_base = __asm_rdmsr(IA32_GS_BASE);
     uint64_t ia32_kernel_gs_base = __asm_rdmsr(IA32_KERNEL_GS_BASE);
     uint64_t ia32_tsc_aux = __asm_rdmsr(IA32_TSC_AUX);
+
+    if (ia32_efer & (1ULL << 0x00)) // 0 SYSCALL Enable: IA32_EFER.SCE (R/W)
+        ;
+    if (ia32_efer & (1ULL << 0x01))
+        ;
+    if (ia32_efer & (1ULL << 0x02))
+        ;
+    if (ia32_efer & (1ULL << 0x03))
+        ;
+    if (ia32_efer & (1ULL << 0x04))
+        ;
+    if (ia32_efer & (1ULL << 0x05))
+        ;
+    if (ia32_efer & (1ULL << 0x06))
+        ;
+    if (ia32_efer & (1ULL << 0x07))
+        ;
+    if (ia32_efer & (1ULL << 0x08)) // 8 IA-32e Mode Enable: IA32_EFER.LME (R/W)
+        ;
+    if (ia32_efer & (1ULL << 0x09))
+        ;
+    if (ia32_efer & (1ULL << 0x0A)) // 10 IA-32e Mode Active: IA32_EFER.LMA (R)
+        ;
+    if (ia32_efer & (1ULL << 0x0B)) // 11 Execute Disable Bit Enable: IA32_EFER.NXE (R/W)
+        ;
 
     CONTEXT Context;
     RtlCaptureContext(&Context);

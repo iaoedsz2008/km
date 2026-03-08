@@ -653,19 +653,19 @@ __asm_svm_stgi(void)
 static inline void
 __asm_svm_vmload(size_t pa)
 {
-    __asm__ __volatile__("vmload %%rax" ::"a"(pa) : "memory");
+    __asm__ __volatile__("vmload" ::"a"(pa) : "memory");
 }
 
 static inline void
 __asm_svm_vmrun(size_t pa)
 {
-    __asm__ __volatile__("vmrun %%rax" ::"a"(pa) : "memory");
+    __asm__ __volatile__("vmrun" ::"a"(pa) : "memory");
 }
 
 static inline void
 __asm_svm_vmsave(size_t pa)
 {
-    __asm__ __volatile__("vmsave %%rax" ::"a"(pa) : "memory");
+    __asm__ __volatile__("vmsave" ::"a"(pa) : "memory");
 }
 
 #if defined(__x86_64__)

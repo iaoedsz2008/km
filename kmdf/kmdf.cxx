@@ -212,6 +212,8 @@ DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
 
+    KdBreakPoint();
+
     if (KeIpiGenericCall(unload, 0))
         return;
 
