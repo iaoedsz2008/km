@@ -344,6 +344,12 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     uint32_t ecx;
     uint32_t edx;
 
+    int max_leaf;
+    int max_extended_leaf;
+
+    __asm_cpuid(0, &eax, &ebx, &ecx, &edx);
+    max_leaf = eax & 0x7FFFFFFF;
+
     __asm_cpuid(1, &eax, &ebx, &ecx, &edx);
 
     if (ecx & (1U << 0x00))
@@ -541,6 +547,10 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
 
     if (ecx & 0x00008000) // LBR state (only for the architectural LBR feature)
         ;
+
+    __asm_cpuid(0x80000000, &eax, &ebx, &ecx, &edx); // Maximum Input Value for Extended Function CPUID Information
+
+    max_extended_leaf = eax & 0x7FFFFFFF;
 
     __asm_cpuid(0x80000001, &eax, &ebx, &ecx, &edx); // Extended Processor Signature and Feature Bits
 
@@ -894,7 +904,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     uint64_t ia32_kernel_gs_base = __asm_rdmsr(IA32_KERNEL_GS_BASE);
     uint64_t ia32_tsc_aux = __asm_rdmsr(IA32_TSC_AUX);
 
-    if (ia32_efer & (1ULL << 0x00)) // 0 SYSCALL Enable: IA32_EFER.SCE (R/W)
+if (ia32_efer & (1ULL << 0x00)) // 0 SYSCALL Enable: IA32_EFER.SCE (R/W)
         ;
     if (ia32_efer & (1ULL << 0x01))
         ;
