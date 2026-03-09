@@ -76,7 +76,7 @@ svm_format_access_rights(uint32_t access_rights)
 }
 
 template <int e>
-int
+static int
 procedure(void)
 {
     return 0;
@@ -84,7 +84,7 @@ procedure(void)
 
 template <>
 int
-procedure<0x00>(void)
+procedure<0x0000>(void)
 {
     return 0;
 }
@@ -1125,6 +1125,9 @@ initialize<Hash("AuthenticAMD")>(PVOID vcpu)
 
     KdBreakPoint();
 
+    if (Context.Rax == 0x12345678)
+        return 0;
+
     *(uint16_t*)((uint8_t*)vmcb + 0x0000) = 0; // Intercept reads of CR0–15, respectively
     *(uint16_t*)((uint8_t*)vmcb + 0x0002) = 0; // Intercept writes of CR0–15, respectively
     *(uint16_t*)((uint8_t*)vmcb + 0x0004) = 0; // Intercept reads of DR0–15, respectively
@@ -1381,6 +1384,8 @@ initialize<Hash("AuthenticAMD")>(PVOID vcpu)
     __asm_wrmsr(0xC0010117, hostPa.QuadPart);
 
     KdBreakPoint();
+
+    Context.Rax = 0x12345678;
 
     __asm_svm_vmsave(guestPa.QuadPart);
     __asm_svm_vmsave(hostPa.QuadPart);

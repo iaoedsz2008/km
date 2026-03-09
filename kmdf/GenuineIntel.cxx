@@ -5,6 +5,8 @@
 
 #include "GenuineIntel.h"
 
+#include <stddef.h>
+
 // Taken: VirtualBox/include/VBox/vmm/hm_vmx.h
 
 /** @name VMCS fields and encoding.
@@ -242,6 +244,8 @@
 
 static KSPIN_LOCK kSpinLock;
 
+static int (*Procedures[0x100])(void);
+
 static size_t
 __lsb(uint16_t selector)
 {
@@ -322,17 +326,705 @@ vmx_format_access_rights(uint64_t access_rights)
     return result;
 }
 
+template <int e>
+static int
+procedure(void)
+{
+    __asm__ __volatile__("int3" :::);
+    return 0;
+}
+
+template <>
+int
+procedure<0x0000>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0001>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0002>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0003>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0004>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0005>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0006>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0007>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0008>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0009>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x000A>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x000B>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x000C>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x000D>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x000E>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x000F>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0010>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0011>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0012>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0013>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0014>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0015>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0016>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0017>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0018>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0019>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x001A>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x001B>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x001C>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x001D>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x001E>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x001F>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0020>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0021>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0022>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0023>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0024>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0025>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0026>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0027>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0028>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0029>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x002A>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x002B>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x002C>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x002D>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x002E>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x002F>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0030>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0031>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0032>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0033>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0034>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0035>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0036>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0037>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0038>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0039>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x003A>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x003B>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x003C>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x003D>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x003E>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x003F>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0040>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0041>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0042>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0043>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0044>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0045>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0046>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0047>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0048>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0049>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x004A>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x004B>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x004C>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x004D>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x004E>(void)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x004F>(void)
+{
+    return 0;
+}
+
 static __attribute__((naked)) void
 vmx_vmexit(void)
 {
-    __asm__ __volatile__("int3\n\t"
-                         "ret" ::
-                             :);
+    __asm__ __volatile__("\n push %%rax"
+                         "\n push %%rbx"
+                         "\n push %%rcx"
+                         "\n push %%rdx"
+                         "\n push %%rsi"
+                         "\n push %%rdi"
+                         "\n push %%rbp"
+                         "\n push %%r8"
+                         "\n push %%r9"
+                         "\n push %%r10"
+                         "\n push %%r11"
+                         "\n push %%r12"
+                         "\n push %%r13"
+                         "\n push %%r14"
+                         "\n push %%r15"
+
+                         "\n mov $0x4402, %%rcx" // VMX_VMCS32_RO_EXIT_REASON
+                         "\n vmread %%rcx, %%rax"
+
+                         "\n int3"
+
+                         "\n lea Procedures(%%rip), %%rbx"
+                         "\n mov (%%rbx, %%rax, 8), %%rax"
+                         "\n call *%%rax"
+
+                         "\n pop %%r15"
+                         "\n pop %%r14"
+                         "\n pop %%r13"
+                         "\n pop %%r12"
+                         "\n pop %%r11"
+                         "\n pop %%r10"
+                         "\n pop %%r9"
+                         "\n pop %%r8"
+                         "\n pop %%rbp"
+                         "\n pop %%rdi"
+                         "\n pop %%rsi"
+                         "\n pop %%rdx"
+                         "\n pop %%rcx"
+                         "\n pop %%rbx"
+                         "\n pop %%rax"
+
+                         "\n vmresume" ::
+                             : "memory");
 }
 
 static void
 initializeEPT()
 {
+    Procedures[0x0000] = &procedure<0x0000>;
+    Procedures[0x0001] = &procedure<0x0001>;
+    Procedures[0x0002] = &procedure<0x0002>;
+    Procedures[0x0003] = &procedure<0x0003>;
+    Procedures[0x0004] = &procedure<0x0004>;
+    Procedures[0x0005] = &procedure<0x0005>;
+    Procedures[0x0006] = &procedure<0x0006>;
+    Procedures[0x0007] = &procedure<0x0007>;
+    Procedures[0x0008] = &procedure<0x0008>;
+    Procedures[0x0009] = &procedure<0x0009>;
+    Procedures[0x000A] = &procedure<0x000A>;
+    Procedures[0x000B] = &procedure<0x000B>;
+    Procedures[0x000C] = &procedure<0x000C>;
+    Procedures[0x000D] = &procedure<0x000D>;
+    Procedures[0x000E] = &procedure<0x000E>;
+    Procedures[0x000F] = &procedure<0x000F>;
+    Procedures[0x0010] = &procedure<0x0010>;
+    Procedures[0x0011] = &procedure<0x0011>;
+    Procedures[0x0012] = &procedure<0x0012>;
+    Procedures[0x0013] = &procedure<0x0013>;
+    Procedures[0x0014] = &procedure<0x0014>;
+    Procedures[0x0015] = &procedure<0x0015>;
+    Procedures[0x0016] = &procedure<0x0016>;
+    Procedures[0x0017] = &procedure<0x0017>;
+    Procedures[0x0018] = &procedure<0x0018>;
+    Procedures[0x0019] = &procedure<0x0019>;
+    Procedures[0x001A] = &procedure<0x001A>;
+    Procedures[0x001B] = &procedure<0x001B>;
+    Procedures[0x001C] = &procedure<0x001C>;
+    Procedures[0x001D] = &procedure<0x001D>;
+    Procedures[0x001E] = &procedure<0x001E>;
+    Procedures[0x001F] = &procedure<0x001F>;
+    Procedures[0x0020] = &procedure<0x0020>;
+    Procedures[0x0021] = &procedure<0x0021>;
+    Procedures[0x0022] = &procedure<0x0022>;
+    Procedures[0x0023] = &procedure<0x0023>;
+    Procedures[0x0024] = &procedure<0x0024>;
+    Procedures[0x0025] = &procedure<0x0025>;
+    Procedures[0x0026] = &procedure<0x0026>;
+    Procedures[0x0027] = &procedure<0x0027>;
+    Procedures[0x0028] = &procedure<0x0028>;
+    Procedures[0x0029] = &procedure<0x0029>;
+    Procedures[0x002A] = &procedure<0x002A>;
+    Procedures[0x002B] = &procedure<0x002B>;
+    Procedures[0x002C] = &procedure<0x002C>;
+    Procedures[0x002D] = &procedure<0x002D>;
+    Procedures[0x002E] = &procedure<0x002E>;
+    Procedures[0x002F] = &procedure<0x002F>;
+    Procedures[0x0030] = &procedure<0x0030>;
+    Procedures[0x0031] = &procedure<0x0031>;
+    Procedures[0x0032] = &procedure<0x0032>;
+    Procedures[0x0033] = &procedure<0x0033>;
+    Procedures[0x0034] = &procedure<0x0034>;
+    Procedures[0x0035] = &procedure<0x0035>;
+    Procedures[0x0036] = &procedure<0x0036>;
+    Procedures[0x0037] = &procedure<0x0037>;
+    Procedures[0x0038] = &procedure<0x0038>;
+    Procedures[0x0039] = &procedure<0x0039>;
+    Procedures[0x003A] = &procedure<0x003A>;
+    Procedures[0x003B] = &procedure<0x003B>;
+    Procedures[0x003C] = &procedure<0x003C>;
+    Procedures[0x003D] = &procedure<0x003D>;
+    Procedures[0x003E] = &procedure<0x003E>;
+    Procedures[0x003F] = &procedure<0x003F>;
+    Procedures[0x0040] = &procedure<0x0040>;
+    Procedures[0x0041] = &procedure<0x0041>;
+    Procedures[0x0042] = &procedure<0x0042>;
+    Procedures[0x0043] = &procedure<0x0043>;
+    Procedures[0x0044] = &procedure<0x0044>;
+    Procedures[0x0045] = &procedure<0x0045>;
+    Procedures[0x0046] = &procedure<0x0046>;
+    Procedures[0x0047] = &procedure<0x0047>;
+    Procedures[0x0048] = &procedure<0x0048>;
+    Procedures[0x0049] = &procedure<0x0049>;
+    Procedures[0x004A] = &procedure<0x004A>;
+    Procedures[0x004B] = &procedure<0x004B>;
+    Procedures[0x004C] = &procedure<0x004C>;
+    Procedures[0x004D] = &procedure<0x004D>;
+    Procedures[0x004E] = &procedure<0x004E>;
+    Procedures[0x004F] = &procedure<0x004F>;
 }
 
 template <>
@@ -904,7 +1596,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     uint64_t ia32_kernel_gs_base = __asm_rdmsr(IA32_KERNEL_GS_BASE);
     uint64_t ia32_tsc_aux = __asm_rdmsr(IA32_TSC_AUX);
 
-if (ia32_efer & (1ULL << 0x00)) // 0 SYSCALL Enable: IA32_EFER.SCE (R/W)
+    if (ia32_efer & (1ULL << 0x00)) // 0 SYSCALL Enable: IA32_EFER.SCE (R/W)
         ;
     if (ia32_efer & (1ULL << 0x01))
         ;
@@ -933,6 +1625,9 @@ if (ia32_efer & (1ULL << 0x00)) // 0 SYSCALL Enable: IA32_EFER.SCE (R/W)
     RtlCaptureContext(&Context);
 
     KdBreakPoint();
+
+    if (Context.Rax == 0x12345678)
+        return 0;
 
     __asm_cr0((CR0 & ia32_vmx_cr0_fixed1) | ia32_vmx_cr0_fixed0);
     __asm_cr4(((CR4 | 0x00002000 /*VMXE*/) & ia32_vmx_cr4_fixed1) | ia32_vmx_cr4_fixed0);
@@ -1392,17 +2087,36 @@ if (ia32_efer & (1ULL << 0x00)) // 0 SYSCALL Enable: IA32_EFER.SCE (R/W)
 
     KdBreakPoint();
 
+    __asm__ __volatile__("\n mov %0, %%r15"
+                         "\n mov %c1(%%r15), %%rax"
+                         "\n mov %c2(%%r15), %%rbx"
+                         "\n mov %c3(%%r15), %%rcx"
+                         "\n mov %c4(%%r15), %%rdx"
+                         "\n mov %c5(%%r15), %%rsi"
+                         "\n mov %c6(%%r15), %%rdi"
+                         "\n mov %c7(%%r15), %%rbp"
+                         "\n mov %c8(%%r15), %%r8"
+                         "\n mov %c9(%%r15), %%r9"
+                         "\n mov %c10(%%r15), %%r10"
+                         "\n mov %c11(%%r15), %%r11"
+                         "\n mov %c12(%%r15), %%r12"
+                         "\n mov %c13(%%r15), %%r13"
+                         "\n mov %c14(%%r15), %%r14"
+                         "\n mov %c15(%%r15), %%r15"
+                         :
+                         : "r"(&Context), "i"(offsetof(CONTEXT, Rax)), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R15))
+                         : "memory");
+
+    Context.Rax = 0x12345678;
     Status = __asm_vmx_vmlaunch();
 
     if (Status & EFLAGS_ZF_MASK) {
         size_t e;
         __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
         e = 0;
-
-        return -1;
     }
 
-    return 0;
+    return -1;
 }
 
 template <>
