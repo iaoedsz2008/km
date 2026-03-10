@@ -334,6 +334,7 @@ procedure(void)
     return 0;
 }
 
+// 0 Exception or non-maskable interrupt (NMI)
 template <>
 int
 procedure<0x0000>(void)
@@ -341,6 +342,7 @@ procedure<0x0000>(void)
     return 0;
 }
 
+// 1 External interrupt. An external interrupt arrived and the “external-interrupt exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x0001>(void)
@@ -348,6 +350,7 @@ procedure<0x0001>(void)
     return 0;
 }
 
+// 2 Triple fault. The logical processor encountered an exception while attempting to call the double-fault handler and that exception did not itself cause a VM exit due to the exception bitmap.
 template <>
 int
 procedure<0x0002>(void)
@@ -355,6 +358,7 @@ procedure<0x0002>(void)
     return 0;
 }
 
+// 3 INIT signal. An INIT signal arrived
 template <>
 int
 procedure<0x0003>(void)
@@ -362,6 +366,7 @@ procedure<0x0003>(void)
     return 0;
 }
 
+// 4 Start-up IPI (SIPI). A SIPI arrived while the logical processor was in the “wait-for-SIPI” state.
 template <>
 int
 procedure<0x0004>(void)
@@ -369,6 +374,7 @@ procedure<0x0004>(void)
     return 0;
 }
 
+// 5 I/O system-management interrupt (SMI). An SMI arrived immediately after retirement of an I/O instruction and caused an SMM VM exit
 template <>
 int
 procedure<0x0005>(void)
@@ -376,6 +382,7 @@ procedure<0x0005>(void)
     return 0;
 }
 
+// 6 Other SMI. An SMI arrived and caused an SMM VM exit (see Section 34.15.2) but not immediately after retirement of an I/O instruction.
 template <>
 int
 procedure<0x0006>(void)
@@ -383,6 +390,7 @@ procedure<0x0006>(void)
     return 0;
 }
 
+// 7 Interrupt window. At the beginning of an instruction, RFLAGS.IF was 1; events were not blocked by STI or by MOV SS; and the “interrupt-window exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x0007>(void)
@@ -390,6 +398,7 @@ procedure<0x0007>(void)
     return 0;
 }
 
+// 8 NMI window. At the beginning of an instruction, there was no virtual-NMI blocking; events were not blocked by MOV SS; and the “NMI-window exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x0008>(void)
@@ -397,6 +406,7 @@ procedure<0x0008>(void)
     return 0;
 }
 
+// 9 Task switch. Guest software attempted a task switch.
 template <>
 int
 procedure<0x0009>(void)
@@ -404,6 +414,7 @@ procedure<0x0009>(void)
     return 0;
 }
 
+// 10 CPUID. Guest software attempted to execute CPUID.
 template <>
 int
 procedure<0x000A>(void)
@@ -411,6 +422,7 @@ procedure<0x000A>(void)
     return 0;
 }
 
+// 11 GETSEC. Guest software attempted to execute GETSEC.
 template <>
 int
 procedure<0x000B>(void)
@@ -418,6 +430,7 @@ procedure<0x000B>(void)
     return 0;
 }
 
+// 12 HLT. Guest software attempted to execute HLT and the “HLT exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x000C>(void)
@@ -425,6 +438,7 @@ procedure<0x000C>(void)
     return 0;
 }
 
+// 13 INVD. Guest software attempted to execute INVD.
 template <>
 int
 procedure<0x000D>(void)
@@ -432,6 +446,7 @@ procedure<0x000D>(void)
     return 0;
 }
 
+// 14 INVLPG. Guest software attempted to execute INVLPG and the “INVLPG exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x000E>(void)
@@ -439,6 +454,7 @@ procedure<0x000E>(void)
     return 0;
 }
 
+// 15 RDPMC. Guest software attempted to execute RDPMC and the “RDPMC exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x000F>(void)
@@ -446,6 +462,7 @@ procedure<0x000F>(void)
     return 0;
 }
 
+// 16 RDTSC. Guest software attempted to execute RDTSC and the “RDTSC exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x0010>(void)
@@ -453,6 +470,7 @@ procedure<0x0010>(void)
     return 0;
 }
 
+// 17 RSM. Guest software attempted to execute RSM in SMM.
 template <>
 int
 procedure<0x0011>(void)
@@ -460,6 +478,7 @@ procedure<0x0011>(void)
     return 0;
 }
 
+// 18 VMCALL. VMCALL was executed either by guest software (causing an ordinary VM exit) or by the executive monitor (causing an SMM VM exit; see Section 34.15.2).
 template <>
 int
 procedure<0x0012>(void)
@@ -467,6 +486,7 @@ procedure<0x0012>(void)
     return 0;
 }
 
+// 19 VMCLEAR. Guest software attempted to execute VMCLEAR.
 template <>
 int
 procedure<0x0013>(void)
@@ -474,6 +494,7 @@ procedure<0x0013>(void)
     return 0;
 }
 
+// 20 VMLAUNCH. Guest software attempted to execute VMLAUNCH.
 template <>
 int
 procedure<0x0014>(void)
@@ -481,6 +502,7 @@ procedure<0x0014>(void)
     return 0;
 }
 
+// 21 VMPTRLD. Guest software attempted to execute VMPTRLD.
 template <>
 int
 procedure<0x0015>(void)
@@ -488,6 +510,7 @@ procedure<0x0015>(void)
     return 0;
 }
 
+// 22 VMPTRST. Guest software attempted to execute VMPTRST.
 template <>
 int
 procedure<0x0016>(void)
@@ -495,6 +518,7 @@ procedure<0x0016>(void)
     return 0;
 }
 
+// 23 VMREAD. Guest software attempted to execute VMREAD.
 template <>
 int
 procedure<0x0017>(void)
@@ -502,6 +526,7 @@ procedure<0x0017>(void)
     return 0;
 }
 
+// 24 VMRESUME. Guest software attempted to execute VMRESUME.
 template <>
 int
 procedure<0x0018>(void)
@@ -509,6 +534,7 @@ procedure<0x0018>(void)
     return 0;
 }
 
+// 25 VMWRITE. Guest software attempted to execute VMWRITE.
 template <>
 int
 procedure<0x0019>(void)
@@ -516,6 +542,7 @@ procedure<0x0019>(void)
     return 0;
 }
 
+// 26 VMXOFF. Guest software attempted to execute VMXOFF.
 template <>
 int
 procedure<0x001A>(void)
@@ -523,6 +550,7 @@ procedure<0x001A>(void)
     return 0;
 }
 
+// 27 VMXON. Guest software attempted to execute VMXON.
 template <>
 int
 procedure<0x001B>(void)
@@ -530,6 +558,7 @@ procedure<0x001B>(void)
     return 0;
 }
 
+// 28 Control-register accesses. Guest software attempted to access CR0, CR3, CR4, or CR8 using CLTS, LMSW, or MOV CR and the VM-execution control fields indicate that a VM exit should occur
 template <>
 int
 procedure<0x001C>(void)
@@ -537,6 +566,7 @@ procedure<0x001C>(void)
     return 0;
 }
 
+// 29 MOV DR. Guest software attempted a MOV to or from a debug register and the “MOV-DR exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x001D>(void)
@@ -544,6 +574,7 @@ procedure<0x001D>(void)
     return 0;
 }
 
+// 30 I/O instruction. Guest software attempted to execute an I/O instruction
 template <>
 int
 procedure<0x001E>(void)
@@ -551,6 +582,7 @@ procedure<0x001E>(void)
     return 0;
 }
 
+// 31 RDMSR. Guest software attempted to execute RDMSR
 template <>
 int
 procedure<0x001F>(void)
@@ -558,6 +590,7 @@ procedure<0x001F>(void)
     return 0;
 }
 
+// 32 WRMSR or WRMSRNS. Guest software attempted to execute either WRMSR or WRMSRNS
 template <>
 int
 procedure<0x0020>(void)
@@ -565,6 +598,7 @@ procedure<0x0020>(void)
     return 0;
 }
 
+// 33 VM-entry failure due to invalid guest state. A VM entry failed one of the checks identified in Section 29.3.1.
 template <>
 int
 procedure<0x0021>(void)
@@ -572,6 +606,7 @@ procedure<0x0021>(void)
     return 0;
 }
 
+// 34 VM-entry failure due to MSR loading. A VM entry failed in an attempt to load MSRs. See Section 29.4.
 template <>
 int
 procedure<0x0022>(void)
@@ -586,6 +621,7 @@ procedure<0x0023>(void)
     return 0;
 }
 
+// 36 MWAIT. Guest software attempted to execute MWAIT and the “MWAIT exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x0024>(void)
@@ -593,6 +629,7 @@ procedure<0x0024>(void)
     return 0;
 }
 
+// 37 Monitor trap flag. A VM exit occurred due to the 1-setting of the “monitor trap flag” VM-execution control (see Section 28.5.2) or VM entry injected a pending MTF VM exit as part of VM entry (see Section 29.6.2).
 template <>
 int
 procedure<0x0025>(void)
@@ -607,6 +644,7 @@ procedure<0x0026>(void)
     return 0;
 }
 
+// 39 MONITOR. Guest software attempted to execute MONITOR and the “MONITOR exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x0027>(void)
@@ -614,6 +652,7 @@ procedure<0x0027>(void)
     return 0;
 }
 
+// 40 PAUSE. Either guest software attempted to execute PAUSE and the “PAUSE exiting” VM-execution control was 1 or the “PAUSE-loop exiting” VM-execution control was 1 and guest software executed a PAUSE loop with execution time exceeding PLE_Window
 template <>
 int
 procedure<0x0028>(void)
@@ -621,6 +660,7 @@ procedure<0x0028>(void)
     return 0;
 }
 
+// 41 VM-entry failure due to machine-check event. A machine-check event occurred during VM entry
 template <>
 int
 procedure<0x0029>(void)
@@ -635,6 +675,11 @@ procedure<0x002A>(void)
     return 0;
 }
 
+/**
+ * 43 TPR below threshold. The logical processor determined that the value of bits 7:4 of the byte at offset 080H on the
+ * virtual-APIC page was below that of the TPR threshold VM-execution control field while the “use TPR shadow” VM-
+ * execution control was 1 either as part of TPR virtualization (Section 32.1.2) or VM entry (Section 29.7.7).
+ **/
 template <>
 int
 procedure<0x002B>(void)
@@ -642,6 +687,7 @@ procedure<0x002B>(void)
     return 0;
 }
 
+// 44 APIC access. Guest software attempted to access memory at a physical address on the APIC-access page and the “virtualize APIC accesses” VM-execution control was 1 (see Section 32.4).
 template <>
 int
 procedure<0x002C>(void)
@@ -649,6 +695,7 @@ procedure<0x002C>(void)
     return 0;
 }
 
+// 45 Virtualized EOI. EOI virtualization was performed for a virtual interrupt whose vector indexed a bit set in the EOI-exit bitmap.
 template <>
 int
 procedure<0x002D>(void)
@@ -656,6 +703,7 @@ procedure<0x002D>(void)
     return 0;
 }
 
+// 46 Access to GDTR or IDTR. Guest software attempted to execute LGDT, LIDT, SGDT, or SIDT and the “descriptor-table exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x002E>(void)
@@ -663,6 +711,7 @@ procedure<0x002E>(void)
     return 0;
 }
 
+// 47 Access to LDTR or TR. Guest software attempted to execute LLDT, LTR, SLDT, or STR and the “descriptor-table exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x002F>(void)
@@ -670,6 +719,7 @@ procedure<0x002F>(void)
     return 0;
 }
 
+// 48 EPT violation. An attempt to access memory with a guest-physical address was disallowed by the configuration of the EPT paging structures.
 template <>
 int
 procedure<0x0030>(void)
@@ -677,6 +727,7 @@ procedure<0x0030>(void)
     return 0;
 }
 
+// 49 EPT misconfiguration. An attempt to access memory with a guest-physical address encountered a misconfigured EPT paging-structure entry.
 template <>
 int
 procedure<0x0031>(void)
@@ -684,6 +735,7 @@ procedure<0x0031>(void)
     return 0;
 }
 
+// 50 INVEPT. Guest software attempted to execute INVEPT.
 template <>
 int
 procedure<0x0032>(void)
@@ -691,6 +743,7 @@ procedure<0x0032>(void)
     return 0;
 }
 
+// 51 RDTSCP. Guest software attempted to execute RDTSCP and the “enable RDTSCP” and “RDTSC exiting” VM-execution controls were both 1.
 template <>
 int
 procedure<0x0033>(void)
@@ -698,6 +751,7 @@ procedure<0x0033>(void)
     return 0;
 }
 
+// 52 VMX-preemption timer expired. The preemption timer counted down to zero.
 template <>
 int
 procedure<0x0034>(void)
@@ -705,6 +759,7 @@ procedure<0x0034>(void)
     return 0;
 }
 
+// 53 INVVPID. Guest software attempted to execute INVVPID.
 template <>
 int
 procedure<0x0035>(void)
@@ -712,6 +767,7 @@ procedure<0x0035>(void)
     return 0;
 }
 
+// 54 WBINVD or WBNOINVD. Guest software attempted to execute WBINVD or WBNOINVD and the “WBINVD exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x0036>(void)
@@ -719,6 +775,7 @@ procedure<0x0036>(void)
     return 0;
 }
 
+// 55 XSETBV. Guest software attempted to execute XSETBV.
 template <>
 int
 procedure<0x0037>(void)
@@ -726,6 +783,7 @@ procedure<0x0037>(void)
     return 0;
 }
 
+// 56 APIC write. Guest software completed a write to the virtual-APIC page that must be virtualized by VMM software
 template <>
 int
 procedure<0x0038>(void)
@@ -733,6 +791,7 @@ procedure<0x0038>(void)
     return 0;
 }
 
+// 57 RDRAND. Guest software attempted to execute RDRAND and the “RDRAND exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x0039>(void)
@@ -740,6 +799,7 @@ procedure<0x0039>(void)
     return 0;
 }
 
+// 58 INVPCID. Guest software attempted to execute INVPCID and the “enable INVPCID” and “INVLPG exiting” VM-execution controls were both 1.
 template <>
 int
 procedure<0x003A>(void)
@@ -747,6 +807,7 @@ procedure<0x003A>(void)
     return 0;
 }
 
+// 59 VMFUNC. Guest software invoked a VM function with the VMFUNC instruction and the VM function either was not enabled or generated a function-specific condition causing a VM exit.
 template <>
 int
 procedure<0x003B>(void)
@@ -754,6 +815,10 @@ procedure<0x003B>(void)
     return 0;
 }
 
+/**
+ * 60 ENCLS. Guest software attempted to execute ENCLS, “enable ENCLS exiting” VM-execution control was 1, and either
+ * (1) EAX < 63 and the corresponding bit in the ENCLS-exiting bitmap is 1; or (2) EAX ? 63 and bit 63 in the ENCLS-exiting bitmap is 1.
+ **/
 template <>
 int
 procedure<0x003C>(void)
@@ -761,6 +826,7 @@ procedure<0x003C>(void)
     return 0;
 }
 
+// 61 RDSEED. Guest software attempted to execute RDSEED and the “RDSEED exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x003D>(void)
@@ -768,6 +834,7 @@ procedure<0x003D>(void)
     return 0;
 }
 
+// 62 Page-modification log full. The processor attempted to create a page-modification log entry and the value of the PML index was not in the range 0–511.
 template <>
 int
 procedure<0x003E>(void)
@@ -775,6 +842,7 @@ procedure<0x003E>(void)
     return 0;
 }
 
+// 63 XSAVES. Guest software attempted to execute XSAVES, the “enable XSAVES/XRSTORS” was 1, and a bit was set in the logical-AND of the following three values: EDX:EAX, the IA32_XSS MSR, and the XSS-exiting bitmap.
 template <>
 int
 procedure<0x003F>(void)
@@ -782,6 +850,7 @@ procedure<0x003F>(void)
     return 0;
 }
 
+// 64 XRSTORS. Guest software attempted to execute XRSTORS, the “enable XSAVES/XRSTORS” was 1, and a bit was set in the logical-AND of the following three values: EDX:EAX, the IA32_XSS MSR, and the XSS-exiting bitmap.
 template <>
 int
 procedure<0x0040>(void)
@@ -789,6 +858,11 @@ procedure<0x0040>(void)
     return 0;
 }
 
+/**
+ * 65 PCONFIG. Guest software attempted to execute PCONFIG, “enable PCONFIG” VM-execution control was 1, and either
+ * (1) EAX < 63 and the corresponding bit in the PCONFIG-exiting bitmap is 1; or (2) EAX ? 63 and bit 63 in the
+ * PCONFIG-exiting bitmap is 1.
+ **/
 template <>
 int
 procedure<0x0041>(void)
@@ -796,6 +870,7 @@ procedure<0x0041>(void)
     return 0;
 }
 
+// 66 SPP-related event. The processor attempted to determine an access’s sub-page write permission and encountered an SPP miss or an SPP misconfiguration.
 template <>
 int
 procedure<0x0042>(void)
@@ -803,6 +878,7 @@ procedure<0x0042>(void)
     return 0;
 }
 
+// 67 UMWAIT. Guest software attempted to execute UMWAIT and the “enable user wait and pause” and “RDTSC exiting” VM-execution controls were both 1.
 template <>
 int
 procedure<0x0043>(void)
@@ -810,6 +886,7 @@ procedure<0x0043>(void)
     return 0;
 }
 
+// 68 TPAUSE. Guest software attempted to execute TPAUSE and the “enable user wait and pause” and “RDTSC exiting” VM-execution controls were both 1.
 template <>
 int
 procedure<0x0044>(void)
@@ -817,6 +894,7 @@ procedure<0x0044>(void)
     return 0;
 }
 
+// 69 LOADIWKEY. Guest software attempted to execute LOADIWKEY and the “LOADIWKEY exiting” VM-execution control was 1.
 template <>
 int
 procedure<0x0045>(void)
@@ -838,6 +916,10 @@ procedure<0x0047>(void)
     return 0;
 }
 
+/**
+ * 72  ENQCMD PASID translation failure. A VM exit occurred during PASID translation because the present bit was clear
+ * in a PASID-directory entry, the valid bit was clear in a PASID-table entry, or one of the entries set a reserved bit.
+ **/
 template <>
 int
 procedure<0x0048>(void)
@@ -845,6 +927,10 @@ procedure<0x0048>(void)
     return 0;
 }
 
+/**
+ * 73 ENQCMDS PASID translation failure. A VM exit occurred during PASID translation because the present bit was clear
+ * in a PASID-directory entry, the valid bit was clear in a PASID-table entry, or one of the entries set a reserved bit.
+ **/
 template <>
 int
 procedure<0x0049>(void)
@@ -852,6 +938,10 @@ procedure<0x0049>(void)
     return 0;
 }
 
+/**
+ * 74 Bus lock. The processor asserted a bus lock while the “bus-lock detection” VM-execution control was 1. (Such
+ * VM exits will also set bit 26 of the exit-reason field.)
+ **/
 template <>
 int
 procedure<0x004A>(void)
@@ -859,6 +949,10 @@ procedure<0x004A>(void)
     return 0;
 }
 
+/**
+ * 75 Instruction timeout. The “instruction timeout” VM-execution control was 1 and certain operations prevented the
+ * processor from reaching an instruction boundary within the amount of time specified by the instruction-timeout control.
+ **/
 template <>
 int
 procedure<0x004B>(void)
@@ -866,6 +960,9 @@ procedure<0x004B>(void)
     return 0;
 }
 
+/**
+ * 76 SEAMCALL. Guest software attempted to execute SEAMCALL.
+ **/
 template <>
 int
 procedure<0x004C>(void)
@@ -873,6 +970,9 @@ procedure<0x004C>(void)
     return 0;
 }
 
+/**
+ * 77 TDCALL. Guest software attempted to execute TDCALL.
+ **/
 template <>
 int
 procedure<0x004D>(void)
@@ -880,6 +980,12 @@ procedure<0x004D>(void)
     return 0;
 }
 
+/**
+ * 78 RDMSRLIST. Guest software attempted to execute RDMSRLIST and either the “use MSR bitmaps” VM-execution control was 0 or any of the following holds for the index an MSR being accessed:
+ * The index is neither in the range 00000000H – 00001FFFH nor in the range C0000000H – C0001FFFH.
+ * The index is in the range 00000000H – 00001FFFH and the n th bit in read bitmap for low MSRs is 1, where n is the index.
+ * The index is in the range C0000000H – C0001FFFH and the n th bit in read bitmap for high MSRs is 1, where n is the logical AND of the index and the value 00001FFFH.
+ **/
 template <>
 int
 procedure<0x004E>(void)
@@ -887,6 +993,12 @@ procedure<0x004E>(void)
     return 0;
 }
 
+/**
+ * 79 WRMSRLIST. Guest software attempted to execute WRMSRLIST and either the “use MSR bitmaps” VM-execution control was 0 or any of the following holds for the index an MSR being accessed:
+ * The index is neither in the range 00000000H – 00001FFFH nor in the range C0000000H – C0001FFFH.
+ * The index is in the range 00000000H – 00001FFFH and the n th bit in write bitmap for low MSRs is 1, where n is the index.
+ * The index is in the range C0000000H – C0001FFFH and the n th bit in write bitmap for high MSRs is 1, where n is the logical AND of the index and the value 00001FFFH.
+ **/
 template <>
 int
 procedure<0x004F>(void)
@@ -916,11 +1028,17 @@ vmx_vmexit(void)
                          "\n mov $0x4402, %%rcx" // VMX_VMCS32_RO_EXIT_REASON
                          "\n vmread %%rcx, %%rax"
 
-                         "\n int3"
-
                          "\n lea Procedures(%%rip), %%rbx"
                          "\n mov (%%rbx, %%rax, 8), %%rax"
                          "\n call *%%rax"
+
+                         "\n mov $0x681E, %%rcx" // VMX_VMCS_GUEST_RIP
+                         "\n vmread %%rcx, %%rax"
+                         "\n mov $0x440C, %%rcx" // VMX_VMCS32_RO_EXIT_INSTR_LENGTH
+                         "\n vmread %%rcx, %%rdx"
+                         "\n add %%rdx, %%rax"
+                         "\n mov $0x681E, %%rcx" // VMX_VMCS_GUEST_RIP
+                         "\n vmwrite %%rax, %%rcx"
 
                          "\n pop %%r15"
                          "\n pop %%r14"
@@ -2036,53 +2154,490 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE3_FULL, 0);
     }
 
-    // Natural-Width Control Fields
+    // 16-Bit Control Fields
     {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00000000, &eee); // Virtual-processor identifier (VPID)
+        __asm_vmx_vmread(0x00000001, &eee); //
+        __asm_vmx_vmread(0x00000002, &eee); // Posted-interrupt notification vector
+        __asm_vmx_vmread(0x00000003, &eee); //
+        __asm_vmx_vmread(0x00000004, &eee); // EPTP index
+        __asm_vmx_vmread(0x00000005, &eee); //
+        __asm_vmx_vmread(0x00000006, &eee); // HLAT prefix size
+        __asm_vmx_vmread(0x00000007, &eee); //
+        __asm_vmx_vmread(0x00000008, &eee); // Last PID-pointer index
+        __asm_vmx_vmread(0x00000009, &eee); //
     }
-    // Natural-Width Read-Only Data Field
+
+    // 16-Bit Guest-State Fields
     {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00000800, &eee); // Guest ES selector
+        __asm_vmx_vmread(0x00000801, &eee); //
+        __asm_vmx_vmread(0x00000802, &eee); // Guest CS selector
+        __asm_vmx_vmread(0x00000803, &eee); //
+        __asm_vmx_vmread(0x00000804, &eee); // Guest SS selector
+        __asm_vmx_vmread(0x00000805, &eee); //
+        __asm_vmx_vmread(0x00000806, &eee); // Guest DS selector
+        __asm_vmx_vmread(0x00000807, &eee); //
+        __asm_vmx_vmread(0x00000808, &eee); // Guest FS selector
+        __asm_vmx_vmread(0x00000809, &eee); //
+        __asm_vmx_vmread(0x0000080A, &eee); // Guest GS selector
+        __asm_vmx_vmread(0x0000080B, &eee); //
+        __asm_vmx_vmread(0x0000080C, &eee); // Guest LDTR selector
+        __asm_vmx_vmread(0x0000080D, &eee); //
+        __asm_vmx_vmread(0x0000080E, &eee); // Guest TR selector
+        __asm_vmx_vmread(0x0000080F, &eee); //
+        __asm_vmx_vmread(0x00000810, &eee); // Guest interrupt status
+        __asm_vmx_vmread(0x00000811, &eee); //
+        __asm_vmx_vmread(0x00000812, &eee); // PML index
+        __asm_vmx_vmread(0x00000813, &eee); //
+        __asm_vmx_vmread(0x00000814, &eee); // Guest UINV
+        __asm_vmx_vmread(0x00000815, &eee); //
     }
-    // Natural-Width Guest-State Fields
+
+    // 16-Bit Host-State Fields
     {
-    }
-    // Natural-Width Host-State Fields
-    {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00000C00, &eee); // Host ES selector
+        __asm_vmx_vmread(0x00000C01, &eee); //
+        __asm_vmx_vmread(0x00000C02, &eee); // Host CS selector
+        __asm_vmx_vmread(0x00000C03, &eee); //
+        __asm_vmx_vmread(0x00000C04, &eee); // Host SS selector
+        __asm_vmx_vmread(0x00000C05, &eee); //
+        __asm_vmx_vmread(0x00000C06, &eee); // Host DS selector
+        __asm_vmx_vmread(0x00000C07, &eee); //
+        __asm_vmx_vmread(0x00000C08, &eee); // Host FS selector
+        __asm_vmx_vmread(0x00000C09, &eee); //
+        __asm_vmx_vmread(0x00000C0A, &eee); // Host GS selector
+        __asm_vmx_vmread(0x00000C0B, &eee); //
+        __asm_vmx_vmread(0x00000C0C, &eee); // Host TR selector
+        __asm_vmx_vmread(0x00000C0D, &eee); //
     }
 
     // 64-Bit Control Fields
     {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00002000, &eee); // Address of I/O bitmap A (full)
+        __asm_vmx_vmread(0x00002001, &eee); // Address of I/O bitmap A (high)
+        __asm_vmx_vmread(0x00002002, &eee); // Address of I/O bitmap B (full)
+        __asm_vmx_vmread(0x00002003, &eee); // Address of I/O bitmap B (high)
+        __asm_vmx_vmread(0x00002004, &eee); // Address of MSR bitmaps (full)
+        __asm_vmx_vmread(0x00002005, &eee); // Address of MSR bitmaps (high)
+        __asm_vmx_vmread(0x00002006, &eee); // VM-exit MSR-store address (full)
+        __asm_vmx_vmread(0x00002007, &eee); // VM-exit MSR-store address (high)
+        __asm_vmx_vmread(0x00002008, &eee); // VM-exit MSR-load address (full)
+        __asm_vmx_vmread(0x00002009, &eee); // VM-exit MSR-load address (high)
+        __asm_vmx_vmread(0x0000200A, &eee); // VM-entry MSR-load address (full)
+        __asm_vmx_vmread(0x0000200B, &eee); // VM-entry MSR-load address (high)
+        __asm_vmx_vmread(0x0000200C, &eee); // Executive-VMCS pointer (full)
+        __asm_vmx_vmread(0x0000200D, &eee); // Executive-VMCS pointer (high)
+        __asm_vmx_vmread(0x0000200E, &eee); // PML address (full)
+        __asm_vmx_vmread(0x0000200F, &eee); // PML address (high)
+        __asm_vmx_vmread(0x00002010, &eee); // TSC offset (full)
+        __asm_vmx_vmread(0x00002011, &eee); // TSC offset (high)
+        __asm_vmx_vmread(0x00002012, &eee); // Virtual-APIC address (full)
+        __asm_vmx_vmread(0x00002013, &eee); // Virtual-APIC address (high)
+        __asm_vmx_vmread(0x00002014, &eee); // APIC-access address (full)
+        __asm_vmx_vmread(0x00002015, &eee); // APIC-access address (high)
+        __asm_vmx_vmread(0x00002016, &eee); // Posted-interrupt descriptor address (full)
+        __asm_vmx_vmread(0x00002017, &eee); // Posted-interrupt descriptor address (high)
+        __asm_vmx_vmread(0x00002018, &eee); // VM-function controls (full)
+        __asm_vmx_vmread(0x00002019, &eee); // VM-function controls (high)
+        __asm_vmx_vmread(0x0000201A, &eee); // EPT pointer (EPTP; full)
+        __asm_vmx_vmread(0x0000201B, &eee); // EPT pointer (EPTP; high)
+        __asm_vmx_vmread(0x0000201C, &eee); // EOI-exit bitmap 0 (EOI_EXIT0; full)
+        __asm_vmx_vmread(0x0000201D, &eee); // EOI-exit bitmap 0 (EOI_EXIT0; high)
+        __asm_vmx_vmread(0x0000201E, &eee); // EOI-exit bitmap 1 (EOI_EXIT1; full)
+        __asm_vmx_vmread(0x0000201F, &eee); // EOI-exit bitmap 1 (EOI_EXIT1; high)
+        __asm_vmx_vmread(0x00002020, &eee); // EOI-exit bitmap 2 (EOI_EXIT2; full)
+        __asm_vmx_vmread(0x00002021, &eee); // EOI-exit bitmap 2 (EOI_EXIT2; high)
+        __asm_vmx_vmread(0x00002022, &eee); // EOI-exit bitmap 3 (EOI_EXIT3; full)
+        __asm_vmx_vmread(0x00002023, &eee); // EOI-exit bitmap 3 (EOI_EXIT3; high)
+        __asm_vmx_vmread(0x00002024, &eee); // EPTP-list address (full)
+        __asm_vmx_vmread(0x00002025, &eee); // EPTP-list address (high)
+        __asm_vmx_vmread(0x00002026, &eee); // VMREAD-bitmap address (full)
+        __asm_vmx_vmread(0x00002027, &eee); // VMREAD-bitmap address (high)
+        __asm_vmx_vmread(0x00002028, &eee); // VMWRITE-bitmap address (full)
+        __asm_vmx_vmread(0x00002029, &eee); // VMWRITE-bitmap address (high)
+        __asm_vmx_vmread(0x0000202A, &eee); // Virtualization-exception information address (full)
+        __asm_vmx_vmread(0x0000202B, &eee); // Virtualization-exception information address (high)
+        __asm_vmx_vmread(0x0000202C, &eee); // XSS-exiting bitmap (full)
+        __asm_vmx_vmread(0x0000202D, &eee); // XSS-exiting bitmap (high)
+        __asm_vmx_vmread(0x0000202E, &eee); // ENCLS-exiting bitmap (full)
+        __asm_vmx_vmread(0x0000202F, &eee); // ENCLS-exiting bitmap (high)
+        __asm_vmx_vmread(0x00002030, &eee); // Sub-page-permission-table pointer (full)
+        __asm_vmx_vmread(0x00002031, &eee); // Sub-page-permission-table pointer (high)
+        __asm_vmx_vmread(0x00002032, &eee); // TSC multiplier (full)
+        __asm_vmx_vmread(0x00002033, &eee); // TSC multiplier (high)
+        __asm_vmx_vmread(0x00002034, &eee); // Tertiary processor-based VM-execution controls (full)
+        __asm_vmx_vmread(0x00002035, &eee); // Tertiary processor-based VM-execution controls (high)
+        __asm_vmx_vmread(0x00002036, &eee); //
+        __asm_vmx_vmread(0x00002037, &eee); //
+        __asm_vmx_vmread(0x00002038, &eee); // Low PASID directory address (full)
+        __asm_vmx_vmread(0x00002039, &eee); // Low PASID directory address (high)
+        __asm_vmx_vmread(0x0000203A, &eee); // High PASID directory address (full)
+        __asm_vmx_vmread(0x0000203B, &eee); // High PASID directory address (high)
+        __asm_vmx_vmread(0x0000203C, &eee); // SEAM shared EPT pointer (full)
+        __asm_vmx_vmread(0x0000203D, &eee); // SEAM shared EPT pointer (high)
+        __asm_vmx_vmread(0x0000203E, &eee); // PCONFIG-exiting bitmap (full)
+        __asm_vmx_vmread(0x0000203F, &eee); // PCONFIG-exiting bitmap (high)
+        __asm_vmx_vmread(0x00002040, &eee); // Hypervisor-managed linear-address translation pointer (HLATP; full)
+        __asm_vmx_vmread(0x00002041, &eee); // HLATP (high)
+        __asm_vmx_vmread(0x00002042, &eee); // PID-pointer table address (full)
+        __asm_vmx_vmread(0x00002043, &eee); // PID-pointer table address (high)
+        __asm_vmx_vmread(0x00002044, &eee); // Secondary VM-exit controls (full)
+        __asm_vmx_vmread(0x00002045, &eee); // Secondary VM-exit controls (high)
+        __asm_vmx_vmread(0x00002046, &eee); //
+        __asm_vmx_vmread(0x00002047, &eee); //
+        __asm_vmx_vmread(0x00002048, &eee); //
+        __asm_vmx_vmread(0x00002049, &eee); //
+        __asm_vmx_vmread(0x0000204A, &eee); // IA32_SPEC_CTRL mask (full)
+        __asm_vmx_vmread(0x0000204B, &eee); // IA32_SPEC_CTRL mask (high)
+        __asm_vmx_vmread(0x0000204C, &eee); // IA32_SPEC_CTRL shadow (full)
+        __asm_vmx_vmread(0x0000204D, &eee); // IA32_SPEC_CTRL shadow (high)
+        __asm_vmx_vmread(0x0000204E, &eee); //
+        __asm_vmx_vmread(0x0000204F, &eee); //
+        __asm_vmx_vmread(0x00002050, &eee); //
+        __asm_vmx_vmread(0x00002051, &eee); //
+        __asm_vmx_vmread(0x00002052, &eee); // Injected-event data (full)
+        __asm_vmx_vmread(0x00002053, &eee); // Injected-event data (high)
     }
-    // 64-Bit Read-Only Data Field
+
+    // 64-Bit Read-Only Data Fields
     {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00002400, &eee); // Guest-physical address (full)
+        __asm_vmx_vmread(0x00002401, &eee); // Guest-physical address (high)
+        __asm_vmx_vmread(0x00002402, &eee); // MSR data (full)
+        __asm_vmx_vmread(0x00002403, &eee); // MSR data (high)
+        __asm_vmx_vmread(0x00002404, &eee); // Original-event data (full)
+        __asm_vmx_vmread(0x00002405, &eee); // Original-event data (high)
     }
+
     // 64-Bit Guest-State Fields
     {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00002800, &eee); // VMCS link pointer (full)
+        __asm_vmx_vmread(0x00002801, &eee); // VMCS link pointer (high)
+        __asm_vmx_vmread(0x00002802, &eee); // Guest IA32_DEBUGCTL (full)
+        __asm_vmx_vmread(0x00002803, &eee); // Guest IA32_DEBUGCTL (high)
+        __asm_vmx_vmread(0x00002804, &eee); // Guest IA32_PAT (full)
+        __asm_vmx_vmread(0x00002805, &eee); // Guest IA32_PAT (high)
+        __asm_vmx_vmread(0x00002806, &eee); // Guest IA32_EFER (full)
+        __asm_vmx_vmread(0x00002807, &eee); // Guest IA32_EFER (high)
+        __asm_vmx_vmread(0x00002808, &eee); // Guest IA32_PERF_GLOBAL_CTRL (full)
+        __asm_vmx_vmread(0x00002809, &eee); // Guest IA32_PERF_GLOBAL_CTRL (high)
+        __asm_vmx_vmread(0x0000280A, &eee); // Guest PDPTE0 (full)
+        __asm_vmx_vmread(0x0000280B, &eee); // Guest PDPTE0 (high)
+        __asm_vmx_vmread(0x0000280C, &eee); // Guest PDPTE1 (full)
+        __asm_vmx_vmread(0x0000280D, &eee); // Guest PDPTE1 (high)
+        __asm_vmx_vmread(0x0000280E, &eee); // Guest PDPTE2 (full)
+        __asm_vmx_vmread(0x0000280F, &eee); // Guest PDPTE2 (high)
+        __asm_vmx_vmread(0x00002810, &eee); // Guest PDPTE3 (full)
+        __asm_vmx_vmread(0x00002811, &eee); // Guest PDPTE3 (high)
+        __asm_vmx_vmread(0x00002812, &eee); // Guest IA32_BNDCFGS (full)
+        __asm_vmx_vmread(0x00002813, &eee); // Guest IA32_BNDCFGS (high)
+        __asm_vmx_vmread(0x00002814, &eee); // Guest IA32_RTIT_CTL (full)
+        __asm_vmx_vmread(0x00002815, &eee); // Guest IA32_RTIT_CTL (high)
+        __asm_vmx_vmread(0x00002816, &eee); // Guest IA32_LBR_CTL (full)
+        __asm_vmx_vmread(0x00002817, &eee); // Guest IA32_LBR_CTL (high)
+        __asm_vmx_vmread(0x00002818, &eee); // Guest IA32_PKRS (full)
+        __asm_vmx_vmread(0x00002819, &eee); // Guest IA32_PKRS (high)
+        __asm_vmx_vmread(0x0000281A, &eee); // Guest IA32_FRED_CONFIG (full)
+        __asm_vmx_vmread(0x0000281B, &eee); // Guest IA32_FRED_CONFIG (high)
+        __asm_vmx_vmread(0x0000281C, &eee); // Guest IA32_FRED_RSP1 (full)
+        __asm_vmx_vmread(0x0000281D, &eee); // Guest IA32_FRED_RSP1 (high)
+        __asm_vmx_vmread(0x0000281E, &eee); // Guest IA32_FRED_RSP2 (full)
+        __asm_vmx_vmread(0x0000281F, &eee); // Guest IA32_FRED_RSP2 (high)
+        __asm_vmx_vmread(0x00002820, &eee); // Guest IA32_FRED_RSP3 (full)
+        __asm_vmx_vmread(0x00002821, &eee); // Guest IA32_FRED_RSP3 (high)
+        __asm_vmx_vmread(0x00002822, &eee); // Guest IA32_FRED_STKLVLS (full)
+        __asm_vmx_vmread(0x00002823, &eee); // Guest IA32_FRED_STKLVLS (high)
+        __asm_vmx_vmread(0x00002824, &eee); // Guest IA32_FRED_SSP1 (full)
+        __asm_vmx_vmread(0x00002825, &eee); // Guest IA32_FRED_SSP1 (high)
+        __asm_vmx_vmread(0x00002826, &eee); // Guest IA32_FRED_SSP2 (full)
+        __asm_vmx_vmread(0x00002827, &eee); // Guest IA32_FRED_SSP2 (high)
+        __asm_vmx_vmread(0x00002828, &eee); // Guest IA32_FRED_SSP3 (full)
+        __asm_vmx_vmread(0x00002829, &eee); // Guest IA32_FRED_SSP3 (high)
     }
+
     // 64-Bit Host-State Fields
     {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00002C00, &eee); // Host IA32_PAT (full)
+        __asm_vmx_vmread(0x00002C01, &eee); // Host IA32_PAT (high)
+        __asm_vmx_vmread(0x00002C02, &eee); // Host IA32_EFER (full)
+        __asm_vmx_vmread(0x00002C03, &eee); // Host IA32_EFER (high)
+        __asm_vmx_vmread(0x00002C04, &eee); // Host IA32_PERF_GLOBAL_CTRL (full)
+        __asm_vmx_vmread(0x00002C05, &eee); // Host IA32_PERF_GLOBAL_CTRL (high)
+        __asm_vmx_vmread(0x00002C06, &eee); // Host IA32_PKRS (full)
+        __asm_vmx_vmread(0x00002C07, &eee); // Host IA32_PKRS (high)
+        __asm_vmx_vmread(0x00002C08, &eee); // Host IA32_FRED_CONFIG (full)
+        __asm_vmx_vmread(0x00002C09, &eee); // Host IA32_FRED_CONFIG (high)
+        __asm_vmx_vmread(0x00002C0A, &eee); // Host IA32_FRED_RSP1 (full)
+        __asm_vmx_vmread(0x00002C0B, &eee); // Host IA32_FRED_RSP1 (high)
+        __asm_vmx_vmread(0x00002C0C, &eee); // Host IA32_FRED_RSP2 (full)
+        __asm_vmx_vmread(0x00002C0D, &eee); // Host IA32_FRED_RSP2 (high)
+        __asm_vmx_vmread(0x00002C0E, &eee); // Host IA32_FRED_RSP3 (full)
+        __asm_vmx_vmread(0x00002C0F, &eee); // Host IA32_FRED_RSP3 (high)
+        __asm_vmx_vmread(0x00002C10, &eee); // Host IA32_FRED_STKLVLS (full)
+        __asm_vmx_vmread(0x00002C11, &eee); // Host IA32_FRED_STKLVLS (high)
+        __asm_vmx_vmread(0x00002C12, &eee); // Host IA32_FRED_SSP1 (full)
+        __asm_vmx_vmread(0x00002C13, &eee); // Host IA32_FRED_SSP1 (high)
+        __asm_vmx_vmread(0x00002C14, &eee); // Host IA32_FRED_SSP2 (full)
+        __asm_vmx_vmread(0x00002C15, &eee); // Host IA32_FRED_SSP2 (high)
+        __asm_vmx_vmread(0x00002C16, &eee); // Host IA32_FRED_SSP3 (full)
+        __asm_vmx_vmread(0x00002C17, &eee); // Host IA32_FRED_SSP3 (high)
     }
 
     // 32-Bit Control Fields
     {
-    }
-    // 32-Bit Read-Only Data Field
-    {
-    }
-    // 32-Bit Guest-State Fields
-    {
-    }
-    // 32-Bit Host-State Fields
-    {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00004000, &eee); // Pin-based VM-execution controls
+        __asm_vmx_vmread(0x00004001, &eee); //
+        __asm_vmx_vmread(0x00004002, &eee); // Primary processor-based VM-execution controls
+        __asm_vmx_vmread(0x00004003, &eee); //
+        __asm_vmx_vmread(0x00004004, &eee); // Exception bitmap
+        __asm_vmx_vmread(0x00004005, &eee); //
+        __asm_vmx_vmread(0x00004006, &eee); // Page-fault error-code mask
+        __asm_vmx_vmread(0x00004007, &eee); //
+        __asm_vmx_vmread(0x00004008, &eee); // Page-fault error-code match
+        __asm_vmx_vmread(0x00004009, &eee); //
+        __asm_vmx_vmread(0x0000400A, &eee); // CR3-target count
+        __asm_vmx_vmread(0x0000400B, &eee); //
+        __asm_vmx_vmread(0x0000400C, &eee); // Primary VM-exit controls
+        __asm_vmx_vmread(0x0000400D, &eee); //
+        __asm_vmx_vmread(0x0000400E, &eee); // VM-exit MSR-store count
+        __asm_vmx_vmread(0x0000400F, &eee); //
+        __asm_vmx_vmread(0x00004010, &eee); // VM-exit MSR-load count
+        __asm_vmx_vmread(0x00004011, &eee); //
+        __asm_vmx_vmread(0x00004012, &eee); // VM-entry controls
+        __asm_vmx_vmread(0x00004013, &eee); //
+        __asm_vmx_vmread(0x00004014, &eee); // VM-entry MSR-load count
+        __asm_vmx_vmread(0x00004015, &eee); //
+        __asm_vmx_vmread(0x00004016, &eee); // Injected-event identification
+        __asm_vmx_vmread(0x00004017, &eee); //
+        __asm_vmx_vmread(0x00004018, &eee); // Injected-event error code
+        __asm_vmx_vmread(0x00004019, &eee); //
+        __asm_vmx_vmread(0x0000401A, &eee); // VM-entry instruction length
+        __asm_vmx_vmread(0x0000401B, &eee); //
+        __asm_vmx_vmread(0x0000401C, &eee); // TPR threshold
+        __asm_vmx_vmread(0x0000401D, &eee); //
+        __asm_vmx_vmread(0x0000401E, &eee); // Secondary processor-based VM-execution controls
+        __asm_vmx_vmread(0x0000401F, &eee); //
+        __asm_vmx_vmread(0x00004020, &eee); // PLE_Gap
+        __asm_vmx_vmread(0x00004021, &eee); //
+        __asm_vmx_vmread(0x00004022, &eee); // PLE_Window
+        __asm_vmx_vmread(0x00004023, &eee); //
+        __asm_vmx_vmread(0x00004024, &eee); // Instruction-timeout control
+        __asm_vmx_vmread(0x00004025, &eee); //
+        __asm_vmx_vmread(0x00004026, &eee); // SEAM-guest KeyID
+        __asm_vmx_vmread(0x00004027, &eee); //
     }
 
-    // 16-Bit Control Fields
+    // 32-Bit Read-Only Data Fields
     {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00004400, &eee); // VM-instruction error
+        __asm_vmx_vmread(0x00004401, &eee); //
+        __asm_vmx_vmread(0x00004402, &eee); // Exit reason
+        __asm_vmx_vmread(0x00004403, &eee); //
+        __asm_vmx_vmread(0x00004404, &eee); // Exiting-event identification
+        __asm_vmx_vmread(0x00004405, &eee); //
+        __asm_vmx_vmread(0x00004406, &eee); // Exiting-event error code
+        __asm_vmx_vmread(0x00004407, &eee); //
+        __asm_vmx_vmread(0x00004408, &eee); // Original-event identification
+        __asm_vmx_vmread(0x00004409, &eee); //
+        __asm_vmx_vmread(0x0000440A, &eee); // Original-event error code
+        __asm_vmx_vmread(0x0000440B, &eee); //
+        __asm_vmx_vmread(0x0000440C, &eee); // VM-exit instruction length
+        __asm_vmx_vmread(0x0000440D, &eee); //
+        __asm_vmx_vmread(0x0000440E, &eee); // VM-exit instruction information
+        __asm_vmx_vmread(0x0000440F, &eee); //
     }
-    // 16-Bit Guest-State Fields
+
+    // 32-Bit Guest-State Fields
     {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00004800, &eee); // Guest ES limit
+        __asm_vmx_vmread(0x00004801, &eee); //
+        __asm_vmx_vmread(0x00004802, &eee); // Guest CS limit
+        __asm_vmx_vmread(0x00004803, &eee); //
+        __asm_vmx_vmread(0x00004804, &eee); // Guest SS limit
+        __asm_vmx_vmread(0x00004805, &eee); //
+        __asm_vmx_vmread(0x00004806, &eee); // Guest DS limit
+        __asm_vmx_vmread(0x00004807, &eee); //
+        __asm_vmx_vmread(0x00004808, &eee); // Guest FS limit
+        __asm_vmx_vmread(0x00004809, &eee); //
+        __asm_vmx_vmread(0x0000480A, &eee); // Guest GS limit
+        __asm_vmx_vmread(0x0000480B, &eee); //
+        __asm_vmx_vmread(0x0000480C, &eee); // Guest LDTR limit
+        __asm_vmx_vmread(0x0000480D, &eee); //
+        __asm_vmx_vmread(0x0000480E, &eee); // Guest TR limit
+        __asm_vmx_vmread(0x0000480F, &eee); //
+        __asm_vmx_vmread(0x00004810, &eee); // Guest GDTR limit
+        __asm_vmx_vmread(0x00004811, &eee); //
+        __asm_vmx_vmread(0x00004812, &eee); // Guest IDTR limit
+        __asm_vmx_vmread(0x00004813, &eee); //
+        __asm_vmx_vmread(0x00004814, &eee); // Guest ES access rights
+        __asm_vmx_vmread(0x00004815, &eee); //
+        __asm_vmx_vmread(0x00004816, &eee); // Guest CS access rights
+        __asm_vmx_vmread(0x00004817, &eee); //
+        __asm_vmx_vmread(0x00004818, &eee); // Guest SS access rights
+        __asm_vmx_vmread(0x00004819, &eee); //
+        __asm_vmx_vmread(0x0000481A, &eee); // Guest DS access rights
+        __asm_vmx_vmread(0x0000481B, &eee); //
+        __asm_vmx_vmread(0x0000481C, &eee); // Guest FS access rights
+        __asm_vmx_vmread(0x0000481D, &eee); //
+        __asm_vmx_vmread(0x0000481E, &eee); // Guest GS access rights
+        __asm_vmx_vmread(0x0000481F, &eee); //
+        __asm_vmx_vmread(0x00004820, &eee); // Guest LDTR access rights
+        __asm_vmx_vmread(0x00004821, &eee); //
+        __asm_vmx_vmread(0x00004822, &eee); // Guest TR access rights
+        __asm_vmx_vmread(0x00004823, &eee); //
+        __asm_vmx_vmread(0x00004824, &eee); // Guest interruptibility state
+        __asm_vmx_vmread(0x00004825, &eee); //
+        __asm_vmx_vmread(0x00004826, &eee); // Guest activity state
+        __asm_vmx_vmread(0x00004827, &eee); //
+        __asm_vmx_vmread(0x00004828, &eee); // Guest SMBASE
+        __asm_vmx_vmread(0x00004829, &eee); //
+        __asm_vmx_vmread(0x0000482A, &eee); // Guest IA32_SYSENTER_CS
+        __asm_vmx_vmread(0x0000482B, &eee); //
+        __asm_vmx_vmread(0x0000482C, &eee); //
+        __asm_vmx_vmread(0x0000482D, &eee); //
+        __asm_vmx_vmread(0x0000482E, &eee); // VMX-preemption timer value
+        __asm_vmx_vmread(0x0000482F, &eee); //
     }
-    // 16-Bit Host-State Fields
+
+    // 32-Bit Host-State Field
     {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00004C00, &eee); // Host IA32_SYSENTER_CS
+    }
+
+    // Natural-Width Control Fields
+    {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00006000, &eee); // CR0 guest/host mask
+        __asm_vmx_vmread(0x00006001, &eee); //
+        __asm_vmx_vmread(0x00006002, &eee); // CR4 guest/host mask
+        __asm_vmx_vmread(0x00006003, &eee); //
+        __asm_vmx_vmread(0x00006004, &eee); // CR0 read shadow
+        __asm_vmx_vmread(0x00006005, &eee); //
+        __asm_vmx_vmread(0x00006006, &eee); // CR4 read shadow
+        __asm_vmx_vmread(0x00006007, &eee); //
+        __asm_vmx_vmread(0x00006008, &eee); // CR3-target value 0
+        __asm_vmx_vmread(0x00006009, &eee); //
+        __asm_vmx_vmread(0x0000600A, &eee); // CR3-target value 1
+        __asm_vmx_vmread(0x0000600B, &eee); //
+        __asm_vmx_vmread(0x0000600C, &eee); // CR3-target value 2
+        __asm_vmx_vmread(0x0000600D, &eee); //
+        __asm_vmx_vmread(0x0000600E, &eee); // CR3-target value 3
+        __asm_vmx_vmread(0x0000600F, &eee); //
+    }
+
+    // Natural-Width Read-Only Data Fields
+    {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00006400, &eee); // Exit qualification
+        __asm_vmx_vmread(0x00006401, &eee); //
+        __asm_vmx_vmread(0x00006402, &eee); // I/O RCX
+        __asm_vmx_vmread(0x00006403, &eee); //
+        __asm_vmx_vmread(0x00006404, &eee); // I/O RSI
+        __asm_vmx_vmread(0x00006405, &eee); //
+        __asm_vmx_vmread(0x00006406, &eee); // I/O RDI
+        __asm_vmx_vmread(0x00006407, &eee); //
+        __asm_vmx_vmread(0x00006408, &eee); // I/O RIP
+        __asm_vmx_vmread(0x00006409, &eee); //
+        __asm_vmx_vmread(0x0000640A, &eee); // Guest-linear address
+        __asm_vmx_vmread(0x0000640B, &eee); //
+    }
+
+    // Natural-Width Guest-State Fields
+    {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00006800, &eee); // Guest CR0
+        __asm_vmx_vmread(0x00006801, &eee); //
+        __asm_vmx_vmread(0x00006802, &eee); // Guest CR3
+        __asm_vmx_vmread(0x00006803, &eee); //
+        __asm_vmx_vmread(0x00006804, &eee); // Guest CR4
+        __asm_vmx_vmread(0x00006805, &eee); //
+        __asm_vmx_vmread(0x00006806, &eee); // Guest ES base
+        __asm_vmx_vmread(0x00006807, &eee); //
+        __asm_vmx_vmread(0x00006808, &eee); // Guest CS base
+        __asm_vmx_vmread(0x00006809, &eee); //
+        __asm_vmx_vmread(0x0000680A, &eee); // Guest SS base
+        __asm_vmx_vmread(0x0000680B, &eee); //
+        __asm_vmx_vmread(0x0000680C, &eee); // Guest DS base
+        __asm_vmx_vmread(0x0000680D, &eee); //
+        __asm_vmx_vmread(0x0000680E, &eee); // Guest FS base
+        __asm_vmx_vmread(0x0000680F, &eee); //
+        __asm_vmx_vmread(0x00006810, &eee); // Guest GS base
+        __asm_vmx_vmread(0x00006811, &eee); //
+        __asm_vmx_vmread(0x00006812, &eee); // Guest LDTR base
+        __asm_vmx_vmread(0x00006813, &eee); //
+        __asm_vmx_vmread(0x00006814, &eee); // Guest TR base
+        __asm_vmx_vmread(0x00006815, &eee); //
+        __asm_vmx_vmread(0x00006816, &eee); // Guest GDTR base
+        __asm_vmx_vmread(0x00006817, &eee); //
+        __asm_vmx_vmread(0x00006818, &eee); // Guest IDTR base
+        __asm_vmx_vmread(0x00006819, &eee); //
+        __asm_vmx_vmread(0x0000681A, &eee); // Guest DR7
+        __asm_vmx_vmread(0x0000681B, &eee); //
+        __asm_vmx_vmread(0x0000681C, &eee); // Guest RSP
+        __asm_vmx_vmread(0x0000681D, &eee); //
+        __asm_vmx_vmread(0x0000681E, &eee); // Guest RIP
+        __asm_vmx_vmread(0x0000681F, &eee); //
+        __asm_vmx_vmread(0x00006820, &eee); // Guest RFLAGS
+        __asm_vmx_vmread(0x00006821, &eee); //
+        __asm_vmx_vmread(0x00006822, &eee); // Guest pending debug exceptions
+        __asm_vmx_vmread(0x00006823, &eee); //
+        __asm_vmx_vmread(0x00006824, &eee); // Guest IA32_SYSENTER_ESP
+        __asm_vmx_vmread(0x00006825, &eee); //
+        __asm_vmx_vmread(0x00006826, &eee); // Guest IA32_SYSENTER_EIP
+        __asm_vmx_vmread(0x00006827, &eee); //
+        __asm_vmx_vmread(0x00006828, &eee); // Guest IA32_S_CET
+        __asm_vmx_vmread(0x00006829, &eee); //
+        __asm_vmx_vmread(0x0000682A, &eee); // Guest SSP
+        __asm_vmx_vmread(0x0000682B, &eee); //
+        __asm_vmx_vmread(0x0000682C, &eee); // Guest IA32_INTERRUPT_SSP_TABLE_ADDR
+        __asm_vmx_vmread(0x0000682D, &eee); //
+    }
+
+    // Natural-Width Host-State Fields
+    {
+        size_t eee = {};
+        __asm_vmx_vmread(0x00006C00, &eee); // Host CR0
+        __asm_vmx_vmread(0x00006C01, &eee); //
+        __asm_vmx_vmread(0x00006C02, &eee); // Host CR3
+        __asm_vmx_vmread(0x00006C03, &eee); //
+        __asm_vmx_vmread(0x00006C04, &eee); // Host CR4
+        __asm_vmx_vmread(0x00006C05, &eee); //
+        __asm_vmx_vmread(0x00006C06, &eee); // Host FS base
+        __asm_vmx_vmread(0x00006C07, &eee); //
+        __asm_vmx_vmread(0x00006C08, &eee); // Host GS base
+        __asm_vmx_vmread(0x00006C09, &eee); //
+        __asm_vmx_vmread(0x00006C0A, &eee); // Host TR base
+        __asm_vmx_vmread(0x00006C0B, &eee); //
+        __asm_vmx_vmread(0x00006C0C, &eee); // Host GDTR base
+        __asm_vmx_vmread(0x00006C0D, &eee); //
+        __asm_vmx_vmread(0x00006C0E, &eee); // Host IDTR base
+        __asm_vmx_vmread(0x00006C0F, &eee); //
+        __asm_vmx_vmread(0x00006C10, &eee); // Host IA32_SYSENTER_ESP
+        __asm_vmx_vmread(0x00006C11, &eee); //
+        __asm_vmx_vmread(0x00006C12, &eee); // Host IA32_SYSENTER_EIP
+        __asm_vmx_vmread(0x00006C13, &eee); //
+        __asm_vmx_vmread(0x00006C14, &eee); // Host RSP
+        __asm_vmx_vmread(0x00006C15, &eee); //
+        __asm_vmx_vmread(0x00006C16, &eee); // Host RIP
+        __asm_vmx_vmread(0x00006C17, &eee); //
+        __asm_vmx_vmread(0x00006C18, &eee); // Host IA32_S_CET
+        __asm_vmx_vmread(0x00006C19, &eee); //
+        __asm_vmx_vmread(0x00006C1A, &eee); // Host SSP
+        __asm_vmx_vmread(0x00006C1B, &eee); //
+        __asm_vmx_vmread(0x00006C1C, &eee); // Host IA32_INTERRUPT_SSP_TABLE_ADDR
+        __asm_vmx_vmread(0x00006C1D, &eee); //
     }
 
     KdBreakPoint();
