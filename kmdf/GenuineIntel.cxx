@@ -326,6 +326,24 @@ vmx_format_access_rights(uint64_t access_rights)
     return result;
 }
 
+template <int Field>
+static int __vmread(uint16_t* val);
+
+template <int Field>
+static int __vmread(uint32_t* val);
+
+template <int Field>
+static int __vmread(uint64_t* val);
+
+template <int Field>
+static int __vmwrite(uint16_t val);
+
+template <int Field>
+static int __vmwrite(uint32_t val);
+
+template <int Field>
+static int __vmwrite(uint64_t val);
+
 template <int e>
 static int
 procedure(void)
@@ -1742,10 +1760,10 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     CONTEXT Context;
     RtlCaptureContext(&Context);
 
-    KdBreakPoint();
-
-    if (Context.Rax == 0x12345678)
+    if (Context.Rip == 0x12345678)
         return 0;
+
+    KdBreakPoint();
 
     __asm_cr0((CR0 & ia32_vmx_cr0_fixed1) | ia32_vmx_cr0_fixed0);
     __asm_cr4(((CR4 | 0x00002000 /*VMXE*/) & ia32_vmx_cr4_fixed1) | ia32_vmx_cr4_fixed0);
@@ -1759,6 +1777,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
 
     PVOID vmcsGuest = allocateContiguous<0x1000>();
     PVOID vmcsHost = allocateContiguous<0x1000>();
+    PVOID msrpm = allocateContiguous<0x1000>();
 
     if ((SIZE_T)vmcsGuest & 0xFFF)
         return -1;
@@ -1766,8 +1785,12 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
     if ((SIZE_T)vmcsHost & 0xFFF)
         return -1;
 
+    if ((SIZE_T)msrpm & 0xFFF)
+        return -1;
+
     memset(vmcsGuest, 0, 0x1000);
     memset(vmcsHost, 0, 0x1000);
+    memset(msrpm, 0, 0x1000);
 
     /**
      * Bits 30:0: VMCS revision identifier
@@ -1778,6 +1801,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
 
     PHYSICAL_ADDRESS vmcsGuestPA = MmGetPhysicalAddress(vmcsGuest);
     PHYSICAL_ADDRESS vmcsHostPA = MmGetPhysicalAddress(vmcsHost);
+    PHYSICAL_ADDRESS msrpmPA = MmGetPhysicalAddress(msrpm);
 
     size_t Status = {};
 
@@ -1859,7 +1883,9 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x0C); // RDTSC exiting
         // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x0F); // CR3-load exiting
         // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x10); // CR3-store exiting
+
         PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x11); // Activate tertiary controls
+
         // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x13); // CR8-load exiting
         // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x14); // CR8-store exiting
         // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x15); // Use TPR shadow
@@ -1868,9 +1894,12 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x18); // Unconditional I/O exiting
         // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x19); // Use I/O bitmaps
         // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x1B); // Monitor trap flag
-        // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x1C); // Use MSR bitmaps
+
+        PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x1C); // Use MSR bitmaps
+
         // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x1D); // MONITOR exiting
         // PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x1E); // PAUSE exiting
+
         PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x1F); // Activate secondary controls
 
         if (ia32_vmx_basic & (1ULL << 55))
@@ -2020,7 +2049,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
             ;
 
         if (PrimaryProcessorBasedVmExecutionControls & (1ULL << 0x1C)) // Use MSR bitmaps
-            ;
+            Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_MSR_BITMAP_FULL, msrpmPA.QuadPart);
 
         if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x01)) // Enable EPT
             ;
@@ -2640,6 +2669,8 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
         __asm_vmx_vmread(0x00006C1D, &eee); //
     }
 
+    Context.Rip = 0x12345678;
+
     KdBreakPoint();
 
     __asm__ __volatile__("\n mov %0, %%r15"
@@ -2662,7 +2693,6 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
                          : "r"(&Context), "i"(offsetof(CONTEXT, Rax)), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R15))
                          : "memory");
 
-    Context.Rax = 0x12345678;
     Status = __asm_vmx_vmlaunch();
 
     if (Status & EFLAGS_ZF_MASK) {

@@ -1123,10 +1123,10 @@ initialize<Hash("AuthenticAMD")>(PVOID vcpu)
     CONTEXT Context;
     RtlCaptureContext(&Context);
 
-    KdBreakPoint();
-
-    if (Context.Rax == 0x12345678)
+    if (Context.Rip == 0x12345678)
         return 0;
+
+    KdBreakPoint();
 
     *(uint16_t*)((uint8_t*)vmcb + 0x0000) = 0; // Intercept reads of CR0–15, respectively
     *(uint16_t*)((uint8_t*)vmcb + 0x0002) = 0; // Intercept writes of CR0–15, respectively
@@ -1385,7 +1385,7 @@ initialize<Hash("AuthenticAMD")>(PVOID vcpu)
 
     KdBreakPoint();
 
-    Context.Rax = 0x12345678;
+    Context.Rip = 0x12345678;
 
     __asm_svm_vmsave(guestPa.QuadPart);
     __asm_svm_vmsave(hostPa.QuadPart);
