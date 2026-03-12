@@ -45,6 +45,7 @@ typedef struct VMCpu {
 static KSPIN_LOCK kSpinLock;
 
 static int (*Procedures[0x800])(VMContext* ctx);
+static VMCpu* VMCpus[0x800];
 
 static FORCEINLINE size_t
 __lsb(uint16_t selector)
@@ -2185,6 +2186,10 @@ template <>
 int
 initialize<Hash("AuthenticAMD")>(PVOID)
 {
+    ULONG ProcessorIndex = KeGetCurrentProcessorIndex();
+    VMCpu* vcpu = (VMCpu*)allocate<0x2000>();
+    VMCpus[ProcessorIndex] = vcpu;
+
     do {
         uint32_t eax;
         uint32_t ebx;
@@ -2926,20 +2931,19 @@ initialize<Hash("AuthenticAMD")>(PVOID)
     initializeProcedures();
     KeReleaseSpinLockFromDpcLevel(&kSpinLock);
 
-    void* vmcb = allocate<0x1000>();
-    void* HostStateSaveArea = allocate<0x1000>();
-    void* msrpm = allocateContiguous<0x2000>();
-    void* iopm = allocateContiguous<0x2000>();
+    vcpu->IoPermissionsMap = allocateContiguous<0x2000>();
+    vcpu->MsrPermissionsMap = allocateContiguous<0x2000>();
+    vcpu->VmcbGuest = allocate<0x1000>();
+    vcpu->VmcbHost = allocate<0x1000>();
+    vcpu->IoPermissionsMapPa = MmGetPhysicalAddress(vcpu->IoPermissionsMap);
+    vcpu->MsrPermissionsMapPa = MmGetPhysicalAddress(vcpu->MsrPermissionsMap);
+    vcpu->VmcbGuestPa = MmGetPhysicalAddress(vcpu->VmcbGuest);
+    vcpu->VmcbHostPa = MmGetPhysicalAddress(vcpu->VmcbHost);
 
-    memset(vmcb, 0, 0x1000);
-    memset(HostStateSaveArea, 0, 0x1000);
-    memset(msrpm, 0, 0x1000);
-    memset(iopm, 0, 0x1000);
-
-    PHYSICAL_ADDRESS IOPM_BASE_PA = MmGetPhysicalAddress(iopm);
-    PHYSICAL_ADDRESS MSRPM_BASE_PA = MmGetPhysicalAddress(msrpm);
-    PHYSICAL_ADDRESS hostPa = MmGetPhysicalAddress(HostStateSaveArea);
-    PHYSICAL_ADDRESS guestPa = MmGetPhysicalAddress(vmcb);
+    memset(vcpu->IoPermissionsMap, 0, 0x1000);
+    memset(vcpu->MsrPermissionsMap, 0, 0x1000);
+    memset(vcpu->VmcbGuest, 0, 0x1000);
+    memset(vcpu->VmcbHost, 0, 0x1000);
 
     CONTEXT Context;
     RtlCaptureContext(&Context);
@@ -2949,84 +2953,84 @@ initialize<Hash("AuthenticAMD")>(PVOID)
 
     KdBreakPoint();
 
-    *(uint16_t*)((uint8_t*)vmcb + 0x0000) = 0; // Intercept reads of CR0–15, respectively
-    *(uint16_t*)((uint8_t*)vmcb + 0x0002) = 0; // Intercept writes of CR0–15, respectively
-    *(uint16_t*)((uint8_t*)vmcb + 0x0004) = 0; // Intercept reads of DR0–15, respectively
-    *(uint16_t*)((uint8_t*)vmcb + 0x0006) = 0; // Intercept writes of DR0–15, respectively.
-    *(uint32_t*)((uint8_t*)vmcb + 0x0008) = 0; // Intercept exception vectors 0–31, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0000) = 0; // Intercept reads of CR0–15, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0002) = 0; // Intercept writes of CR0–15, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0004) = 0; // Intercept reads of DR0–15, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0006) = 0; // Intercept writes of DR0–15, respectively.
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = 0; // Intercept exception vectors 0–31, respectively
 
-    *(uint32_t*)((uint8_t*)vmcb + 0x000C) = 0;
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x00; // Intercept INTR (physical maskable interrupt)
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x01; // Intercept NMI
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x02; // Intercept SMI
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x03; // Intercept INIT
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x04; // Intercept VINTR (virtual maskable interrupt)
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x05; // Intercept CR0 writes that change bits other than CR0.TS or CR0.MP
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x06; // Intercept reads of IDTR
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x07; // Intercept reads of GDTR
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x08; // Intercept reads of LDTR
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x09; // Intercept reads of TR
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x0A; // Intercept writes of IDTR
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x0B; // Intercept writes of GDTR
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x0C; // Intercept writes of LDTR
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x0D; // Intercept writes of TR
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x0E; // Intercept RDTSC instruction
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x0F; // Intercept RDPMC instruction
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x10; // Intercept PUSHF instruction
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x11; // Intercept POPF instruction
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) = 0;
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x00; // Intercept INTR (physical maskable interrupt)
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x01; // Intercept NMI
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x02; // Intercept SMI
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x03; // Intercept INIT
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x04; // Intercept VINTR (virtual maskable interrupt)
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x05; // Intercept CR0 writes that change bits other than CR0.TS or CR0.MP
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x06; // Intercept reads of IDTR
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x07; // Intercept reads of GDTR
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x08; // Intercept reads of LDTR
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x09; // Intercept reads of TR
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x0A; // Intercept writes of IDTR
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x0B; // Intercept writes of GDTR
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x0C; // Intercept writes of LDTR
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x0D; // Intercept writes of TR
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x0E; // Intercept RDTSC instruction
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x0F; // Intercept RDPMC instruction
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x10; // Intercept PUSHF instruction
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x11; // Intercept POPF instruction
 
-    *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x12; // Intercept CPUID instruction
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x12; // Intercept CPUID instruction
 
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x13; // Intercept RSM instruction
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x14; // Intercept IRET instruction
-    *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x15; // Intercept INTn instruction
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x16; // Intercept INVD instruction
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x17; // Intercept PAUSE instruction
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x18; // Intercept HLT instruction
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x19; // Intercept INVLPG instruction
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x1A; // Intercept INVLPGA instruction
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x1B; // IOIO_PROT - Intercept IN/OUT accesses to selected ports
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x1C; // MSR_PROT - intercept RDMSR or WRMSR accesses to selected MSRs
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x1D; // Intercept task switches
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x1E; // FERR_FREEZE: intercept processor “freezing” during legacy FERR handling
-    // *(uint32_t*)((uint8_t*)vmcb + 0x000C) |= 1U << 0x1F; // Intercept shutdown events
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x13; // Intercept RSM instruction
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x14; // Intercept IRET instruction
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x15; // Intercept INTn instruction
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x16; // Intercept INVD instruction
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x17; // Intercept PAUSE instruction
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x18; // Intercept HLT instruction
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x19; // Intercept INVLPG instruction
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1A; // Intercept INVLPGA instruction
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1B; // IOIO_PROT - Intercept IN/OUT accesses to selected ports
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1C; // MSR_PROT - intercept RDMSR or WRMSR accesses to selected MSRs
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1D; // Intercept task switches
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1E; // FERR_FREEZE: intercept processor “freezing” during legacy FERR handling
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1F; // Intercept shutdown events
 
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) = 0;
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x00; // Intercept VMRUN instruction
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x01; // Intercept VMMCALL instruction
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x02; // Intercept VMLOAD instruction
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x03; // Intercept VMSAVE instruction
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x04; // Intercept STGI instruction
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x05; // Intercept CLGI instruction
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x06; // Intercept SKINIT instruction
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x07; // Intercept RDTSCP instruction
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x08; // Intercept ICEBP instruction
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x09; // Intercept WBINVD and WBNOINVD instructions
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x0A; // Intercept MONITOR/MONITORX instruction
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x0B; // Intercept MWAIT/MWAITX instruction unconditionally
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x0C; // Intercept MWAIT/MWAITX instruction if monitor hardware is armed
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x0D; // Intercept XSETBV instruction
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x0E; // Intercept RDPRU instruction
-    *(uint16_t*)((uint8_t*)vmcb + 0x0010) |= 1U << 0x0F; // Intercept writes of EFER (occurs after guest instruction finishes)
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) = 0;
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x00; // Intercept VMRUN instruction
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x01; // Intercept VMMCALL instruction
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x02; // Intercept VMLOAD instruction
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x03; // Intercept VMSAVE instruction
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x04; // Intercept STGI instruction
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x05; // Intercept CLGI instruction
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x06; // Intercept SKINIT instruction
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x07; // Intercept RDTSCP instruction
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x08; // Intercept ICEBP instruction
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x09; // Intercept WBINVD and WBNOINVD instructions
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0A; // Intercept MONITOR/MONITORX instruction
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0B; // Intercept MWAIT/MWAITX instruction unconditionally
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0C; // Intercept MWAIT/MWAITX instruction if monitor hardware is armed
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0D; // Intercept XSETBV instruction
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0E; // Intercept RDPRU instruction
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0F; // Intercept writes of EFER (occurs after guest instruction finishes)
 
-    *(uint16_t*)((uint8_t*)vmcb + 0x0012) = 0; ////Intercept writes of CR0-15 (occurs after guest instruction finishes)
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0012) = 0; ////Intercept writes of CR0-15 (occurs after guest instruction finishes)
 
-    *(uint32_t*)((uint8_t*)vmcb + 0x0014) = 0;
-    *(uint32_t*)((uint8_t*)vmcb + 0x0014) |= 1U << 0x00; // Intercept all INVLPGB instructions
-    *(uint32_t*)((uint8_t*)vmcb + 0x0014) |= 1U << 0x01; // Intercept only illegally specified INVLPGB instructions
-    *(uint32_t*)((uint8_t*)vmcb + 0x0014) |= 1U << 0x02; // Intercept INVPCID instruction
-    *(uint32_t*)((uint8_t*)vmcb + 0x0014) |= 1U << 0x03; // Intercept MCOMMIT instruction
-    *(uint32_t*)((uint8_t*)vmcb + 0x0014) |= 1U << 0x04; // Intercept TLBSYNC instruction. Presence of this bit is indicated by CPUID Fn8000_000A, EDX[24] = 1.
-    *(uint32_t*)((uint8_t*)vmcb + 0x0014) |= 1U << 0x05; // Intercept bus lock operations when Bus Lock Threshold Counter is 0 (occurs before guest instruction executes).
-    *(uint32_t*)((uint8_t*)vmcb + 0x0014) |= 1U << 0x06; // Intercept HLT instruction if a virtual interrupt is not pending.
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0014) = 0;
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0014) |= 1U << 0x00; // Intercept all INVLPGB instructions
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0014) |= 1U << 0x01; // Intercept only illegally specified INVLPGB instructions
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0014) |= 1U << 0x02; // Intercept INVPCID instruction
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0014) |= 1U << 0x03; // Intercept MCOMMIT instruction
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0014) |= 1U << 0x04; // Intercept TLBSYNC instruction. Presence of this bit is indicated by CPUID Fn8000_000A, EDX[24] = 1.
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0014) |= 1U << 0x05; // Intercept bus lock operations when Bus Lock Threshold Counter is 0 (occurs before guest instruction executes).
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0014) |= 1U << 0x06; // Intercept HLT instruction if a virtual interrupt is not pending.
 
-    *(uint16_t*)((uint8_t*)vmcb + 0x003C) = 0;                      // PAUSE Filter Threshold
-    *(uint16_t*)((uint8_t*)vmcb + 0x003E) = 0;                      // PAUSE Filter Count
-    *(uint64_t*)((uint8_t*)vmcb + 0x0040) = IOPM_BASE_PA.QuadPart;  // IOPM_BASE_PA - Physical base address of IOPM (bits 11:0 are ignored)
-    *(uint64_t*)((uint8_t*)vmcb + 0x0048) = MSRPM_BASE_PA.QuadPart; // MSRPM_BASE_PA - Physical base address of MSRPM (bits 11:0 are ignored)
-    *(uint64_t*)((uint8_t*)vmcb + 0x0050) = 0;                      // TSC_OFFSET - To be added in RDTSC and RDTSCP
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x003C) = 0;                                  // PAUSE Filter Threshold
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x003E) = 0;                                  // PAUSE Filter Count
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0040) = vcpu->IoPermissionsMapPa.QuadPart;  // IOPM_BASE_PA - Physical base address of IOPM (bits 11:0 are ignored)
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0048) = vcpu->MsrPermissionsMapPa.QuadPart; // MSRPM_BASE_PA - Physical base address of MSRPM (bits 11:0 are ignored)
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0050) = 0;                                  // TSC_OFFSET - To be added in RDTSC and RDTSCP
 
-    *(uint32_t*)((uint8_t*)vmcb + 0x0058) = 1; // Guest ASID
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0058) = 1; // Guest ASID
 
     /**
      * TLB_CONTROL
@@ -3035,181 +3039,181 @@ initialize<Hash("AuthenticAMD")>(PVOID)
      * 03h—Flush this guest’s TLB entries
      * 07h—Flush this guest’s non-global TLB entries
      **/
-    *(uint8_t*)((uint8_t*)vmcb + 0x005C) = 0;
+    *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 0;
 
-    *(uint8_t*)((uint8_t*)vmcb + 0x005D) = 0;
-    *(uint8_t*)((uint8_t*)vmcb + 0x005D) |= 1U << 0x00; // ALLOW_LARGER_RAP
-    *(uint8_t*)((uint8_t*)vmcb + 0x005D) |= 1U << 0x01; // CLEAR_RAP
+    *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005D) = 0;
+    *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005D) |= 1U << 0x00; // ALLOW_LARGER_RAP
+    *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005D) |= 1U << 0x01; // CLEAR_RAP
 
-    *(uint64_t*)((uint8_t*)vmcb + 0x0060) = 0;
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= (1ULL & 0x000000FF) << 0x08; // 7:0 V_TPR—The virtual TPR for the guest. Bits 3:0 are used for a 4-bit virtual TPR value; bits 7:4 are SBZ.
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= 1ULL << 0x08;                // 8 V_IRQ—If nonzero, virtual INTR is pending
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= 1ULL << 0x09;                // 9 VGIF value (0 – Virtual interrupts are masked, 1 – Virtual Interrupts are unmasked)
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= 1ULL << 0x0B;                // 11 V_NMI - If nonzero, virtual NMI is pending
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= 1ULL << 0x0C;                // 12 V_NMI_MASK - if nonzero, virtual NMI is masked
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= 1ULL << 0x10;                // 19:16 V_INTR_PRIO—Priority for virtual interrupt
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= 1ULL << 0x14;                // 20 V_IGN_TPR—If nonzero, the current virtual interrupt ignores the (virtual) TPR
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= 1ULL << 0x15;                //
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= 1ULL << 0x18;                // 24 V_INTR_MASKING—Virtualize masking of INTR interrupts
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= 1ULL << 0x19;                // 25 AMD Virtual GIF enabled for this guest
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= 1ULL << 0x1A;                // 26 V_NMI_ENABLE - NMI Virtualization Enable
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= 1ULL << 0x1E;                // 30 x2AVIC Enable
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= 1ULL << 0x1F;                // 31 AVIC Enable
-    //*(uint64_t*)((uint8_t*)vmcb + 0x0060) |= (1ULL & 0x000000FF) << 0x20; // 39:32 V_INTR_VECTOR—Vector to use for this interrupt
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) = 0;
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= (1ULL & 0x000000FF) << 0x08; // 7:0 V_TPR—The virtual TPR for the guest. Bits 3:0 are used for a 4-bit virtual TPR value; bits 7:4 are SBZ.
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x08;                // 8 V_IRQ—If nonzero, virtual INTR is pending
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x09;                // 9 VGIF value (0 – Virtual interrupts are masked, 1 – Virtual Interrupts are unmasked)
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x0B;                // 11 V_NMI - If nonzero, virtual NMI is pending
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x0C;                // 12 V_NMI_MASK - if nonzero, virtual NMI is masked
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x10;                // 19:16 V_INTR_PRIO—Priority for virtual interrupt
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x14;                // 20 V_IGN_TPR—If nonzero, the current virtual interrupt ignores the (virtual) TPR
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x15;                //
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x18;                // 24 V_INTR_MASKING—Virtualize masking of INTR interrupts
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x19;                // 25 AMD Virtual GIF enabled for this guest
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x1A;                // 26 V_NMI_ENABLE - NMI Virtualization Enable
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x1E;                // 30 x2AVIC Enable
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x1F;                // 31 AVIC Enable
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= (1ULL & 0x000000FF) << 0x20; // 39:32 V_INTR_VECTOR—Vector to use for this interrupt
 
-    *(uint64_t*)((uint8_t*)vmcb + 0x0068) = 0; //
-    *(uint64_t*)((uint8_t*)vmcb + 0x0070) = 0; // EXITCODE
-    *(uint64_t*)((uint8_t*)vmcb + 0x0078) = 0; // EXITINFO1
-    *(uint64_t*)((uint8_t*)vmcb + 0x0080) = 0; // EXITINFO2
-    *(uint64_t*)((uint8_t*)vmcb + 0x0088) = 0; // EXITINTINFO
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0068) = 0; //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0070) = 0; // EXITCODE
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0078) = 0; // EXITINFO1
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0080) = 0; // EXITINFO2
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0088) = 0; // EXITINTINFO
 
-    *(uint8_t*)((uint8_t*)vmcb + 0x0090) = 0;
-    //*(uint8_t*)((uint8_t*)vmcb + 0x0090) |= 1U << 0x00; // NP_ENABLE - Enable nested paging.
-    //*(uint8_t*)((uint8_t*)vmcb + 0x0090) |= 1U << 0x01; // Enable Secure Encrypted Virtualization
-    //*(uint8_t*)((uint8_t*)vmcb + 0x0090) |= 1U << 0x02; // Enable Encrypted State for Secure Encrypted Virtualization
-    //*(uint8_t*)((uint8_t*)vmcb + 0x0090) |= 1U << 0x03; // Guest Mode Execute Trap
-    //*(uint8_t*)((uint8_t*)vmcb + 0x0090) |= 1U << 0x04; // SSSCheckEn - Enable supervisor shadow stack restrictions in nested page tables. Support for this feature is indicated by CPUID Fn8000_000A_EDX[19] (SSSCheck)
-    //*(uint8_t*)((uint8_t*)vmcb + 0x0090) |= 1U << 0x05; // Virtual Transparent Encryption.
-    //*(uint8_t*)((uint8_t*)vmcb + 0x0090) |= 1U << 0x06; // Enable Read Only Guest Page Tables
-    //*(uint8_t*)((uint8_t*)vmcb + 0x0090) |= 1U << 0x07; // Enable INVLPGB/TLBSYNC.
+    *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) = 0;
+    //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x00; // NP_ENABLE - Enable nested paging.
+    //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x01; // Enable Secure Encrypted Virtualization
+    //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x02; // Enable Encrypted State for Secure Encrypted Virtualization
+    //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x03; // Guest Mode Execute Trap
+    //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x04; // SSSCheckEn - Enable supervisor shadow stack restrictions in nested page tables. Support for this feature is indicated by CPUID Fn8000_000A_EDX[19] (SSSCheck)
+    //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x05; // Virtual Transparent Encryption.
+    //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x06; // Enable Read Only Guest Page Tables
+    //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x07; // Enable INVLPGB/TLBSYNC.
 
-    *(uint64_t*)((uint8_t*)vmcb + 0x0098) = 0; //
-    *(uint64_t*)((uint8_t*)vmcb + 0x00A0) = 0; // Guest physical address of GHCB
-    *(uint64_t*)((uint8_t*)vmcb + 0x00A8) = 0; // EVENTINJ - Event injection
-    *(uint64_t*)((uint8_t*)vmcb + 0x00B0) = 0; // N_CR3 - Nested page table CR3 to use for nested paging
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0098) = 0; //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A0) = 0; // Guest physical address of GHCB
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A8) = 0; // EVENTINJ - Event injection
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = 0; // N_CR3 - Nested page table CR3 to use for nested paging
 
-    *(uint64_t*)((uint8_t*)vmcb + 0x00B8) = 0;
-    //*(uint64_t*)((uint8_t*)vmcb + 0x00B8) |= 1U << 0x00; // LBR Virtualization Enable
-    //*(uint64_t*)((uint8_t*)vmcb + 0x00B8) |= 1U << 0x01; // VMSAVE/VMLOAD Virtualization Enable
-    //*(uint64_t*)((uint8_t*)vmcb + 0x00B8) |= 1U << 0x02; // IBS Virtualization Enable
-    //*(uint64_t*)((uint8_t*)vmcb + 0x00B8) |= 1U << 0x03; // PMC Virtualization Enable
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B8) = 0;
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B8) |= 1U << 0x00; // LBR Virtualization Enable
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B8) |= 1U << 0x01; // VMSAVE/VMLOAD Virtualization Enable
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B8) |= 1U << 0x02; // IBS Virtualization Enable
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B8) |= 1U << 0x03; // PMC Virtualization Enable
 
-    *(uint32_t*)((uint8_t*)vmcb + 0x00C0) = 0; // VMCB Clean Bits.
-    *(uint16_t*)((uint8_t*)vmcb + 0x00C8) = 0; // nRIP - Next sequential instruction pointer
-    *(uint16_t*)((uint8_t*)vmcb + 0x00D0) = 0; //
-    *(uint16_t*)((uint8_t*)vmcb + 0x00F0) = 0; //
-    *(uint16_t*)((uint8_t*)vmcb + 0x00F8) = 0; //
-    *(uint64_t*)((uint8_t*)vmcb + 0x0108) = 0; //
-    *(uint64_t*)((uint8_t*)vmcb + 0x0110) = 0; // VMGEXIT_RAX
-    *(uint8_t*)((uint8_t*)vmcb + 0x0118) = 0;  // VMGEXIT_CPL
-    *(uint16_t*)((uint8_t*)vmcb + 0x0120) = 0; // Bus Lock Threshold Counter
-    *(uint64_t*)((uint8_t*)vmcb + 0x0134) = 0; //
-    *(uint64_t*)((uint8_t*)vmcb + 0x0138) = 0; //
-    *(uint64_t*)((uint8_t*)vmcb + 0x0140) = 0; //
-    *(uint64_t*)((uint8_t*)vmcb + 0x0148) = 0; //
-    *(uint64_t*)((uint8_t*)vmcb + 0x0150) = 0; //
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C0) = 0; // VMCB Clean Bits.
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8) = 0; // nRIP - Next sequential instruction pointer
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x00D0) = 0; //
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x00F0) = 0; //
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x00F8) = 0; //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0108) = 0; //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0110) = 0; // VMGEXIT_RAX
+    *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0118) = 0;  // VMGEXIT_CPL
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0120) = 0; // Bus Lock Threshold Counter
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0134) = 0; //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0138) = 0; //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0140) = 0; //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0148) = 0; //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0150) = 0; //
 
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0000) = ES;                                      // ES selector
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0002) = svm_format_access_rights(__asm_lar(ES)); // ES attrib
-    *(uint32_t*)((uint8_t*)vmcb + 0x400 + 0x0004) = __asm_lsl(ES);                           // ES limit
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0008) = __lsb(ES);                               // ES base
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0010) = CS;                                      // CS selector
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0012) = svm_format_access_rights(__asm_lar(CS)); // CS attrib
-    *(uint32_t*)((uint8_t*)vmcb + 0x400 + 0x0014) = __asm_lsl(CS);                           // CS limit
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0018) = __lsb(CS);                               // CS base
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0020) = SS;                                      // SS selector
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0022) = svm_format_access_rights(__asm_lar(SS)); // SS attrib
-    *(uint32_t*)((uint8_t*)vmcb + 0x400 + 0x0024) = __asm_lsl(SS);                           // SS limit
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0028) = __lsb(SS);                               // SS base
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0030) = DS;                                      // DS selector
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0032) = svm_format_access_rights(__asm_lar(DS)); // DS attrib
-    *(uint32_t*)((uint8_t*)vmcb + 0x400 + 0x0034) = __asm_lsl(DS);                           // DS limit
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0038) = __lsb(DS);                               // DS base
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0040) = 0;                                       // FS selector
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0042) = 0;                                       // FS attrib
-    *(uint32_t*)((uint8_t*)vmcb + 0x400 + 0x0044) = 0;                                       // FS limit
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0048) = 0;                                       // FS base
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0050) = 0;                                       // GS selector
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0052) = 0;                                       // GS attrib
-    *(uint32_t*)((uint8_t*)vmcb + 0x400 + 0x0054) = 0;                                       // GS limit
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0058) = 0;                                       // GS base
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0060) = 0;                                       // GDTR selector
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0062) = 0;                                       // GDTR attrib
-    *(uint32_t*)((uint8_t*)vmcb + 0x400 + 0x0064) = GDTR.Limit;                              // GDTR limit
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0068) = (uint64_t)GDTR.BaseAddress;              // GDTR base
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0070) = 0;                                       // LDTR selector
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0072) = 0;                                       // LDTR attrib
-    *(uint32_t*)((uint8_t*)vmcb + 0x400 + 0x0074) = 0;                                       // LDTR limit
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0078) = 0;                                       // LDTR base
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0080) = 0;                                       // IDTR selector
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0082) = 0;                                       // IDTR attrib
-    *(uint32_t*)((uint8_t*)vmcb + 0x400 + 0x0084) = IDTR.Limit;                              // IDTR limit
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0088) = (uint64_t)IDTR.BaseAddress;              // IDTR base
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0090) = 0;                                       // TR selector
-    *(uint16_t*)((uint8_t*)vmcb + 0x400 + 0x0092) = 0;                                       // TR attrib
-    *(uint32_t*)((uint8_t*)vmcb + 0x400 + 0x0094) = 0;                                       // TR limit
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0098) = 0;                                       // TR base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0000) = ES;                                      // ES selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0002) = svm_format_access_rights(__asm_lar(ES)); // ES attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0004) = __asm_lsl(ES);                           // ES limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0008) = __lsb(ES);                               // ES base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0010) = CS;                                      // CS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0012) = svm_format_access_rights(__asm_lar(CS)); // CS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0014) = __asm_lsl(CS);                           // CS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0018) = __lsb(CS);                               // CS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0020) = SS;                                      // SS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0022) = svm_format_access_rights(__asm_lar(SS)); // SS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0024) = __asm_lsl(SS);                           // SS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0028) = __lsb(SS);                               // SS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0030) = DS;                                      // DS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0032) = svm_format_access_rights(__asm_lar(DS)); // DS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0034) = __asm_lsl(DS);                           // DS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0038) = __lsb(DS);                               // DS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0040) = 0;                                       // FS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0042) = 0;                                       // FS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0044) = 0;                                       // FS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0048) = 0;                                       // FS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0050) = 0;                                       // GS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0052) = 0;                                       // GS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0054) = 0;                                       // GS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0058) = 0;                                       // GS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0060) = 0;                                       // GDTR selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0062) = 0;                                       // GDTR attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0064) = GDTR.Limit;                              // GDTR limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0068) = (uint64_t)GDTR.BaseAddress;              // GDTR base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0070) = 0;                                       // LDTR selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0072) = 0;                                       // LDTR attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0074) = 0;                                       // LDTR limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0078) = 0;                                       // LDTR base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0080) = 0;                                       // IDTR selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0082) = 0;                                       // IDTR attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0084) = IDTR.Limit;                              // IDTR limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0088) = (uint64_t)IDTR.BaseAddress;              // IDTR base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0090) = 0;                                       // TR selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0092) = 0;                                       // TR attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0094) = 0;                                       // TR limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0098) = 0;                                       // TR base
 
-    *(uint8_t*)((uint8_t*)vmcb + 0x400 + 0x00CB) = 0;                              // CPL If the guest is real-mode then the CPL is forced to 0; if the guest is virtual-mode then the CPL is forced to 3
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x00D0) = (ia32_efer & ~(1ULL << 0x0C)); // EFER
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x00D0) = ia32_efer;                     // EFER
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x00E0) = 0;                             // PERF_CTL0
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x00E8) = 0;                             // PERF_CTR0
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x00F0) = 0;                             // PERF_CTL1
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x00F8) = 0;                             // PERF_CTR1
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0100) = 0;                             // PERF_CTL2
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0108) = 0;                             // PERF_CTR2
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0110) = 0;                             // PERF_CTL3
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0118) = 0;                             // PERF_CTR3
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0120) = 0;                             // PERF_CTL4
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0128) = 0;                             // PERF_CTR4
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0130) = 0;                             // PERF_CTL5
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0138) = 0;                             // PERF_CTR5
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0148) = CR4;                           // CR4
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0150) = CR3;                           // CR3
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0158) = CR0;                           // CR0
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0160) = 0;                             // DR7
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0168) = 0;                             // DR6
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0170) = Context.EFlags;                // RFLAGS
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0178) = Context.Rip;                   // RIP
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x01C0) = 0;                             // INSTR_RETIRED_CTR
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x01C8) = 0;                             // PERF_CTR_GLOBAL_STS
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x01D0) = 0;                             // PERF_CTR_GLOBAL_CTL
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x01D8) = Context.Rsp;                   // RSP
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x01E0) = 0;                             // S_CET
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x01E8) = 0;                             // SSP
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x01F0) = 0;                             // ISST_ADDR
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x01F8) = 1;                             // RAX
+    *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x00CB) = 0;                              // CPL If the guest is real-mode then the CPL is forced to 0; if the guest is virtual-mode then the CPL is forced to 3
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x00D0) = (ia32_efer & ~(1ULL << 0x0C)); // EFER
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x00D0) = ia32_efer;                     // EFER
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x00E0) = 0;                             // PERF_CTL0
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x00E8) = 0;                             // PERF_CTR0
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x00F0) = 0;                             // PERF_CTL1
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x00F8) = 0;                             // PERF_CTR1
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0100) = 0;                             // PERF_CTL2
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0108) = 0;                             // PERF_CTR2
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0110) = 0;                             // PERF_CTL3
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0118) = 0;                             // PERF_CTR3
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0120) = 0;                             // PERF_CTL4
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0128) = 0;                             // PERF_CTR4
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0130) = 0;                             // PERF_CTL5
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0138) = 0;                             // PERF_CTR5
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0148) = CR4;                           // CR4
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0150) = CR3;                           // CR3
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0158) = CR0;                           // CR0
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0160) = 0;                             // DR7
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0168) = 0;                             // DR6
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) = Context.EFlags;                // RFLAGS
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178) = Context.Rip;                   // RIP
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01C0) = 0;                             // INSTR_RETIRED_CTR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01C8) = 0;                             // PERF_CTR_GLOBAL_STS
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01D0) = 0;                             // PERF_CTR_GLOBAL_CTL
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01D8) = Context.Rsp;                   // RSP
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01E0) = 0;                             // S_CET
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01E8) = 0;                             // SSP
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F0) = 0;                             // ISST_ADDR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8) = 1;                             // RAX
 
-    // *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0200) = ia32_star;                     // STAR
-    // *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0208) = ia32_lstar;                    // LSTAR
-    // *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0210) = ia32_cstar;                    // CSTAR
-    // *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0218) = 0;                             // SFMASK
-    // *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0220) = ia32_kernel_gs_base;           // KernelGsBase
-    // *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0228) = ia32_sysenter_cs;              // SYSENTER_CS
-    // *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0230) = ia32_sysenter_esp;             // SYSENTER_ESP
-    // *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0238) = ia32_sysenter_eip;             // SYSENTER_EIP
+    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0200) = ia32_star;                     // STAR
+    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0208) = ia32_lstar;                    // LSTAR
+    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0210) = ia32_cstar;                    // CSTAR
+    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0218) = 0;                             // SFMASK
+    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0220) = ia32_kernel_gs_base;           // KernelGsBase
+    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0228) = ia32_sysenter_cs;              // SYSENTER_CS
+    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0230) = ia32_sysenter_esp;             // SYSENTER_ESP
+    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0238) = ia32_sysenter_eip;             // SYSENTER_EIP
 
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0240) = CR2;           // CR2
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0268) = 0;             // G_PAT Guest PAT - only used if nested paging enabled
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0270) = ia32_debugctl; // DBGCTL Guest DebugCtl MSR
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0278) = 0;             // BR_FROM Guest LastBranchFromIP MSR
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0280) = 0;             // BR_TO Guest LastBranchToIP MSR
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0288) = 0;             // LASTEXCPFROM Guest LastIntFromIP MSR
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0290) = 0;             // LASTEXCPTO Guest LastIntToIP MSR
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0298) = 0;             // DBGEXTNCTL Guest DebugExtnCtl MSR
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x02E0) = 0;             // SPEC_CTRL
-    *(uint8_t*)((uint8_t*)vmcb + 0x400 + 0x0670) = 0;              // 256 bytes LBR_STACK_FROM LBR_STACK_TO
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0770) = 0;             // LBR_SELECT
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0778) = 0;             // IBS_FETCH_CTL
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0780) = 0;             // IBS_FETCH_LINADDR
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0788) = 0;             // IBS_OP_CTL
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0790) = 0;             // IBS_OP_RIP
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0798) = 0;             // IBS_OP_DATA
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x07A0) = 0;             // IBS_OP_DATA2
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x07A8) = 0;             // IBS_OP_DATA3
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x07B0) = 0;             // IBS_DC_LINADDR
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x07B8) = 0;             // BP_IBSTGT_RIP
-    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x07C0) = 0;             // IC_IBS_EXTD_CTL
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0240) = CR2;           // CR2
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0268) = 0;             // G_PAT Guest PAT - only used if nested paging enabled
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0270) = ia32_debugctl; // DBGCTL Guest DebugCtl MSR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0278) = 0;             // BR_FROM Guest LastBranchFromIP MSR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0280) = 0;             // BR_TO Guest LastBranchToIP MSR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0288) = 0;             // LASTEXCPFROM Guest LastIntFromIP MSR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0290) = 0;             // LASTEXCPTO Guest LastIntToIP MSR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0298) = 0;             // DBGEXTNCTL Guest DebugExtnCtl MSR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x02E0) = 0;             // SPEC_CTRL
+    *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0670) = 0;              // 256 bytes LBR_STACK_FROM LBR_STACK_TO
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0770) = 0;             // LBR_SELECT
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0778) = 0;             // IBS_FETCH_CTL
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0780) = 0;             // IBS_FETCH_LINADDR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0788) = 0;             // IBS_OP_CTL
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0790) = 0;             // IBS_OP_RIP
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0798) = 0;             // IBS_OP_DATA
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x07A0) = 0;             // IBS_OP_DATA2
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x07A8) = 0;             // IBS_OP_DATA3
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x07B0) = 0;             // IBS_DC_LINADDR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x07B8) = 0;             // BP_IBSTGT_RIP
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x07C0) = 0;             // IC_IBS_EXTD_CTL
 
-    __asm_wrmsr(0xC0010117, hostPa.QuadPart);
+    __asm_wrmsr(0xC0010117, vcpu->VmcbHostPa.QuadPart);
 
     KdBreakPoint();
 
     Context.Rip = 0x12345678;
 
-    __asm_svm_vmsave(guestPa.QuadPart);
-    __asm_svm_vmsave(hostPa.QuadPart);
+    __asm_svm_vmsave(vcpu->VmcbGuestPa.QuadPart);
+    __asm_svm_vmsave(vcpu->VmcbHostPa.QuadPart);
 
     size_t stack = (size_t)allocate<0x2000>();
 
@@ -3252,34 +3256,41 @@ initialize<Hash("AuthenticAMD")>(PVOID)
                              "\n push %%rbx" //
                              "\n push $0x0"  // VMContext.RAX
 
-                             "\n mov %%gs:0x1A4, %%eax" // KeGetCurrentProcessorIndex
+                             "\n mov %%gs:0x1A4, %%ecx" // KeGetCurrentProcessorIndex
+                             "\n lea VMCpus(%%rip), %%rdx"
+                             "\n mov (%%rdx, %%rcx, 8), %%rcx"
 
-                             "\n add $0x8, %%rsp" // VMContext.RAX
-                             "\n pop %%rbx"       //
-                             "\n pop %%rcx"       //
-                             "\n pop %%rdx"       //
-                             "\n pop %%rdi"       //
-                             "\n pop %%rsi"       //
-                             "\n pop %%rbp"       //
-                             "\n add $0x8, %%rsp" // VMContext.RSP
-                             "\n pop %%r8"        //
-                             "\n pop %%r9"        //
-                             "\n pop %%r10"       //
-                             "\n pop %%r11"       //
-                             "\n pop %%r12"       //
-                             "\n pop %%r13"       //
-                             "\n pop %%r14"       //
-                             "\n pop %%r15"       //
-                             "\n vmrun"           //
-                             "\n jmp xyz"         //
+                             "\n lea Procedures(%%rip), %%rbx"
+                             "\n mov (%%rbx, %%rax, 8), %%rdx"
+                             "\n mov %%rsp, %%rcx"
+                             "\n call *%%rdx"
+
+                             "\n pop %%rbx" // VMContext.RAX
+                             "\n pop %%rbx" //
+                             "\n pop %%rcx" //
+                             "\n pop %%rdx" //
+                             "\n pop %%rdi" //
+                             "\n pop %%rsi" //
+                             "\n pop %%rbp" //
+                             "\n pop %%r8"  // VMContext.RSP
+                             "\n pop %%r8"  //
+                             "\n pop %%r9"  //
+                             "\n pop %%r10" //
+                             "\n pop %%r11" //
+                             "\n pop %%r12" //
+                             "\n pop %%r13" //
+                             "\n pop %%r14" //
+                             "\n pop %%r15" //
+                             "\n vmrun"     //
+                             "\n jmp xyz"   //
                              :
-                             : "r"(stack + 0x1FF0), "r"(&Context), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R15)), "a"(guestPa.QuadPart)
+                             : "r"(stack + 0x1FF0), "r"(&Context), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R15)), "a"(vcpu->VmcbGuestPa.QuadPart)
                              : "memory");
 
-        int64_t EXITCODE = *(int64_t*)((uint8_t*)vmcb + 0x0070);      // EXITCODE
-        uint64_t EXITINFO1 = *(uint64_t*)((uint8_t*)vmcb + 0x0078);   // EXITINFO1
-        uint64_t EXITINFO2 = *(uint64_t*)((uint8_t*)vmcb + 0x0080);   // EXITINFO2
-        uint64_t EXITINTINFO = *(uint64_t*)((uint8_t*)vmcb + 0x0088); // EXITINTINFO
+        int64_t EXITCODE = *(int64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0070);      // EXITCODE
+        uint64_t EXITINFO1 = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0078);   // EXITINFO1
+        uint64_t EXITINFO2 = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0080);   // EXITINFO2
+        uint64_t EXITINTINFO = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0088); // EXITINTINFO
 
         if (EXITCODE < 0)
             break;
