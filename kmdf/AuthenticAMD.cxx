@@ -7,9 +7,44 @@
 
 #include "GenuineIntel.h"
 
+#include <stddef.h>
+
+typedef struct VMContext {
+    uint64_t RAX;
+    uint64_t RBX;
+    uint64_t RCX;
+    uint64_t RDX;
+    uint64_t RDI;
+    uint64_t RSI;
+    uint64_t RBP;
+    uint64_t RSP;
+    uint64_t R8;
+    uint64_t R9;
+    uint64_t R10;
+    uint64_t R11;
+    uint64_t R12;
+    uint64_t R13;
+    uint64_t R14;
+    uint64_t R15;
+} VMContext;
+
+typedef struct VMCpu {
+    VMContext Context;
+
+    void* IoPermissionsMap;
+    void* MsrPermissionsMap;
+    void* VmcbHost;
+    void* VmcbGuest;
+
+    PHYSICAL_ADDRESS IoPermissionsMapPa;
+    PHYSICAL_ADDRESS MsrPermissionsMapPa;
+    PHYSICAL_ADDRESS VmcbHostPa;
+    PHYSICAL_ADDRESS VmcbGuestPa;
+} VMCpu;
+
 static KSPIN_LOCK kSpinLock;
 
-static int (*Procedures[0x800])(void);
+static int (*Procedures[0x800])(VMContext* ctx);
 
 static FORCEINLINE size_t
 __lsb(uint16_t selector)
@@ -77,14 +112,1800 @@ svm_format_access_rights(uint32_t access_rights)
 
 template <int e>
 static int
-procedure(void)
+procedure(VMContext*)
+{
+    __asm__ __volatile__("int3" :::);
+    return 0;
+}
+
+template <>
+int
+procedure<0x0000>(VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0000>(void)
+procedure<0x0001>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0002>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0003>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0004>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0005>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0006>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0007>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0008>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0009>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x000A>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x000B>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x000C>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x000D>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x000E>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x000F>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0010>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0011>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0012>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0013>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0014>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0015>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0016>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0017>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0018>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0019>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x001A>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x001B>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x001C>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x001D>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x001E>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x001F>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0020>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0021>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0022>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0023>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0024>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0025>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0026>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0027>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0028>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0029>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x002A>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x002B>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x002C>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x002D>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x002E>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x002F>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0030>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0031>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0032>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0033>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0034>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0035>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0036>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0037>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0038>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0039>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x003A>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x003B>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x003C>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x003D>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x003E>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x003F>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0040>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0041>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0042>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0043>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0044>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0045>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0046>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0047>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0048>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0049>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x004A>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x004B>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x004C>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x004D>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x004E>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x004F>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0050>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0051>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0052>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0053>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0054>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0055>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0056>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0057>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0058>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0059>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x005A>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x005B>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x005C>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x005D>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x005E>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x005F>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0060>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0061>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0062>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0063>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0064>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0065>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0066>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0067>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0068>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0069>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x006A>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x006B>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x006C>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x006D>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x006E>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x006F>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0070>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0071>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0072>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0073>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0074>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0075>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0076>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0077>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0078>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0079>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x007A>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x007B>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x007C>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x007D>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x007E>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x007F>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0080>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0081>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0082>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0083>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0084>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0085>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0086>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0087>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0088>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0089>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x008A>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x008B>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x008C>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x008D>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x008E>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x008F>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0090>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0091>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0092>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0093>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0094>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0095>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0096>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0097>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0098>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x0099>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x009A>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x009B>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x009C>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x009D>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x009E>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x009F>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00A0>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00A1>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00A2>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00A3>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00A4>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00A5>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00A6>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00A7>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00A8>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00A9>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00AA>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00AB>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00AC>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00AD>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00AE>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00AF>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00B0>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00B1>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00B2>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00B3>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00B4>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00B5>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00B6>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00B7>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00B8>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00B9>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00BA>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00BB>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00BC>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00BD>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00BE>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00BF>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00C0>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00C1>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00C2>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00C3>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00C4>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00C5>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00C6>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00C7>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00C8>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00C9>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00CA>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00CB>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00CC>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00CD>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00CE>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00CF>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00D0>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00D1>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00D2>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00D3>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00D4>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00D5>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00D6>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00D7>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00D8>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00D9>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00DA>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00DB>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00DC>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00DD>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00DE>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00DF>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00E0>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00E1>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00E2>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00E3>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00E4>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00E5>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00E6>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00E7>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00E8>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00E9>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00EA>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00EB>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00EC>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00ED>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00EE>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00EF>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00F0>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00F1>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00F2>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00F3>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00F4>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00F5>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00F6>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00F7>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00F8>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00F9>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00FA>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00FB>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00FC>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00FD>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00FE>(VMContext*)
+{
+    return 0;
+}
+
+template <>
+int
+procedure<0x00FF>(VMContext*)
 {
     return 0;
 }
@@ -362,7 +2183,7 @@ initializeProcedures()
 
 template <>
 int
-initialize<Hash("AuthenticAMD")>(PVOID vcpu)
+initialize<Hash("AuthenticAMD")>(PVOID)
 {
     do {
         uint32_t eax;
@@ -1390,11 +3211,70 @@ initialize<Hash("AuthenticAMD")>(PVOID vcpu)
     __asm_svm_vmsave(guestPa.QuadPart);
     __asm_svm_vmsave(hostPa.QuadPart);
 
+    size_t stack = (size_t)allocate<0x2000>();
+
     __asm_svm_clgi();
     while (1) {
-        // __asm_svm_vmrun(guestPa.QuadPart);
 
-        __asm__ __volatile__("\n vmrun" ::"a"(guestPa.QuadPart) : "memory");
+        __asm__ __volatile__("\n mov %0, %%rsp"
+                             "\n mov %1, %%r15"
+                             "\n mov %c2(%%r15), %%rbx"
+                             "\n mov %c3(%%r15), %%rcx"
+                             "\n mov %c4(%%r15), %%rdx"
+                             "\n mov %c5(%%r15), %%rsi"
+                             "\n mov %c6(%%r15), %%rdi"
+                             "\n mov %c7(%%r15), %%rbp"
+                             "\n mov %c8(%%r15), %%r8"
+                             "\n mov %c9(%%r15), %%r9"
+                             "\n mov %c10(%%r15), %%r10"
+                             "\n mov %c11(%%r15), %%r11"
+                             "\n mov %c12(%%r15), %%r12"
+                             "\n mov %c13(%%r15), %%r13"
+                             "\n mov %c14(%%r15), %%r14"
+                             "\n mov %c15(%%r15), %%r15"
+                             "\n vmrun"
+
+                             "\n xyz:"
+                             "\n push %%r15" //
+                             "\n push %%r14" //
+                             "\n push %%r13" //
+                             "\n push %%r12" //
+                             "\n push %%r11" //
+                             "\n push %%r10" //
+                             "\n push %%r9"  //
+                             "\n push %%r8"  //
+                             "\n push $0x0"  // VMContext.RSP
+                             "\n push %%rbp" //
+                             "\n push %%rsi" //
+                             "\n push %%rdi" //
+                             "\n push %%rdx" //
+                             "\n push %%rcx" //
+                             "\n push %%rbx" //
+                             "\n push $0x0"  // VMContext.RAX
+
+                             "\n mov %%gs:0x1A4, %%eax" // KeGetCurrentProcessorIndex
+
+                             "\n add $0x8, %%rsp" // VMContext.RAX
+                             "\n pop %%rbx"       //
+                             "\n pop %%rcx"       //
+                             "\n pop %%rdx"       //
+                             "\n pop %%rdi"       //
+                             "\n pop %%rsi"       //
+                             "\n pop %%rbp"       //
+                             "\n add $0x8, %%rsp" // VMContext.RSP
+                             "\n pop %%r8"        //
+                             "\n pop %%r9"        //
+                             "\n pop %%r10"       //
+                             "\n pop %%r11"       //
+                             "\n pop %%r12"       //
+                             "\n pop %%r13"       //
+                             "\n pop %%r14"       //
+                             "\n pop %%r15"       //
+                             "\n vmrun"           //
+                             "\n jmp xyz"         //
+                             :
+                             : "r"(stack + 0x1FF0), "r"(&Context), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R15)), "a"(guestPa.QuadPart)
+                             : "memory");
 
         int64_t EXITCODE = *(int64_t*)((uint8_t*)vmcb + 0x0070);      // EXITCODE
         uint64_t EXITINFO1 = *(uint64_t*)((uint8_t*)vmcb + 0x0078);   // EXITINFO1
@@ -1404,7 +3284,7 @@ initialize<Hash("AuthenticAMD")>(PVOID vcpu)
         if (EXITCODE < 0)
             break;
 
-        Procedures[EXITCODE]();
+        Procedures[EXITCODE](nullptr);
 
         UNREFERENCED_PARAMETER(EXITCODE);
         UNREFERENCED_PARAMETER(EXITINFO1);
@@ -1418,7 +3298,7 @@ initialize<Hash("AuthenticAMD")>(PVOID vcpu)
 
 template <>
 int
-cleanup<Hash("AuthenticAMD")>(PVOID vcpu)
+cleanup<Hash("AuthenticAMD")>(PVOID)
 {
     return 0;
 }

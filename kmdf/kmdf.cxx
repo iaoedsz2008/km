@@ -20,8 +20,6 @@ static lfqueue* Contiguous8K = NULL;
 static lfqueue* Contiguous16K = NULL;
 static lfqueue* Contiguous32K = NULL;
 
-static PVOID vcpus[0x400] = {};
-
 void*
 operator new(SIZE_T size, void* ptr) noexcept
 {
@@ -161,15 +159,11 @@ load(_In_ ULONG_PTR Argument)
     ((uint32_t*)vendor)[1] = edx;
     ((uint32_t*)vendor)[2] = ecx;
 
-    PVOID vcpu = allocateContiguous<0x1000>();
-
-    vcpus[KeGetCurrentProcessorIndex()] = vcpu;
-
     if (memcmp(vendor, "GenuineIntel", 12) == 0)
-        return initialize<Hash("GenuineIntel")>(vcpu);
+        return initialize<Hash("GenuineIntel")>(NULL);
 
     if (memcmp(vendor, "AuthenticAMD", 12) == 0)
-        return initialize<Hash("AuthenticAMD")>(vcpu);
+        return initialize<Hash("AuthenticAMD")>(NULL);
 
     return -1;
 }
@@ -194,15 +188,11 @@ unload(_In_ ULONG_PTR Argument)
     ((uint32_t*)vendor)[1] = edx;
     ((uint32_t*)vendor)[2] = ecx;
 
-    PVOID vcpu = vcpus[KeGetCurrentProcessorIndex()];
-
     if (memcmp(vendor, "GenuineIntel", 12) == 0)
-        cleanup<Hash("GenuineIntel")>(vcpu);
+        cleanup<Hash("GenuineIntel")>(NULL);
 
     if (memcmp(vendor, "AuthenticAMD", 12) == 0)
-        cleanup<Hash("AuthenticAMD")>(vcpu);
-
-    deallocateContiguous<0x1000>(vcpu);
+        cleanup<Hash("AuthenticAMD")>(NULL);
 
     return 0;
 }

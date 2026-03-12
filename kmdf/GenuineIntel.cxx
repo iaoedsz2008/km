@@ -261,6 +261,20 @@ typedef struct VMContext {
     uint64_t R15;
 } VMContext;
 
+typedef struct VMCpu {
+    VMContext Context;
+
+    void* IoBitmap;
+    void* MsrBitmap;
+    void* VmcbHost;
+    void* VmcbGuest;
+
+    PHYSICAL_ADDRESS IoBitmapPa;
+    PHYSICAL_ADDRESS MsrBitmapPa;
+    PHYSICAL_ADDRESS VmcsHostPa;
+    PHYSICAL_ADDRESS VmcsGuestPa;
+} VMCpu;
+
 static KSPIN_LOCK kSpinLock;
 
 static int (*Procedures[0x100])(VMContext* ctx);
@@ -365,7 +379,7 @@ static int __vmwrite(uint64_t val);
 
 template <int e>
 static int
-procedure(VMContext* ctx)
+procedure(VMContext*)
 {
     __asm__ __volatile__("int3" :::);
     return 0;
@@ -374,7 +388,7 @@ procedure(VMContext* ctx)
 // 0 Exception or non-maskable interrupt (NMI)
 template <>
 int
-procedure<0x0000>(VMContext* ctx)
+procedure<0x0000>(VMContext*)
 {
     return 0;
 }
@@ -382,7 +396,7 @@ procedure<0x0000>(VMContext* ctx)
 // 1 External interrupt. An external interrupt arrived and the “external-interrupt exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x0001>(VMContext* ctx)
+procedure<0x0001>(VMContext*)
 {
     return 0;
 }
@@ -390,7 +404,7 @@ procedure<0x0001>(VMContext* ctx)
 // 2 Triple fault. The logical processor encountered an exception while attempting to call the double-fault handler and that exception did not itself cause a VM exit due to the exception bitmap.
 template <>
 int
-procedure<0x0002>(VMContext* ctx)
+procedure<0x0002>(VMContext*)
 {
     return 0;
 }
@@ -398,7 +412,7 @@ procedure<0x0002>(VMContext* ctx)
 // 3 INIT signal. An INIT signal arrived
 template <>
 int
-procedure<0x0003>(VMContext* ctx)
+procedure<0x0003>(VMContext*)
 {
     return 0;
 }
@@ -406,7 +420,7 @@ procedure<0x0003>(VMContext* ctx)
 // 4 Start-up IPI (SIPI). A SIPI arrived while the logical processor was in the “wait-for-SIPI” state.
 template <>
 int
-procedure<0x0004>(VMContext* ctx)
+procedure<0x0004>(VMContext*)
 {
     return 0;
 }
@@ -414,7 +428,7 @@ procedure<0x0004>(VMContext* ctx)
 // 5 I/O system-management interrupt (SMI). An SMI arrived immediately after retirement of an I/O instruction and caused an SMM VM exit
 template <>
 int
-procedure<0x0005>(VMContext* ctx)
+procedure<0x0005>(VMContext*)
 {
     return 0;
 }
@@ -422,7 +436,7 @@ procedure<0x0005>(VMContext* ctx)
 // 6 Other SMI. An SMI arrived and caused an SMM VM exit (see Section 34.15.2) but not immediately after retirement of an I/O instruction.
 template <>
 int
-procedure<0x0006>(VMContext* ctx)
+procedure<0x0006>(VMContext*)
 {
     return 0;
 }
@@ -430,7 +444,7 @@ procedure<0x0006>(VMContext* ctx)
 // 7 Interrupt window. At the beginning of an instruction, RFLAGS.IF was 1; events were not blocked by STI or by MOV SS; and the “interrupt-window exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x0007>(VMContext* ctx)
+procedure<0x0007>(VMContext*)
 {
     return 0;
 }
@@ -438,7 +452,7 @@ procedure<0x0007>(VMContext* ctx)
 // 8 NMI window. At the beginning of an instruction, there was no virtual-NMI blocking; events were not blocked by MOV SS; and the “NMI-window exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x0008>(VMContext* ctx)
+procedure<0x0008>(VMContext*)
 {
     return 0;
 }
@@ -446,7 +460,7 @@ procedure<0x0008>(VMContext* ctx)
 // 9 Task switch. Guest software attempted a task switch.
 template <>
 int
-procedure<0x0009>(VMContext* ctx)
+procedure<0x0009>(VMContext*)
 {
     return 0;
 }
@@ -463,7 +477,7 @@ procedure<0x000A>(VMContext* ctx)
 // 11 GETSEC. Guest software attempted to execute GETSEC.
 template <>
 int
-procedure<0x000B>(VMContext* ctx)
+procedure<0x000B>(VMContext*)
 {
     return 0;
 }
@@ -471,7 +485,7 @@ procedure<0x000B>(VMContext* ctx)
 // 12 HLT. Guest software attempted to execute HLT and the “HLT exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x000C>(VMContext* ctx)
+procedure<0x000C>(VMContext*)
 {
     return 0;
 }
@@ -479,7 +493,7 @@ procedure<0x000C>(VMContext* ctx)
 // 13 INVD. Guest software attempted to execute INVD.
 template <>
 int
-procedure<0x000D>(VMContext* ctx)
+procedure<0x000D>(VMContext*)
 {
     return 0;
 }
@@ -487,7 +501,7 @@ procedure<0x000D>(VMContext* ctx)
 // 14 INVLPG. Guest software attempted to execute INVLPG and the “INVLPG exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x000E>(VMContext* ctx)
+procedure<0x000E>(VMContext*)
 {
     return 0;
 }
@@ -495,7 +509,7 @@ procedure<0x000E>(VMContext* ctx)
 // 15 RDPMC. Guest software attempted to execute RDPMC and the “RDPMC exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x000F>(VMContext* ctx)
+procedure<0x000F>(VMContext*)
 {
     return 0;
 }
@@ -503,7 +517,7 @@ procedure<0x000F>(VMContext* ctx)
 // 16 RDTSC. Guest software attempted to execute RDTSC and the “RDTSC exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x0010>(VMContext* ctx)
+procedure<0x0010>(VMContext*)
 {
     return 0;
 }
@@ -511,7 +525,7 @@ procedure<0x0010>(VMContext* ctx)
 // 17 RSM. Guest software attempted to execute RSM in SMM.
 template <>
 int
-procedure<0x0011>(VMContext* ctx)
+procedure<0x0011>(VMContext*)
 {
     return 0;
 }
@@ -519,7 +533,7 @@ procedure<0x0011>(VMContext* ctx)
 // 18 VMCALL. VMCALL was executed either by guest software (causing an ordinary VM exit) or by the executive monitor (causing an SMM VM exit; see Section 34.15.2).
 template <>
 int
-procedure<0x0012>(VMContext* ctx)
+procedure<0x0012>(VMContext*)
 {
     return 0;
 }
@@ -527,7 +541,7 @@ procedure<0x0012>(VMContext* ctx)
 // 19 VMCLEAR. Guest software attempted to execute VMCLEAR.
 template <>
 int
-procedure<0x0013>(VMContext* ctx)
+procedure<0x0013>(VMContext*)
 {
     return 0;
 }
@@ -535,7 +549,7 @@ procedure<0x0013>(VMContext* ctx)
 // 20 VMLAUNCH. Guest software attempted to execute VMLAUNCH.
 template <>
 int
-procedure<0x0014>(VMContext* ctx)
+procedure<0x0014>(VMContext*)
 {
     return 0;
 }
@@ -543,7 +557,7 @@ procedure<0x0014>(VMContext* ctx)
 // 21 VMPTRLD. Guest software attempted to execute VMPTRLD.
 template <>
 int
-procedure<0x0015>(VMContext* ctx)
+procedure<0x0015>(VMContext*)
 {
     return 0;
 }
@@ -551,7 +565,7 @@ procedure<0x0015>(VMContext* ctx)
 // 22 VMPTRST. Guest software attempted to execute VMPTRST.
 template <>
 int
-procedure<0x0016>(VMContext* ctx)
+procedure<0x0016>(VMContext*)
 {
     return 0;
 }
@@ -559,7 +573,7 @@ procedure<0x0016>(VMContext* ctx)
 // 23 VMREAD. Guest software attempted to execute VMREAD.
 template <>
 int
-procedure<0x0017>(VMContext* ctx)
+procedure<0x0017>(VMContext*)
 {
     return 0;
 }
@@ -567,7 +581,7 @@ procedure<0x0017>(VMContext* ctx)
 // 24 VMRESUME. Guest software attempted to execute VMRESUME.
 template <>
 int
-procedure<0x0018>(VMContext* ctx)
+procedure<0x0018>(VMContext*)
 {
     return 0;
 }
@@ -575,7 +589,7 @@ procedure<0x0018>(VMContext* ctx)
 // 25 VMWRITE. Guest software attempted to execute VMWRITE.
 template <>
 int
-procedure<0x0019>(VMContext* ctx)
+procedure<0x0019>(VMContext*)
 {
     return 0;
 }
@@ -583,7 +597,7 @@ procedure<0x0019>(VMContext* ctx)
 // 26 VMXOFF. Guest software attempted to execute VMXOFF.
 template <>
 int
-procedure<0x001A>(VMContext* ctx)
+procedure<0x001A>(VMContext*)
 {
     return 0;
 }
@@ -591,7 +605,7 @@ procedure<0x001A>(VMContext* ctx)
 // 27 VMXON. Guest software attempted to execute VMXON.
 template <>
 int
-procedure<0x001B>(VMContext* ctx)
+procedure<0x001B>(VMContext*)
 {
     return 0;
 }
@@ -599,7 +613,7 @@ procedure<0x001B>(VMContext* ctx)
 // 28 Control-register accesses. Guest software attempted to access CR0, CR3, CR4, or CR8 using CLTS, LMSW, or MOV CR and the VM-execution control fields indicate that a VM exit should occur
 template <>
 int
-procedure<0x001C>(VMContext* ctx)
+procedure<0x001C>(VMContext*)
 {
     return 0;
 }
@@ -607,7 +621,7 @@ procedure<0x001C>(VMContext* ctx)
 // 29 MOV DR. Guest software attempted a MOV to or from a debug register and the “MOV-DR exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x001D>(VMContext* ctx)
+procedure<0x001D>(VMContext*)
 {
     return 0;
 }
@@ -615,7 +629,7 @@ procedure<0x001D>(VMContext* ctx)
 // 30 I/O instruction. Guest software attempted to execute an I/O instruction
 template <>
 int
-procedure<0x001E>(VMContext* ctx)
+procedure<0x001E>(VMContext*)
 {
     return 0;
 }
@@ -634,7 +648,7 @@ procedure<0x001F>(VMContext* ctx)
 // 32 WRMSR or WRMSRNS. Guest software attempted to execute either WRMSR or WRMSRNS
 template <>
 int
-procedure<0x0020>(VMContext* ctx)
+procedure<0x0020>(VMContext*)
 {
     return 0;
 }
@@ -642,7 +656,7 @@ procedure<0x0020>(VMContext* ctx)
 // 33 VM-entry failure due to invalid guest state. A VM entry failed one of the checks identified in Section 29.3.1.
 template <>
 int
-procedure<0x0021>(VMContext* ctx)
+procedure<0x0021>(VMContext*)
 {
     return 0;
 }
@@ -650,14 +664,14 @@ procedure<0x0021>(VMContext* ctx)
 // 34 VM-entry failure due to MSR loading. A VM entry failed in an attempt to load MSRs. See Section 29.4.
 template <>
 int
-procedure<0x0022>(VMContext* ctx)
+procedure<0x0022>(VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0023>(VMContext* ctx)
+procedure<0x0023>(VMContext*)
 {
     return 0;
 }
@@ -665,7 +679,7 @@ procedure<0x0023>(VMContext* ctx)
 // 36 MWAIT. Guest software attempted to execute MWAIT and the “MWAIT exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x0024>(VMContext* ctx)
+procedure<0x0024>(VMContext*)
 {
     return 0;
 }
@@ -673,14 +687,14 @@ procedure<0x0024>(VMContext* ctx)
 // 37 Monitor trap flag. A VM exit occurred due to the 1-setting of the “monitor trap flag” VM-execution control (see Section 28.5.2) or VM entry injected a pending MTF VM exit as part of VM entry (see Section 29.6.2).
 template <>
 int
-procedure<0x0025>(VMContext* ctx)
+procedure<0x0025>(VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0026>(VMContext* ctx)
+procedure<0x0026>(VMContext*)
 {
     return 0;
 }
@@ -688,7 +702,7 @@ procedure<0x0026>(VMContext* ctx)
 // 39 MONITOR. Guest software attempted to execute MONITOR and the “MONITOR exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x0027>(VMContext* ctx)
+procedure<0x0027>(VMContext*)
 {
     return 0;
 }
@@ -696,7 +710,7 @@ procedure<0x0027>(VMContext* ctx)
 // 40 PAUSE. Either guest software attempted to execute PAUSE and the “PAUSE exiting” VM-execution control was 1 or the “PAUSE-loop exiting” VM-execution control was 1 and guest software executed a PAUSE loop with execution time exceeding PLE_Window
 template <>
 int
-procedure<0x0028>(VMContext* ctx)
+procedure<0x0028>(VMContext*)
 {
     return 0;
 }
@@ -704,14 +718,14 @@ procedure<0x0028>(VMContext* ctx)
 // 41 VM-entry failure due to machine-check event. A machine-check event occurred during VM entry
 template <>
 int
-procedure<0x0029>(VMContext* ctx)
+procedure<0x0029>(VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x002A>(VMContext* ctx)
+procedure<0x002A>(VMContext*)
 {
     return 0;
 }
@@ -723,7 +737,7 @@ procedure<0x002A>(VMContext* ctx)
  **/
 template <>
 int
-procedure<0x002B>(VMContext* ctx)
+procedure<0x002B>(VMContext*)
 {
     return 0;
 }
@@ -731,7 +745,7 @@ procedure<0x002B>(VMContext* ctx)
 // 44 APIC access. Guest software attempted to access memory at a physical address on the APIC-access page and the “virtualize APIC accesses” VM-execution control was 1 (see Section 32.4).
 template <>
 int
-procedure<0x002C>(VMContext* ctx)
+procedure<0x002C>(VMContext*)
 {
     return 0;
 }
@@ -739,7 +753,7 @@ procedure<0x002C>(VMContext* ctx)
 // 45 Virtualized EOI. EOI virtualization was performed for a virtual interrupt whose vector indexed a bit set in the EOI-exit bitmap.
 template <>
 int
-procedure<0x002D>(VMContext* ctx)
+procedure<0x002D>(VMContext*)
 {
     return 0;
 }
@@ -747,7 +761,7 @@ procedure<0x002D>(VMContext* ctx)
 // 46 Access to GDTR or IDTR. Guest software attempted to execute LGDT, LIDT, SGDT, or SIDT and the “descriptor-table exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x002E>(VMContext* ctx)
+procedure<0x002E>(VMContext*)
 {
     return 0;
 }
@@ -755,7 +769,7 @@ procedure<0x002E>(VMContext* ctx)
 // 47 Access to LDTR or TR. Guest software attempted to execute LLDT, LTR, SLDT, or STR and the “descriptor-table exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x002F>(VMContext* ctx)
+procedure<0x002F>(VMContext*)
 {
     return 0;
 }
@@ -763,7 +777,7 @@ procedure<0x002F>(VMContext* ctx)
 // 48 EPT violation. An attempt to access memory with a guest-physical address was disallowed by the configuration of the EPT paging structures.
 template <>
 int
-procedure<0x0030>(VMContext* ctx)
+procedure<0x0030>(VMContext*)
 {
     return 0;
 }
@@ -771,7 +785,7 @@ procedure<0x0030>(VMContext* ctx)
 // 49 EPT misconfiguration. An attempt to access memory with a guest-physical address encountered a misconfigured EPT paging-structure entry.
 template <>
 int
-procedure<0x0031>(VMContext* ctx)
+procedure<0x0031>(VMContext*)
 {
     return 0;
 }
@@ -779,7 +793,7 @@ procedure<0x0031>(VMContext* ctx)
 // 50 INVEPT. Guest software attempted to execute INVEPT.
 template <>
 int
-procedure<0x0032>(VMContext* ctx)
+procedure<0x0032>(VMContext*)
 {
     return 0;
 }
@@ -787,7 +801,7 @@ procedure<0x0032>(VMContext* ctx)
 // 51 RDTSCP. Guest software attempted to execute RDTSCP and the “enable RDTSCP” and “RDTSC exiting” VM-execution controls were both 1.
 template <>
 int
-procedure<0x0033>(VMContext* ctx)
+procedure<0x0033>(VMContext*)
 {
     return 0;
 }
@@ -795,7 +809,7 @@ procedure<0x0033>(VMContext* ctx)
 // 52 VMX-preemption timer expired. The preemption timer counted down to zero.
 template <>
 int
-procedure<0x0034>(VMContext* ctx)
+procedure<0x0034>(VMContext*)
 {
     return 0;
 }
@@ -803,7 +817,7 @@ procedure<0x0034>(VMContext* ctx)
 // 53 INVVPID. Guest software attempted to execute INVVPID.
 template <>
 int
-procedure<0x0035>(VMContext* ctx)
+procedure<0x0035>(VMContext*)
 {
     return 0;
 }
@@ -811,7 +825,7 @@ procedure<0x0035>(VMContext* ctx)
 // 54 WBINVD or WBNOINVD. Guest software attempted to execute WBINVD or WBNOINVD and the “WBINVD exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x0036>(VMContext* ctx)
+procedure<0x0036>(VMContext*)
 {
     return 0;
 }
@@ -819,7 +833,7 @@ procedure<0x0036>(VMContext* ctx)
 // 55 XSETBV. Guest software attempted to execute XSETBV.
 template <>
 int
-procedure<0x0037>(VMContext* ctx)
+procedure<0x0037>(VMContext*)
 {
     return 0;
 }
@@ -827,7 +841,7 @@ procedure<0x0037>(VMContext* ctx)
 // 56 APIC write. Guest software completed a write to the virtual-APIC page that must be virtualized by VMM software
 template <>
 int
-procedure<0x0038>(VMContext* ctx)
+procedure<0x0038>(VMContext*)
 {
     return 0;
 }
@@ -835,7 +849,7 @@ procedure<0x0038>(VMContext* ctx)
 // 57 RDRAND. Guest software attempted to execute RDRAND and the “RDRAND exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x0039>(VMContext* ctx)
+procedure<0x0039>(VMContext*)
 {
     return 0;
 }
@@ -843,7 +857,7 @@ procedure<0x0039>(VMContext* ctx)
 // 58 INVPCID. Guest software attempted to execute INVPCID and the “enable INVPCID” and “INVLPG exiting” VM-execution controls were both 1.
 template <>
 int
-procedure<0x003A>(VMContext* ctx)
+procedure<0x003A>(VMContext*)
 {
     return 0;
 }
@@ -851,7 +865,7 @@ procedure<0x003A>(VMContext* ctx)
 // 59 VMFUNC. Guest software invoked a VM function with the VMFUNC instruction and the VM function either was not enabled or generated a function-specific condition causing a VM exit.
 template <>
 int
-procedure<0x003B>(VMContext* ctx)
+procedure<0x003B>(VMContext*)
 {
     return 0;
 }
@@ -862,7 +876,7 @@ procedure<0x003B>(VMContext* ctx)
  **/
 template <>
 int
-procedure<0x003C>(VMContext* ctx)
+procedure<0x003C>(VMContext*)
 {
     return 0;
 }
@@ -870,7 +884,7 @@ procedure<0x003C>(VMContext* ctx)
 // 61 RDSEED. Guest software attempted to execute RDSEED and the “RDSEED exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x003D>(VMContext* ctx)
+procedure<0x003D>(VMContext*)
 {
     return 0;
 }
@@ -878,7 +892,7 @@ procedure<0x003D>(VMContext* ctx)
 // 62 Page-modification log full. The processor attempted to create a page-modification log entry and the value of the PML index was not in the range 0–511.
 template <>
 int
-procedure<0x003E>(VMContext* ctx)
+procedure<0x003E>(VMContext*)
 {
     return 0;
 }
@@ -886,7 +900,7 @@ procedure<0x003E>(VMContext* ctx)
 // 63 XSAVES. Guest software attempted to execute XSAVES, the “enable XSAVES/XRSTORS” was 1, and a bit was set in the logical-AND of the following three values: EDX:EAX, the IA32_XSS MSR, and the XSS-exiting bitmap.
 template <>
 int
-procedure<0x003F>(VMContext* ctx)
+procedure<0x003F>(VMContext*)
 {
     return 0;
 }
@@ -894,7 +908,7 @@ procedure<0x003F>(VMContext* ctx)
 // 64 XRSTORS. Guest software attempted to execute XRSTORS, the “enable XSAVES/XRSTORS” was 1, and a bit was set in the logical-AND of the following three values: EDX:EAX, the IA32_XSS MSR, and the XSS-exiting bitmap.
 template <>
 int
-procedure<0x0040>(VMContext* ctx)
+procedure<0x0040>(VMContext*)
 {
     return 0;
 }
@@ -906,7 +920,7 @@ procedure<0x0040>(VMContext* ctx)
  **/
 template <>
 int
-procedure<0x0041>(VMContext* ctx)
+procedure<0x0041>(VMContext*)
 {
     return 0;
 }
@@ -914,7 +928,7 @@ procedure<0x0041>(VMContext* ctx)
 // 66 SPP-related event. The processor attempted to determine an access’s sub-page write permission and encountered an SPP miss or an SPP misconfiguration.
 template <>
 int
-procedure<0x0042>(VMContext* ctx)
+procedure<0x0042>(VMContext*)
 {
     return 0;
 }
@@ -922,7 +936,7 @@ procedure<0x0042>(VMContext* ctx)
 // 67 UMWAIT. Guest software attempted to execute UMWAIT and the “enable user wait and pause” and “RDTSC exiting” VM-execution controls were both 1.
 template <>
 int
-procedure<0x0043>(VMContext* ctx)
+procedure<0x0043>(VMContext*)
 {
     return 0;
 }
@@ -930,7 +944,7 @@ procedure<0x0043>(VMContext* ctx)
 // 68 TPAUSE. Guest software attempted to execute TPAUSE and the “enable user wait and pause” and “RDTSC exiting” VM-execution controls were both 1.
 template <>
 int
-procedure<0x0044>(VMContext* ctx)
+procedure<0x0044>(VMContext*)
 {
     return 0;
 }
@@ -938,21 +952,21 @@ procedure<0x0044>(VMContext* ctx)
 // 69 LOADIWKEY. Guest software attempted to execute LOADIWKEY and the “LOADIWKEY exiting” VM-execution control was 1.
 template <>
 int
-procedure<0x0045>(VMContext* ctx)
+procedure<0x0045>(VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0046>(VMContext* ctx)
+procedure<0x0046>(VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0047>(VMContext* ctx)
+procedure<0x0047>(VMContext*)
 {
     return 0;
 }
@@ -963,7 +977,7 @@ procedure<0x0047>(VMContext* ctx)
  **/
 template <>
 int
-procedure<0x0048>(VMContext* ctx)
+procedure<0x0048>(VMContext*)
 {
     return 0;
 }
@@ -974,7 +988,7 @@ procedure<0x0048>(VMContext* ctx)
  **/
 template <>
 int
-procedure<0x0049>(VMContext* ctx)
+procedure<0x0049>(VMContext*)
 {
     return 0;
 }
@@ -985,7 +999,7 @@ procedure<0x0049>(VMContext* ctx)
  **/
 template <>
 int
-procedure<0x004A>(VMContext* ctx)
+procedure<0x004A>(VMContext*)
 {
     return 0;
 }
@@ -996,7 +1010,7 @@ procedure<0x004A>(VMContext* ctx)
  **/
 template <>
 int
-procedure<0x004B>(VMContext* ctx)
+procedure<0x004B>(VMContext*)
 {
     return 0;
 }
@@ -1006,7 +1020,7 @@ procedure<0x004B>(VMContext* ctx)
  **/
 template <>
 int
-procedure<0x004C>(VMContext* ctx)
+procedure<0x004C>(VMContext*)
 {
     return 0;
 }
@@ -1016,7 +1030,7 @@ procedure<0x004C>(VMContext* ctx)
  **/
 template <>
 int
-procedure<0x004D>(VMContext* ctx)
+procedure<0x004D>(VMContext*)
 {
     return 0;
 }
@@ -1029,7 +1043,7 @@ procedure<0x004D>(VMContext* ctx)
  **/
 template <>
 int
-procedure<0x004E>(VMContext* ctx)
+procedure<0x004E>(VMContext*)
 {
     return 0;
 }
@@ -1042,7 +1056,7 @@ procedure<0x004E>(VMContext* ctx)
  **/
 template <>
 int
-procedure<0x004F>(VMContext* ctx)
+procedure<0x004F>(VMContext*)
 {
     return 0;
 }
@@ -1191,7 +1205,7 @@ initializeEPT()
 
 template <>
 int
-initialize<Hash("GenuineIntel")>(PVOID vcpu)
+initialize<Hash("GenuineIntel")>(PVOID)
 {
     uint32_t eax;
     uint32_t ebx;
@@ -2732,7 +2746,7 @@ initialize<Hash("GenuineIntel")>(PVOID vcpu)
 
 template <>
 int
-cleanup<Hash("GenuineIntel")>(PVOID vcpu)
+cleanup<Hash("GenuineIntel")>(PVOID)
 {
     __asm_vmx_vmxoff();
     return 0;
