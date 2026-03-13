@@ -326,6 +326,38 @@ __lsb(uint16_t selector)
     return SegmentBase;
 }
 
+static FORCEINLINE uint32_t
+__lar(uint16_t selector)
+{
+    uint32_t val = 0;
+    uint8_t zf = 0;
+
+    if ((selector & 0xFFF8) == 0)
+        return 0;
+
+    __asm__ __volatile__("lar %2, %0; setz %1" : "=r"(val), "=qm"(zf) : "r"(selector) : "cc");
+    if (!zf)
+        return 0;
+
+    return val;
+}
+
+static FORCEINLINE uint32_t
+__lsl(uint16_t selector)
+{
+    uint32_t val = 0;
+    uint8_t zf = 0;
+
+    if ((selector & 0xFFF8) == 0)
+        return 0;
+
+    __asm__ __volatile__("lsl %2, %0; setz %1" : "=r"(val), "=qm"(zf) : "r"(selector) : "cc");
+    if (!zf)
+        return 0;
+
+    return val;
+}
+
 static FORCEINLINE uint64_t
 vmx_format_controls(uint32_t msr, uint64_t bits)
 {
@@ -339,7 +371,7 @@ vmx_format_controls(uint32_t msr, uint64_t bits)
 
 // See: Format of Access Rights
 static FORCEINLINE uint32_t
-vmx_format_access_rights(uint64_t access_rights)
+vmx_format_access_rights(uint32_t access_rights)
 {
     uint32_t result = {};
 
@@ -358,24 +390,6 @@ vmx_format_access_rights(uint64_t access_rights)
 
     return result;
 }
-
-template <int Field>
-static int __vmread(uint16_t* val);
-
-template <int Field>
-static int __vmread(uint32_t* val);
-
-template <int Field>
-static int __vmread(uint64_t* val);
-
-template <int Field>
-static int __vmwrite(uint16_t val);
-
-template <int Field>
-static int __vmwrite(uint32_t val);
-
-template <int Field>
-static int __vmwrite(uint64_t val);
 
 template <int e>
 static int
@@ -658,6 +672,7 @@ template <>
 int
 procedure<0x0021>(VMContext*)
 {
+    __asm_int3();
     return 0;
 }
 
@@ -666,6 +681,7 @@ template <>
 int
 procedure<0x0022>(VMContext*)
 {
+    __asm_int3();
     return 0;
 }
 
@@ -1072,7 +1088,7 @@ vmx_vmexit(void)
                          "\n push %%r10"
                          "\n push %%r9"
                          "\n push %%r8"
-                         "\n push $0x0" // VMContext.RSP
+                         "\n push %%r8" // VMContext.RSP
                          "\n push %%rbp"
                          "\n push %%rsi"
                          "\n push %%rdi"
@@ -1081,13 +1097,14 @@ vmx_vmexit(void)
                          "\n push %%rbx"
                          "\n push %%rax"
 
-                         "\n mov $0x4402, %%rcx" // VMX_VMCS32_RO_EXIT_REASON
-                         "\n vmread %%rcx, %%rax"
+                         "\n mov $0x4402, %%rcx"  // VMX_VMCS32_RO_EXIT_REASON
+                         "\n vmread %%rcx, %%rax" //
+                         "\n and $0xFFFF, %%rax"  // Bits 15:0 of this field contain the basic exit reason.
 
-                         "\n lea Procedures(%%rip), %%rbx"
-                         "\n mov (%%rbx, %%rax, 8), %%rax"
+                         "\n lea %0, %%rbx"
+                         "\n mov (%%rbx, %%rax, 8), %%rdx"
                          "\n mov %%rsp, %%rcx"
-                         "\n call *%%rax"
+                         "\n call *%%rdx"
 
                          "\n mov $0x681E, %%rcx" // VMX_VMCS_GUEST_RIP
                          "\n vmread %%rcx, %%rax"
@@ -1104,7 +1121,7 @@ vmx_vmexit(void)
                          "\n pop %%rdi"
                          "\n pop %%rsi"
                          "\n pop %%rbp"
-                         "\n add $0x8, %%rsp"
+                         "\n pop %%r8" // VMContext.RSP
                          "\n pop %%r8"
                          "\n pop %%r9"
                          "\n pop %%r10"
@@ -1114,8 +1131,12 @@ vmx_vmexit(void)
                          "\n pop %%r14"
                          "\n pop %%r15"
 
-                         "\n vmresume" ::
-                             : "memory");
+                         "\n vmresume"
+
+                         "\n int3" // unreachable.
+                         :
+                         : "m"(Procedures)
+                         : "memory");
 }
 
 static void
@@ -1816,20 +1837,20 @@ initialize<Hash("GenuineIntel")>(PVOID)
     KeReleaseSpinLockFromDpcLevel(&kSpinLock);
 
     PVOID vmcsGuest = allocateContiguous<0x1000>();
-    PVOID vmcsHost = allocateContiguous<0x1000>();
+    PVOID vmxonRegion = allocateContiguous<0x1000>();
     PVOID msrpm = allocateContiguous<0x1000>();
 
     if ((SIZE_T)vmcsGuest & 0xFFF)
         return -1;
 
-    if ((SIZE_T)vmcsHost & 0xFFF)
+    if ((SIZE_T)vmxonRegion & 0xFFF)
         return -1;
 
     if ((SIZE_T)msrpm & 0xFFF)
         return -1;
 
     memset(vmcsGuest, 0, 0x1000);
-    memset(vmcsHost, 0, 0x1000);
+    memset(vmxonRegion, 0, 0x1000);
     memset(msrpm, 0, 0x1000);
 
     /**
@@ -1837,10 +1858,10 @@ initialize<Hash("GenuineIntel")>(PVOID)
      * Bit 31: shadow-VMCS indicator (see Section 27.10)
      **/
     *(uint32_t*)vmcsGuest = (uint32_t)ia32_vmx_basic & 0x7FFFFFFF;
-    *(uint32_t*)vmcsHost = (uint32_t)ia32_vmx_basic & 0x7FFFFFFF;
+    *(uint32_t*)vmxonRegion = (uint32_t)ia32_vmx_basic & 0x7FFFFFFF;
 
     PHYSICAL_ADDRESS vmcsGuestPA = MmGetPhysicalAddress(vmcsGuest);
-    PHYSICAL_ADDRESS vmcsHostPA = MmGetPhysicalAddress(vmcsHost);
+    PHYSICAL_ADDRESS vmxonRegionPA = MmGetPhysicalAddress(vmxonRegion);
     PHYSICAL_ADDRESS msrpmPA = MmGetPhysicalAddress(msrpm);
 
     size_t Status = {};
@@ -1863,7 +1884,7 @@ initialize<Hash("GenuineIntel")>(PVOID)
 #define EFLAGS_VIP_MASK  (1 << 0x14)
 #define EFLAGS_ID_MASK   (1 << 0x15)
 
-    Status = __asm_vmx_vmxon((uint64_t*)&vmcsHostPA.QuadPart);
+    Status = __asm_vmx_vmxon((uint64_t*)&vmxonRegionPA.QuadPart);
     if (Status & EFLAGS_ZF_MASK) {
         size_t e;
         __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
@@ -2114,13 +2135,13 @@ initialize<Hash("GenuineIntel")>(PVOID)
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RIP, (uint64_t)&vmx_vmexit);
 
         // RPL and TI have to be 0
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_CS_SEL, CS & 0xF8);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_DS_SEL, DS & 0xF8);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_ES_SEL, ES & 0xF8);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_FS_SEL, FS & 0xF8);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_GS_SEL, GS & 0xF8);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_SS_SEL, SS & 0xF8);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_TR_SEL, TR & 0xF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_CS_SEL, CS & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_DS_SEL, DS & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_ES_SEL, ES & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_FS_SEL, FS & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_GS_SEL, GS & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_SS_SEL, SS & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_TR_SEL, TR & 0xFFF8);
 
 #if defined(_M_AMD64) || defined(__x86_64__)
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_FS_BASE, ia32_fs_base);
@@ -2160,27 +2181,29 @@ initialize<Hash("GenuineIntel")>(PVOID)
         Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CR4, CR4);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DR7, __asm_dr7());
 
-        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_VMCS_LINK_PTR_HIGH, 0xFFFFFFFFFFFFFFFF);
         Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_VMCS_LINK_PTR_FULL, 0xFFFFFFFFFFFFFFFF);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_DEBUGCTL_HIGH, 0xFFFFFFFFFFFFFFFF);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_DEBUGCTL_FULL, ia32_debugctl);
 
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_CS_SEL, CS);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_DS_SEL, DS);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_ES_SEL, ES);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_FS_SEL, FS);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_GS_SEL, GS);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_SS_SEL, SS);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_LDTR_SEL, LDTR);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_TR_SEL, TR);
+        if (VmEntryControls & (1ULL << 0x02)) // 2 Load debug controls
+            Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_DEBUGCTL_FULL, 0);
+
+        Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_EFER_FULL, ia32_efer);
+
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_CS_SEL, CS & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_DS_SEL, DS & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_ES_SEL, ES & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_FS_SEL, FS & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_GS_SEL, GS & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_SS_SEL, SS & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_LDTR_SEL, LDTR & 0xFFF8);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS16_GUEST_TR_SEL, TR & 0xFFF8);
 
 #if defined(_M_AMD64) || defined(__x86_64__)
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CS_BASE, 0);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DS_BASE, 0);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_ES_BASE, 0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_CS_BASE, __lsb(CS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_DS_BASE, __lsb(DS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_ES_BASE, __lsb(ES));
         Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_FS_BASE, ia32_fs_base);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_GS_BASE, ia32_gs_base);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SS_BASE, 0);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_SS_BASE, __lsb(SS));
 #endif
 
 #if defined(_M_IX86) || defined(__i386__)
@@ -2199,28 +2222,32 @@ initialize<Hash("GenuineIntel")>(PVOID)
         Status |= __asm_vmx_vmwrite(VMX_VMCS_GUEST_IDTR_BASE, (size_t)IDTR.BaseAddress);
         Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_IDTR_LIMIT, IDTR.Limit);
 
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_CS_LIMIT, __asm_lsl(CS));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_DS_LIMIT, __asm_lsl(DS));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_ES_LIMIT, __asm_lsl(ES));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_FS_LIMIT, __asm_lsl(FS));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GS_LIMIT, __asm_lsl(GS));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SS_LIMIT, __asm_lsl(SS));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_LDTR_LIMIT, __asm_lsl(LDTR));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_TR_LIMIT, __asm_lsl(TR));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_CS_LIMIT, __lsl(CS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_DS_LIMIT, __lsl(DS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_ES_LIMIT, __lsl(ES));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_FS_LIMIT, __lsl(FS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GS_LIMIT, __lsl(GS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SS_LIMIT, __lsl(SS));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_LDTR_LIMIT, __lsl(LDTR));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_TR_LIMIT, __lsl(TR));
 
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_CS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(CS)));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_DS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(DS)));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_ES_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(ES)));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_FS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(FS)));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(GS)));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SS_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(SS)));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_LDTR_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(LDTR)));
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_TR_ACCESS_RIGHTS, vmx_format_access_rights(__asm_lar(TR)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_CS_ACCESS_RIGHTS, vmx_format_access_rights(__lar(CS)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_DS_ACCESS_RIGHTS, vmx_format_access_rights(__lar(DS)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_ES_ACCESS_RIGHTS, vmx_format_access_rights(__lar(ES)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_FS_ACCESS_RIGHTS, vmx_format_access_rights(__lar(FS)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_GS_ACCESS_RIGHTS, vmx_format_access_rights(__lar(GS)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_SS_ACCESS_RIGHTS, vmx_format_access_rights(__lar(SS)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_LDTR_ACCESS_RIGHTS, vmx_format_access_rights(__lar(LDTR)));
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_GUEST_TR_ACCESS_RIGHTS, vmx_format_access_rights(__lar(TR)));
 
         Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE0_FULL, 0);
         Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE1_FULL, 0);
         Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE2_FULL, 0);
         Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE3_FULL, 0);
+    }
+
+    if (Status & EFLAGS_ZF_MASK) {
+        return -1;
     }
 
     // 16-Bit Control Fields
