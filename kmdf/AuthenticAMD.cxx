@@ -29,8 +29,6 @@ typedef struct VMContext {
 } VMContext;
 
 typedef struct VMCpu {
-    VMContext Context;
-
     void* IoPermissionsMap;
     void* MsrPermissionsMap;
     void* VmcbHost;
@@ -44,8 +42,24 @@ typedef struct VMCpu {
 
 static KSPIN_LOCK kSpinLock;
 
-static int (*Procedures[0x800])(VMContext* ctx);
+static int (*Procedures[0x800])(VMCpu*, VMContext*);
 static VMCpu* VMCpus[0x800];
+
+static FORCEINLINE uint32_t
+__lar(uint16_t selector)
+{
+    uint32_t val = 0;
+    uint8_t zf = 0;
+
+    if ((selector & 0xFFF8) == 0)
+        return 0;
+
+    __asm__ __volatile__("lar %2, %0; setz %1" : "=r"(val), "=qm"(zf) : "r"(selector) : "cc");
+    if (!zf)
+        return 0;
+
+    return val;
+}
 
 static FORCEINLINE size_t
 __lsb(uint16_t selector)
@@ -94,6 +108,22 @@ __lsb(uint16_t selector)
     return SegmentBase;
 }
 
+static FORCEINLINE uint32_t
+__lsl(uint16_t selector)
+{
+    uint32_t val = 0;
+    uint8_t zf = 0;
+
+    if ((selector & 0xFFF8) == 0)
+        return 0;
+
+    __asm__ __volatile__("lsl %2, %0; setz %1" : "=r"(val), "=qm"(zf) : "r"(selector) : "cc");
+    if (!zf)
+        return 0;
+
+    return val;
+}
+
 static FORCEINLINE uint16_t
 svm_format_access_rights(uint32_t access_rights)
 {
@@ -113,7 +143,7 @@ svm_format_access_rights(uint32_t access_rights)
 
 template <int e>
 static int
-procedure(VMContext*)
+procedure(VMCpu*, VMContext*)
 {
     __asm__ __volatile__("int3" :::);
     return 0;
@@ -121,1792 +151,1792 @@ procedure(VMContext*)
 
 template <>
 int
-procedure<0x0000>(VMContext*)
+procedure<0x0000>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0001>(VMContext*)
+procedure<0x0001>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0002>(VMContext*)
+procedure<0x0002>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0003>(VMContext*)
+procedure<0x0003>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0004>(VMContext*)
+procedure<0x0004>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0005>(VMContext*)
+procedure<0x0005>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0006>(VMContext*)
+procedure<0x0006>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0007>(VMContext*)
+procedure<0x0007>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0008>(VMContext*)
+procedure<0x0008>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0009>(VMContext*)
+procedure<0x0009>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x000A>(VMContext*)
+procedure<0x000A>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x000B>(VMContext*)
+procedure<0x000B>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x000C>(VMContext*)
+procedure<0x000C>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x000D>(VMContext*)
+procedure<0x000D>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x000E>(VMContext*)
+procedure<0x000E>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x000F>(VMContext*)
+procedure<0x000F>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0010>(VMContext*)
+procedure<0x0010>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0011>(VMContext*)
+procedure<0x0011>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0012>(VMContext*)
+procedure<0x0012>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0013>(VMContext*)
+procedure<0x0013>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0014>(VMContext*)
+procedure<0x0014>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0015>(VMContext*)
+procedure<0x0015>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0016>(VMContext*)
+procedure<0x0016>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0017>(VMContext*)
+procedure<0x0017>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0018>(VMContext*)
+procedure<0x0018>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0019>(VMContext*)
+procedure<0x0019>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x001A>(VMContext*)
+procedure<0x001A>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x001B>(VMContext*)
+procedure<0x001B>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x001C>(VMContext*)
+procedure<0x001C>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x001D>(VMContext*)
+procedure<0x001D>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x001E>(VMContext*)
+procedure<0x001E>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x001F>(VMContext*)
+procedure<0x001F>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0020>(VMContext*)
+procedure<0x0020>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0021>(VMContext*)
+procedure<0x0021>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0022>(VMContext*)
+procedure<0x0022>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0023>(VMContext*)
+procedure<0x0023>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0024>(VMContext*)
+procedure<0x0024>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0025>(VMContext*)
+procedure<0x0025>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0026>(VMContext*)
+procedure<0x0026>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0027>(VMContext*)
+procedure<0x0027>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0028>(VMContext*)
+procedure<0x0028>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0029>(VMContext*)
+procedure<0x0029>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x002A>(VMContext*)
+procedure<0x002A>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x002B>(VMContext*)
+procedure<0x002B>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x002C>(VMContext*)
+procedure<0x002C>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x002D>(VMContext*)
+procedure<0x002D>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x002E>(VMContext*)
+procedure<0x002E>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x002F>(VMContext*)
+procedure<0x002F>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0030>(VMContext*)
+procedure<0x0030>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0031>(VMContext*)
+procedure<0x0031>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0032>(VMContext*)
+procedure<0x0032>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0033>(VMContext*)
+procedure<0x0033>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0034>(VMContext*)
+procedure<0x0034>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0035>(VMContext*)
+procedure<0x0035>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0036>(VMContext*)
+procedure<0x0036>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0037>(VMContext*)
+procedure<0x0037>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0038>(VMContext*)
+procedure<0x0038>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0039>(VMContext*)
+procedure<0x0039>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x003A>(VMContext*)
+procedure<0x003A>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x003B>(VMContext*)
+procedure<0x003B>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x003C>(VMContext*)
+procedure<0x003C>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x003D>(VMContext*)
+procedure<0x003D>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x003E>(VMContext*)
+procedure<0x003E>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x003F>(VMContext*)
+procedure<0x003F>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0040>(VMContext*)
+procedure<0x0040>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0041>(VMContext*)
+procedure<0x0041>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0042>(VMContext*)
+procedure<0x0042>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0043>(VMContext*)
+procedure<0x0043>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0044>(VMContext*)
+procedure<0x0044>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0045>(VMContext*)
+procedure<0x0045>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0046>(VMContext*)
+procedure<0x0046>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0047>(VMContext*)
+procedure<0x0047>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0048>(VMContext*)
+procedure<0x0048>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0049>(VMContext*)
+procedure<0x0049>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x004A>(VMContext*)
+procedure<0x004A>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x004B>(VMContext*)
+procedure<0x004B>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x004C>(VMContext*)
+procedure<0x004C>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x004D>(VMContext*)
+procedure<0x004D>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x004E>(VMContext*)
+procedure<0x004E>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x004F>(VMContext*)
+procedure<0x004F>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0050>(VMContext*)
+procedure<0x0050>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0051>(VMContext*)
+procedure<0x0051>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0052>(VMContext*)
+procedure<0x0052>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0053>(VMContext*)
+procedure<0x0053>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0054>(VMContext*)
+procedure<0x0054>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0055>(VMContext*)
+procedure<0x0055>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0056>(VMContext*)
+procedure<0x0056>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0057>(VMContext*)
+procedure<0x0057>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0058>(VMContext*)
+procedure<0x0058>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0059>(VMContext*)
+procedure<0x0059>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x005A>(VMContext*)
+procedure<0x005A>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x005B>(VMContext*)
+procedure<0x005B>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x005C>(VMContext*)
+procedure<0x005C>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x005D>(VMContext*)
+procedure<0x005D>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x005E>(VMContext*)
+procedure<0x005E>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x005F>(VMContext*)
+procedure<0x005F>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0060>(VMContext*)
+procedure<0x0060>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0061>(VMContext*)
+procedure<0x0061>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0062>(VMContext*)
+procedure<0x0062>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0063>(VMContext*)
+procedure<0x0063>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0064>(VMContext*)
+procedure<0x0064>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0065>(VMContext*)
+procedure<0x0065>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0066>(VMContext*)
+procedure<0x0066>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0067>(VMContext*)
+procedure<0x0067>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0068>(VMContext*)
+procedure<0x0068>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0069>(VMContext*)
+procedure<0x0069>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x006A>(VMContext*)
+procedure<0x006A>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x006B>(VMContext*)
+procedure<0x006B>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x006C>(VMContext*)
+procedure<0x006C>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x006D>(VMContext*)
+procedure<0x006D>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x006E>(VMContext*)
+procedure<0x006E>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x006F>(VMContext*)
+procedure<0x006F>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0070>(VMContext*)
+procedure<0x0070>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0071>(VMContext*)
+procedure<0x0071>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0072>(VMContext*)
+procedure<0x0072>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0073>(VMContext*)
+procedure<0x0073>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0074>(VMContext*)
+procedure<0x0074>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0075>(VMContext*)
+procedure<0x0075>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0076>(VMContext*)
+procedure<0x0076>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0077>(VMContext*)
+procedure<0x0077>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0078>(VMContext*)
+procedure<0x0078>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0079>(VMContext*)
+procedure<0x0079>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x007A>(VMContext*)
+procedure<0x007A>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x007B>(VMContext*)
+procedure<0x007B>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x007C>(VMContext*)
+procedure<0x007C>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x007D>(VMContext*)
+procedure<0x007D>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x007E>(VMContext*)
+procedure<0x007E>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x007F>(VMContext*)
+procedure<0x007F>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0080>(VMContext*)
+procedure<0x0080>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0081>(VMContext*)
+procedure<0x0081>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0082>(VMContext*)
+procedure<0x0082>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0083>(VMContext*)
+procedure<0x0083>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0084>(VMContext*)
+procedure<0x0084>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0085>(VMContext*)
+procedure<0x0085>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0086>(VMContext*)
+procedure<0x0086>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0087>(VMContext*)
+procedure<0x0087>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0088>(VMContext*)
+procedure<0x0088>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0089>(VMContext*)
+procedure<0x0089>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x008A>(VMContext*)
+procedure<0x008A>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x008B>(VMContext*)
+procedure<0x008B>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x008C>(VMContext*)
+procedure<0x008C>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x008D>(VMContext*)
+procedure<0x008D>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x008E>(VMContext*)
+procedure<0x008E>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x008F>(VMContext*)
+procedure<0x008F>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0090>(VMContext*)
+procedure<0x0090>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0091>(VMContext*)
+procedure<0x0091>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0092>(VMContext*)
+procedure<0x0092>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0093>(VMContext*)
+procedure<0x0093>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0094>(VMContext*)
+procedure<0x0094>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0095>(VMContext*)
+procedure<0x0095>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0096>(VMContext*)
+procedure<0x0096>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0097>(VMContext*)
+procedure<0x0097>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0098>(VMContext*)
+procedure<0x0098>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x0099>(VMContext*)
+procedure<0x0099>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x009A>(VMContext*)
+procedure<0x009A>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x009B>(VMContext*)
+procedure<0x009B>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x009C>(VMContext*)
+procedure<0x009C>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x009D>(VMContext*)
+procedure<0x009D>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x009E>(VMContext*)
+procedure<0x009E>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x009F>(VMContext*)
+procedure<0x009F>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00A0>(VMContext*)
+procedure<0x00A0>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00A1>(VMContext*)
+procedure<0x00A1>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00A2>(VMContext*)
+procedure<0x00A2>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00A3>(VMContext*)
+procedure<0x00A3>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00A4>(VMContext*)
+procedure<0x00A4>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00A5>(VMContext*)
+procedure<0x00A5>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00A6>(VMContext*)
+procedure<0x00A6>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00A7>(VMContext*)
+procedure<0x00A7>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00A8>(VMContext*)
+procedure<0x00A8>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00A9>(VMContext*)
+procedure<0x00A9>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00AA>(VMContext*)
+procedure<0x00AA>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00AB>(VMContext*)
+procedure<0x00AB>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00AC>(VMContext*)
+procedure<0x00AC>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00AD>(VMContext*)
+procedure<0x00AD>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00AE>(VMContext*)
+procedure<0x00AE>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00AF>(VMContext*)
+procedure<0x00AF>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00B0>(VMContext*)
+procedure<0x00B0>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00B1>(VMContext*)
+procedure<0x00B1>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00B2>(VMContext*)
+procedure<0x00B2>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00B3>(VMContext*)
+procedure<0x00B3>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00B4>(VMContext*)
+procedure<0x00B4>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00B5>(VMContext*)
+procedure<0x00B5>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00B6>(VMContext*)
+procedure<0x00B6>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00B7>(VMContext*)
+procedure<0x00B7>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00B8>(VMContext*)
+procedure<0x00B8>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00B9>(VMContext*)
+procedure<0x00B9>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00BA>(VMContext*)
+procedure<0x00BA>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00BB>(VMContext*)
+procedure<0x00BB>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00BC>(VMContext*)
+procedure<0x00BC>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00BD>(VMContext*)
+procedure<0x00BD>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00BE>(VMContext*)
+procedure<0x00BE>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00BF>(VMContext*)
+procedure<0x00BF>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00C0>(VMContext*)
+procedure<0x00C0>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00C1>(VMContext*)
+procedure<0x00C1>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00C2>(VMContext*)
+procedure<0x00C2>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00C3>(VMContext*)
+procedure<0x00C3>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00C4>(VMContext*)
+procedure<0x00C4>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00C5>(VMContext*)
+procedure<0x00C5>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00C6>(VMContext*)
+procedure<0x00C6>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00C7>(VMContext*)
+procedure<0x00C7>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00C8>(VMContext*)
+procedure<0x00C8>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00C9>(VMContext*)
+procedure<0x00C9>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00CA>(VMContext*)
+procedure<0x00CA>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00CB>(VMContext*)
+procedure<0x00CB>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00CC>(VMContext*)
+procedure<0x00CC>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00CD>(VMContext*)
+procedure<0x00CD>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00CE>(VMContext*)
+procedure<0x00CE>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00CF>(VMContext*)
+procedure<0x00CF>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00D0>(VMContext*)
+procedure<0x00D0>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00D1>(VMContext*)
+procedure<0x00D1>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00D2>(VMContext*)
+procedure<0x00D2>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00D3>(VMContext*)
+procedure<0x00D3>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00D4>(VMContext*)
+procedure<0x00D4>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00D5>(VMContext*)
+procedure<0x00D5>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00D6>(VMContext*)
+procedure<0x00D6>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00D7>(VMContext*)
+procedure<0x00D7>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00D8>(VMContext*)
+procedure<0x00D8>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00D9>(VMContext*)
+procedure<0x00D9>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00DA>(VMContext*)
+procedure<0x00DA>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00DB>(VMContext*)
+procedure<0x00DB>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00DC>(VMContext*)
+procedure<0x00DC>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00DD>(VMContext*)
+procedure<0x00DD>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00DE>(VMContext*)
+procedure<0x00DE>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00DF>(VMContext*)
+procedure<0x00DF>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00E0>(VMContext*)
+procedure<0x00E0>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00E1>(VMContext*)
+procedure<0x00E1>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00E2>(VMContext*)
+procedure<0x00E2>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00E3>(VMContext*)
+procedure<0x00E3>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00E4>(VMContext*)
+procedure<0x00E4>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00E5>(VMContext*)
+procedure<0x00E5>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00E6>(VMContext*)
+procedure<0x00E6>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00E7>(VMContext*)
+procedure<0x00E7>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00E8>(VMContext*)
+procedure<0x00E8>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00E9>(VMContext*)
+procedure<0x00E9>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00EA>(VMContext*)
+procedure<0x00EA>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00EB>(VMContext*)
+procedure<0x00EB>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00EC>(VMContext*)
+procedure<0x00EC>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00ED>(VMContext*)
+procedure<0x00ED>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00EE>(VMContext*)
+procedure<0x00EE>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00EF>(VMContext*)
+procedure<0x00EF>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00F0>(VMContext*)
+procedure<0x00F0>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00F1>(VMContext*)
+procedure<0x00F1>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00F2>(VMContext*)
+procedure<0x00F2>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00F3>(VMContext*)
+procedure<0x00F3>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00F4>(VMContext*)
+procedure<0x00F4>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00F5>(VMContext*)
+procedure<0x00F5>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00F6>(VMContext*)
+procedure<0x00F6>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00F7>(VMContext*)
+procedure<0x00F7>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00F8>(VMContext*)
+procedure<0x00F8>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00F9>(VMContext*)
+procedure<0x00F9>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00FA>(VMContext*)
+procedure<0x00FA>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00FB>(VMContext*)
+procedure<0x00FB>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00FC>(VMContext*)
+procedure<0x00FC>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00FD>(VMContext*)
+procedure<0x00FD>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00FE>(VMContext*)
+procedure<0x00FE>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
 template <>
 int
-procedure<0x00FF>(VMContext*)
+procedure<0x00FF>(VMCpu*, VMContext*)
 {
     return 0;
 }
@@ -2996,24 +3026,26 @@ initialize<Hash("AuthenticAMD")>(PVOID)
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1F; // Intercept shutdown events
 
     *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) = 0;
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x00; // Intercept VMRUN instruction
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x01; // Intercept VMMCALL instruction
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x02; // Intercept VMLOAD instruction
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x03; // Intercept VMSAVE instruction
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x04; // Intercept STGI instruction
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x05; // Intercept CLGI instruction
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x06; // Intercept SKINIT instruction
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x07; // Intercept RDTSCP instruction
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x08; // Intercept ICEBP instruction
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x09; // Intercept WBINVD and WBNOINVD instructions
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0A; // Intercept MONITOR/MONITORX instruction
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0B; // Intercept MWAIT/MWAITX instruction unconditionally
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0C; // Intercept MWAIT/MWAITX instruction if monitor hardware is armed
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0D; // Intercept XSETBV instruction
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0E; // Intercept RDPRU instruction
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0F; // Intercept writes of EFER (occurs after guest instruction finishes)
 
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0012) = 0; ////Intercept writes of CR0-15 (occurs after guest instruction finishes)
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x00; // Intercept VMRUN instruction
+
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x01; // Intercept VMMCALL instruction
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x02; // Intercept VMLOAD instruction
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x03; // Intercept VMSAVE instruction
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x04; // Intercept STGI instruction
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x05; // Intercept CLGI instruction
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x06; // Intercept SKINIT instruction
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x07; // Intercept RDTSCP instruction
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x08; // Intercept ICEBP instruction
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x09; // Intercept WBINVD and WBNOINVD instructions
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0A; // Intercept MONITOR/MONITORX instruction
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0B; // Intercept MWAIT/MWAITX instruction unconditionally
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0C; // Intercept MWAIT/MWAITX instruction if monitor hardware is armed
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0D; // Intercept XSETBV instruction
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0E; // Intercept RDPRU instruction
+    // *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) |= 1U << 0x0F; // Intercept writes of EFER (occurs after guest instruction finishes)
+
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0012) = 0; // Intercept writes of CR0-15 (occurs after guest instruction finishes)
 
     *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0014) = 0;
     *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0014) |= 1U << 0x00; // Intercept all INVLPGB instructions
@@ -3089,60 +3121,60 @@ initialize<Hash("AuthenticAMD")>(PVOID)
     //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B8) |= 1U << 0x03; // PMC Virtualization Enable
 
     *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C0) = 0; // VMCB Clean Bits.
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8) = 0; // nRIP - Next sequential instruction pointer
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x00D0) = 0; //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8) = 0; // nRIP - Next sequential instruction pointer
+    *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x00D0) = 0;  // Number of bytes fetched
     *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x00F0) = 0; //
     *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x00F8) = 0; //
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0108) = 0; //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0108) = 0; // 51:12 VMSA Pointer[51:12]
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0110) = 0; // VMGEXIT_RAX
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0118) = 0;  // VMGEXIT_CPL
     *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0120) = 0; // Bus Lock Threshold Counter
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0134) = 0; //
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0138) = 0; //
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0140) = 0; //
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0134) = 0; // UPDATE_IRR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0138) = 0; // 61:0 ALLOWED_SEV_FEATURES_MASK
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0140) = 0; // 61:0 GUEST_SEV_FEATURES
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0148) = 0; //
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0150) = 0; //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0150) = 0; // 255:0 REQUESTED_IRR
 
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0000) = ES;                                      // ES selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0002) = svm_format_access_rights(__asm_lar(ES)); // ES attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0004) = __asm_lsl(ES);                           // ES limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0008) = __lsb(ES);                               // ES base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0010) = CS;                                      // CS selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0012) = svm_format_access_rights(__asm_lar(CS)); // CS attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0014) = __asm_lsl(CS);                           // CS limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0018) = __lsb(CS);                               // CS base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0020) = SS;                                      // SS selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0022) = svm_format_access_rights(__asm_lar(SS)); // SS attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0024) = __asm_lsl(SS);                           // SS limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0028) = __lsb(SS);                               // SS base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0030) = DS;                                      // DS selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0032) = svm_format_access_rights(__asm_lar(DS)); // DS attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0034) = __asm_lsl(DS);                           // DS limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0038) = __lsb(DS);                               // DS base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0040) = 0;                                       // FS selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0042) = 0;                                       // FS attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0044) = 0;                                       // FS limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0048) = 0;                                       // FS base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0050) = 0;                                       // GS selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0052) = 0;                                       // GS attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0054) = 0;                                       // GS limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0058) = 0;                                       // GS base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0060) = 0;                                       // GDTR selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0062) = 0;                                       // GDTR attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0064) = GDTR.Limit;                              // GDTR limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0068) = (uint64_t)GDTR.BaseAddress;              // GDTR base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0070) = 0;                                       // LDTR selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0072) = 0;                                       // LDTR attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0074) = 0;                                       // LDTR limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0078) = 0;                                       // LDTR base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0080) = 0;                                       // IDTR selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0082) = 0;                                       // IDTR attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0084) = IDTR.Limit;                              // IDTR limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0088) = (uint64_t)IDTR.BaseAddress;              // IDTR base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0090) = 0;                                       // TR selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0092) = 0;                                       // TR attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0094) = 0;                                       // TR limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0098) = 0;                                       // TR base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0000) = ES;                                    // ES selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0002) = svm_format_access_rights(__lar(ES));   // ES attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0004) = __lsl(ES);                             // ES limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0008) = __lsb(ES);                             // ES base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0010) = CS;                                    // CS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0012) = svm_format_access_rights(__lar(CS));   // CS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0014) = __lsl(CS);                             // CS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0018) = __lsb(CS);                             // CS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0020) = SS;                                    // SS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0022) = svm_format_access_rights(__lar(SS));   // SS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0024) = __lsl(SS);                             // SS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0028) = __lsb(SS);                             // SS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0030) = DS;                                    // DS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0032) = svm_format_access_rights(__lar(DS));   // DS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0034) = __lsl(DS);                             // DS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0038) = __lsb(DS);                             // DS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0040) = FS;                                    // FS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0042) = svm_format_access_rights(__lar(FS));   // FS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0044) = __lsl(FS);                             // FS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0048) = __lsb(FS);                             // FS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0050) = GS;                                    // GS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0052) = svm_format_access_rights(__lar(GS));   // GS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0054) = __lsl(GS);                             // GS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0058) = __lsb(GS);                             // GS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0060) = 0;                                     // GDTR selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0062) = 0;                                     // GDTR attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0064) = GDTR.Limit;                            // GDTR limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0068) = (uint64_t)GDTR.BaseAddress;            // GDTR base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0070) = LDTR;                                  // LDTR selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0072) = svm_format_access_rights(__lar(LDTR)); // LDTR attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0074) = __lsl(LDTR);                           // LDTR limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0078) = __lsb(LDTR);                           // LDTR base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0080) = 0;                                     // IDTR selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0082) = 0;                                     // IDTR attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0084) = IDTR.Limit;                            // IDTR limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0088) = (uint64_t)IDTR.BaseAddress;            // IDTR base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0090) = TR;                                    // TR selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0092) = svm_format_access_rights(__lar(TR));   // TR attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0094) = __lsl(TR);                             // TR limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0098) = __lsb(TR);                             // TR base
 
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x00CB) = 0;                              // CPL If the guest is real-mode then the CPL is forced to 0; if the guest is virtual-mode then the CPL is forced to 3
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x00D0) = (ia32_efer & ~(1ULL << 0x0C)); // EFER
@@ -3173,7 +3205,7 @@ initialize<Hash("AuthenticAMD")>(PVOID)
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01E0) = 0;                             // S_CET
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01E8) = 0;                             // SSP
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F0) = 0;                             // ISST_ADDR
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8) = 1;                             // RAX
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8) = Context.Rax;                   // RAX
 
     // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0200) = ia32_star;                     // STAR
     // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0208) = ia32_lstar;                    // LSTAR
@@ -3215,93 +3247,86 @@ initialize<Hash("AuthenticAMD")>(PVOID)
     __asm_svm_vmsave(vcpu->VmcbGuestPa.QuadPart);
     __asm_svm_vmsave(vcpu->VmcbHostPa.QuadPart);
 
-    size_t stack = (size_t)allocate<0x2000>();
-
     __asm_svm_clgi();
-    while (1) {
 
-        __asm__ __volatile__("\n mov %0, %%rsp"
-                             "\n mov %1, %%r15"
-                             "\n mov %c2(%%r15), %%rbx"
-                             "\n mov %c3(%%r15), %%rcx"
-                             "\n mov %c4(%%r15), %%rdx"
-                             "\n mov %c5(%%r15), %%rsi"
-                             "\n mov %c6(%%r15), %%rdi"
-                             "\n mov %c7(%%r15), %%rbp"
-                             "\n mov %c8(%%r15), %%r8"
-                             "\n mov %c9(%%r15), %%r9"
-                             "\n mov %c10(%%r15), %%r10"
-                             "\n mov %c11(%%r15), %%r11"
-                             "\n mov %c12(%%r15), %%r12"
-                             "\n mov %c13(%%r15), %%r13"
-                             "\n mov %c14(%%r15), %%r14"
-                             "\n mov %c15(%%r15), %%r15"
-                             "\n vmrun"
+    __asm__ __volatile__("\n mov %0, %%rax"    // VMCB
+                         "\n mov %1, %%rcx"    // Context
+                         "\n mov %2, %%rsp"    //
+                         "\n push %c3(%%rcx)"  // Context.R15
+                         "\n push %c4(%%rcx)"  // Context.R14
+                         "\n push %c5(%%rcx)"  // Context.R13
+                         "\n push %c6(%%rcx)"  // Context.R12
+                         "\n push %c7(%%rcx)"  // Context.R11
+                         "\n push %c8(%%rcx)"  // Context.R10
+                         "\n push %c9(%%rcx)"  // Context.R9
+                         "\n push %c10(%%rcx)" // Context.R8
+                         "\n push %c11(%%rcx)" // Context.RSP
+                         "\n push %c12(%%rcx)" // Context.RBP
+                         "\n push %c13(%%rcx)" // Context.RSI
+                         "\n push %c14(%%rcx)" // Context.RDI
+                         "\n push %c15(%%rcx)" // Context.RDX
+                         "\n push %c16(%%rcx)" // Context.RCX
+                         "\n push %c17(%%rcx)" // Context.RBX
+                         "\n push %%rax"       // Context.RAX
 
-                             "\n xyz:"
-                             "\n push %%r15" //
-                             "\n push %%r14" //
-                             "\n push %%r13" //
-                             "\n push %%r12" //
-                             "\n push %%r11" //
-                             "\n push %%r10" //
-                             "\n push %%r9"  //
-                             "\n push %%r8"  //
-                             "\n push $0x0"  // VMContext.RSP
-                             "\n push %%rbp" //
-                             "\n push %%rsi" //
-                             "\n push %%rdi" //
-                             "\n push %%rdx" //
-                             "\n push %%rcx" //
-                             "\n push %%rbx" //
-                             "\n push $0x0"  // VMContext.RAX
+                         "\n labelA:"
 
-                             "\n mov %%gs:0x1A4, %%ecx" // KeGetCurrentProcessorIndex
-                             "\n lea VMCpus(%%rip), %%rdx"
-                             "\n mov (%%rdx, %%rcx, 8), %%rcx"
+                         "\n pop %%rax" //
+                         "\n pop %%rbx" //
+                         "\n pop %%rcx" //
+                         "\n pop %%rdx" //
+                         "\n pop %%rdi" //
+                         "\n pop %%rsi" //
+                         "\n pop %%rbp" //
+                         "\n pop %%r8"  // VMContext.RSP
+                         "\n pop %%r8"  //
+                         "\n pop %%r9"  //
+                         "\n pop %%r10" //
+                         "\n pop %%r11" //
+                         "\n pop %%r12" //
+                         "\n pop %%r13" //
+                         "\n pop %%r14" //
+                         "\n pop %%r15" //
 
-                             "\n lea Procedures(%%rip), %%rbx"
-                             "\n mov (%%rbx, %%rax, 8), %%rdx"
-                             "\n mov %%rsp, %%rcx"
-                             "\n call *%%rdx"
+                         "\n vmrun" //
 
-                             "\n pop %%rbx" // VMContext.RAX
-                             "\n pop %%rbx" //
-                             "\n pop %%rcx" //
-                             "\n pop %%rdx" //
-                             "\n pop %%rdi" //
-                             "\n pop %%rsi" //
-                             "\n pop %%rbp" //
-                             "\n pop %%r8"  // VMContext.RSP
-                             "\n pop %%r8"  //
-                             "\n pop %%r9"  //
-                             "\n pop %%r10" //
-                             "\n pop %%r11" //
-                             "\n pop %%r12" //
-                             "\n pop %%r13" //
-                             "\n pop %%r14" //
-                             "\n pop %%r15" //
-                             "\n vmrun"     //
-                             "\n jmp xyz"   //
-                             :
-                             : "r"(stack + 0x1FF0), "r"(&Context), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R15)), "a"(vcpu->VmcbGuestPa.QuadPart)
-                             : "memory");
+                         "\n push %%r15" //
+                         "\n push %%r14" //
+                         "\n push %%r13" //
+                         "\n push %%r12" //
+                         "\n push %%r11" //
+                         "\n push %%r10" //
+                         "\n push %%r9"  //
+                         "\n push %%r8"  //
+                         "\n push %%r8"  // VMContext.RSP
+                         "\n push %%rbp" //
+                         "\n push %%rsi" //
+                         "\n push %%rdi" //
+                         "\n push %%rdx" //
+                         "\n push %%rcx" //
+                         "\n push %%rbx" //
+                         "\n push %%rax" //
 
-        int64_t EXITCODE = *(int64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0070);      // EXITCODE
-        uint64_t EXITINFO1 = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0078);   // EXITINFO1
-        uint64_t EXITINFO2 = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0080);   // EXITINFO2
-        uint64_t EXITINTINFO = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0088); // EXITINTINFO
+                         "\n mov %%rsp, %%rdx"               // VMContext*
+                         "\n lea -0x1FF0+0x80(%%rsp), %%rcx" // VMCpu*
+                         "\n mov %c19(%%rcx), %%rsi"         // VMCpu->VmcbGuest
+                         "\n mov 0x00C8(%%rsi), %%rdi"       // nRIP
+                         "\n mov 0x0070(%%rsi), %%rax"       // EXITCODE
+                         "\n cmp $0, %%rax"
+                         "\n jl labelB"
 
-        if (EXITCODE < 0)
-            break;
+                         "\n lea Procedures(%%rip), %%rbx"
+                         "\n mov (%%rbx, %%rax, 8), %%rdx"
+                         "\n call *%%rdx"
+                         "\n mov %%rdi, 0x400+0x0178(%%rsi)" // RIP=nRIP
+                         "\n jmp labelA"                     //
 
-        Procedures[EXITCODE](nullptr);
+                         "\n labelB:"
+                         "\n int3"
+                         :
+                         : "m"(vcpu->VmcbGuestPa.QuadPart), "r"(&Context), "r"((uint8_t*)vcpu + 0x1FF0), "i"(offsetof(CONTEXT, R15)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, Rsp)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rax)), "i"(offsetof(VMCpu, VmcbGuest))
+                         : "memory");
 
-        UNREFERENCED_PARAMETER(EXITCODE);
-        UNREFERENCED_PARAMETER(EXITINFO1);
-        UNREFERENCED_PARAMETER(EXITINFO2);
-        UNREFERENCED_PARAMETER(EXITINTINFO);
-    }
     __asm_svm_stgi();
 
     return 0;

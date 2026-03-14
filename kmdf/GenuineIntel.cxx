@@ -279,6 +279,22 @@ static KSPIN_LOCK kSpinLock;
 
 static int (*Procedures[0x100])(VMContext* ctx);
 
+static FORCEINLINE uint32_t
+__lar(uint16_t selector)
+{
+    uint32_t val = 0;
+    uint8_t zf = 0;
+
+    if ((selector & 0xFFF8) == 0)
+        return 0;
+
+    __asm__ __volatile__("lar %2, %0; setz %1" : "=r"(val), "=qm"(zf) : "r"(selector) : "cc");
+    if (!zf)
+        return 0;
+
+    return val;
+}
+
 static size_t
 __lsb(uint16_t selector)
 {
@@ -324,22 +340,6 @@ __lsb(uint16_t selector)
     }
 
     return SegmentBase;
-}
-
-static FORCEINLINE uint32_t
-__lar(uint16_t selector)
-{
-    uint32_t val = 0;
-    uint8_t zf = 0;
-
-    if ((selector & 0xFFF8) == 0)
-        return 0;
-
-    __asm__ __volatile__("lar %2, %0; setz %1" : "=r"(val), "=qm"(zf) : "r"(selector) : "cc");
-    if (!zf)
-        return 0;
-
-    return val;
 }
 
 static FORCEINLINE uint32_t
