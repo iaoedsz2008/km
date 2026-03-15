@@ -821,6 +821,7 @@ procedure<0x005F>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 60h VMEXIT_INTR Physical INTR (maskable interrupt).
 template <>
 int
 procedure<0x0060>(VMCpu*, VMContext*)
@@ -828,6 +829,7 @@ procedure<0x0060>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 61h VMEXIT_NMI Physical NMI.
 template <>
 int
 procedure<0x0061>(VMCpu*, VMContext*)
@@ -835,6 +837,7 @@ procedure<0x0061>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 62h VMEXIT_SMI Physical SMI (the EXITINFO1 field provides more information).
 template <>
 int
 procedure<0x0062>(VMCpu*, VMContext*)
@@ -842,6 +845,7 @@ procedure<0x0062>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 63h VMEXIT_INIT Physical INIT.
 template <>
 int
 procedure<0x0063>(VMCpu*, VMContext*)
@@ -849,6 +853,7 @@ procedure<0x0063>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 64h VMEXIT_VINTR Virtual INTR.
 template <>
 int
 procedure<0x0064>(VMCpu*, VMContext*)
@@ -856,6 +861,7 @@ procedure<0x0064>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 65h VMEXIT_CR0_SEL_WRITE Write of CR0 changed bits other than CR0.TS or CR0.MP.
 template <>
 int
 procedure<0x0065>(VMCpu*, VMContext*)
@@ -863,6 +869,7 @@ procedure<0x0065>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 66h VMEXIT_IDTR_READ Read of IDTR.
 template <>
 int
 procedure<0x0066>(VMCpu*, VMContext*)
@@ -870,6 +877,7 @@ procedure<0x0066>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 67h VMEXIT_GDTR_READ Read of GDTR.
 template <>
 int
 procedure<0x0067>(VMCpu*, VMContext*)
@@ -877,6 +885,7 @@ procedure<0x0067>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 68h VMEXIT_LDTR_READ Read of LDTR.
 template <>
 int
 procedure<0x0068>(VMCpu*, VMContext*)
@@ -884,6 +893,7 @@ procedure<0x0068>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 69h VMEXIT_TR_READ Read of TR.
 template <>
 int
 procedure<0x0069>(VMCpu*, VMContext*)
@@ -891,6 +901,7 @@ procedure<0x0069>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 6Ah VMEXIT_IDTR_WRITE Write of IDTR.
 template <>
 int
 procedure<0x006A>(VMCpu*, VMContext*)
@@ -898,6 +909,7 @@ procedure<0x006A>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 6Bh VMEXIT_GDTR_WRITE Write of GDTR.
 template <>
 int
 procedure<0x006B>(VMCpu*, VMContext*)
@@ -905,6 +917,7 @@ procedure<0x006B>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 6Ch VMEXIT_LDTR_WRITE Write of LDTR.
 template <>
 int
 procedure<0x006C>(VMCpu*, VMContext*)
@@ -912,6 +925,7 @@ procedure<0x006C>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 6Dh VMEXIT_TR_WRITE Write of TR.
 template <>
 int
 procedure<0x006D>(VMCpu*, VMContext*)
@@ -919,6 +933,7 @@ procedure<0x006D>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 6Eh VMEXIT_RDTSC RDTSC instruction.
 template <>
 int
 procedure<0x006E>(VMCpu*, VMContext*)
@@ -926,6 +941,7 @@ procedure<0x006E>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 6Fh VMEXIT_RDPMC RDPMC instruction.
 template <>
 int
 procedure<0x006F>(VMCpu*, VMContext*)
@@ -933,6 +949,7 @@ procedure<0x006F>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 70h VMEXIT_PUSHF PUSHF instruction.
 template <>
 int
 procedure<0x0070>(VMCpu*, VMContext*)
@@ -940,6 +957,7 @@ procedure<0x0070>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 71h VMEXIT_POPF POPF instruction.
 template <>
 int
 procedure<0x0071>(VMCpu*, VMContext*)
@@ -947,13 +965,22 @@ procedure<0x0071>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 72h VMEXIT_CPUID CPUID instruction.
 template <>
 int
-procedure<0x0072>(VMCpu*, VMContext*)
+procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
 {
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8) = 0; // RAX
+    ctx->RBX = {};
+    ctx->RCX = {};
+    ctx->RDX = {};
+
+    __asm_cpuid_ex(ctx->RCX, ctx->RDX, (uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8), (uint32_t*)&ctx->RBX, (uint32_t*)&ctx->RCX, (uint32_t*)&ctx->RDX);
+
     return 0;
 }
 
+// 73h VMEXIT_RSM RSM instruction.
 template <>
 int
 procedure<0x0073>(VMCpu*, VMContext*)
@@ -961,6 +988,7 @@ procedure<0x0073>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 74h VMEXIT_IRET IRET instruction.
 template <>
 int
 procedure<0x0074>(VMCpu*, VMContext*)
@@ -968,6 +996,7 @@ procedure<0x0074>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 75h VMEXIT_SWINT Software interrupt (INTn instructions).
 template <>
 int
 procedure<0x0075>(VMCpu*, VMContext*)
@@ -975,6 +1004,7 @@ procedure<0x0075>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 76h VMEXIT_INVD INVD instruction.
 template <>
 int
 procedure<0x0076>(VMCpu*, VMContext*)
@@ -982,6 +1012,7 @@ procedure<0x0076>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 77h VMEXIT_PAUSE PAUSE instruction.
 template <>
 int
 procedure<0x0077>(VMCpu*, VMContext*)
@@ -989,6 +1020,7 @@ procedure<0x0077>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 78h VMEXIT_HLT HLT instruction.
 template <>
 int
 procedure<0x0078>(VMCpu*, VMContext*)
@@ -996,6 +1028,7 @@ procedure<0x0078>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 79h VMEXIT_INVLPG INVLPG instructions.
 template <>
 int
 procedure<0x0079>(VMCpu*, VMContext*)
@@ -1003,6 +1036,7 @@ procedure<0x0079>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 7Ah VMEXIT_INVLPGA INVLPGA instruction.
 template <>
 int
 procedure<0x007A>(VMCpu*, VMContext*)
@@ -1010,6 +1044,7 @@ procedure<0x007A>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 7Bh VMEXIT_IOIO IN or OUT accessing protected port (the EXITINFO1 field provides more information).
 template <>
 int
 procedure<0x007B>(VMCpu*, VMContext*)
@@ -1017,6 +1052,7 @@ procedure<0x007B>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 7Ch VMEXIT_MSR RDMSR or WRMSR access to protected MSR.
 template <>
 int
 procedure<0x007C>(VMCpu*, VMContext*)
@@ -1024,6 +1060,7 @@ procedure<0x007C>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 7Dh VMEXIT_TASK_SWITCH Task switch.
 template <>
 int
 procedure<0x007D>(VMCpu*, VMContext*)
@@ -1031,6 +1068,7 @@ procedure<0x007D>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 7Eh VMEXIT_FERR_FREEZE FP legacy handling enabled, and processor is frozen in an x87/mmx instruction waiting for an interrupt.
 template <>
 int
 procedure<0x007E>(VMCpu*, VMContext*)
@@ -1038,6 +1076,7 @@ procedure<0x007E>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 7Fh VMEXIT_SHUTDOWN Shutdown
 template <>
 int
 procedure<0x007F>(VMCpu*, VMContext*)
@@ -1045,6 +1084,7 @@ procedure<0x007F>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 80h VMEXIT_VMRUN VMRUN instruction.
 template <>
 int
 procedure<0x0080>(VMCpu*, VMContext*)
@@ -1052,6 +1092,7 @@ procedure<0x0080>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 81h VMEXIT_VMMCALL VMMCALL instruction.
 template <>
 int
 procedure<0x0081>(VMCpu*, VMContext*)
@@ -1059,6 +1100,7 @@ procedure<0x0081>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 82h VMEXIT_VMLOAD VMLOAD instruction.
 template <>
 int
 procedure<0x0082>(VMCpu*, VMContext*)
@@ -1066,6 +1108,7 @@ procedure<0x0082>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 83h VMEXIT_VMSAVE VMSAVE instruction.
 template <>
 int
 procedure<0x0083>(VMCpu*, VMContext*)
@@ -1073,6 +1116,7 @@ procedure<0x0083>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 84h VMEXIT_STGI STGI instruction.
 template <>
 int
 procedure<0x0084>(VMCpu*, VMContext*)
@@ -1080,6 +1124,7 @@ procedure<0x0084>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 85h VMEXIT_CLGI CLGI instruction.
 template <>
 int
 procedure<0x0085>(VMCpu*, VMContext*)
@@ -1087,6 +1132,7 @@ procedure<0x0085>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 86h VMEXIT_SKINIT SKINIT instruction.
 template <>
 int
 procedure<0x0086>(VMCpu*, VMContext*)
@@ -1094,6 +1140,7 @@ procedure<0x0086>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 87h VMEXIT_RDTSCP RDTSCP instruction.
 template <>
 int
 procedure<0x0087>(VMCpu*, VMContext*)
@@ -1101,6 +1148,7 @@ procedure<0x0087>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 88h VMEXIT_ICEBP ICEBP instruction.
 template <>
 int
 procedure<0x0088>(VMCpu*, VMContext*)
@@ -1108,6 +1156,7 @@ procedure<0x0088>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 89h VMEXIT_WBINVD WBINVD or WBNOINVD instruction.
 template <>
 int
 procedure<0x0089>(VMCpu*, VMContext*)
@@ -1115,6 +1164,7 @@ procedure<0x0089>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 8Ah VMEXIT_MONITOR MONITOR or MONITORX instruction.
 template <>
 int
 procedure<0x008A>(VMCpu*, VMContext*)
@@ -1122,6 +1172,7 @@ procedure<0x008A>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 8Bh VMEXIT_MWAIT MWAIT or MWAITX instruction.
 template <>
 int
 procedure<0x008B>(VMCpu*, VMContext*)
@@ -1129,6 +1180,7 @@ procedure<0x008B>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 8Ch VMEXIT_MWAIT_CONDITIONAL MWAIT or MWAITX instruction, if monitor hardware is armed.
 template <>
 int
 procedure<0x008C>(VMCpu*, VMContext*)
@@ -1150,6 +1202,7 @@ procedure<0x008E>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 8Fh VMEXIT_EFER_WRITE_TRAP Write of EFER MSR (occurs after guest instruction finishes).
 template <>
 int
 procedure<0x008F>(VMCpu*, VMContext*)
@@ -1157,6 +1210,7 @@ procedure<0x008F>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 90h-9Fh VMEXIT_CR[0-15]_WRITE_TRAP Write of CR0-15, respectively (occurs after guest instruction finishes).
 template <>
 int
 procedure<0x0090>(VMCpu*, VMContext*)
@@ -1269,6 +1323,7 @@ procedure<0x009F>(VMCpu*, VMContext*)
     return 0;
 }
 
+// A0h  VMEXIT_INVLPGB INVLPGB instruction.
 template <>
 int
 procedure<0x00A0>(VMCpu*, VMContext*)
@@ -1276,6 +1331,7 @@ procedure<0x00A0>(VMCpu*, VMContext*)
     return 0;
 }
 
+// A1h  VMEXIT_INVLPGB_ILLEGAL Illegal INVLPGB instruction.
 template <>
 int
 procedure<0x00A1>(VMCpu*, VMContext*)
@@ -1283,6 +1339,7 @@ procedure<0x00A1>(VMCpu*, VMContext*)
     return 0;
 }
 
+// A2h  VMEXIT_INVPCID INVPCID instruction.
 template <>
 int
 procedure<0x00A2>(VMCpu*, VMContext*)
@@ -1290,6 +1347,7 @@ procedure<0x00A2>(VMCpu*, VMContext*)
     return 0;
 }
 
+// A3h VMEXIT_MCOMMIT MCOMMIT instruction.
 template <>
 int
 procedure<0x00A3>(VMCpu*, VMContext*)
@@ -1297,6 +1355,7 @@ procedure<0x00A3>(VMCpu*, VMContext*)
     return 0;
 }
 
+// A4h  VMEXIT_TLBSYNC TLBSYNC instruction.
 template <>
 int
 procedure<0x00A4>(VMCpu*, VMContext*)
@@ -1304,6 +1363,7 @@ procedure<0x00A4>(VMCpu*, VMContext*)
     return 0;
 }
 
+// A5h VMEXIT_BUSLOCK Bus lock while Bus Lock Threshold Counter value is 0.
 template <>
 int
 procedure<0x00A5>(VMCpu*, VMContext*)
@@ -1311,6 +1371,7 @@ procedure<0x00A5>(VMCpu*, VMContext*)
     return 0;
 }
 
+// A6h VMEXIT_IDLE_HLT HLT instruction if a virtual interrupt is not pending.
 template <>
 int
 procedure<0x00A6>(VMCpu*, VMContext*)
@@ -1318,625 +1379,34 @@ procedure<0x00A6>(VMCpu*, VMContext*)
     return 0;
 }
 
+// 400h VMEXIT_NPF Nested paging: host-level page fault occurred (EXITINFO1 contains fault error code; EXITINFO2 contains the guest physical address causing the fault).
 template <>
 int
-procedure<0x00A7>(VMCpu*, VMContext*)
+procedure<0x0400>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
+// 401h AVIC_INCOMPLETE_IPI AVIC-Virtual IPI delivery not completed. See "AVIC IPI Delivery Not Completed" on page 580 for EXITINFO1-2 definitions.
 template <>
 int
-procedure<0x00A8>(VMCpu*, VMContext*)
+procedure<0x0401>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
+// 402h AVIC_NOACCEL AVIC-Attempted access by guest to vAPIC register not handled by AVIC hardware. See "AVIC Access to Un-accelerated vAPIC register" on page 581 for EXITINFO1-2 definitions.
 template <>
 int
-procedure<0x00A9>(VMCpu*, VMContext*)
+procedure<0x0402>(VMCpu*, VMContext*)
 {
     return 0;
 }
 
+// 403h VMEXIT_VMGEXIT VMGEXIT instruction.
 template <>
 int
-procedure<0x00AA>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00AB>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00AC>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00AD>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00AE>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00AF>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00B0>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00B1>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00B2>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00B3>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00B4>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00B5>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00B6>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00B7>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00B8>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00B9>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00BA>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00BB>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00BC>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00BD>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00BE>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00BF>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00C0>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00C1>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00C2>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00C3>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00C4>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00C5>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00C6>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00C7>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00C8>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00C9>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00CA>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00CB>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00CC>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00CD>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00CE>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00CF>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00D0>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00D1>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00D2>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00D3>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00D4>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00D5>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00D6>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00D7>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00D8>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00D9>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00DA>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00DB>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00DC>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00DD>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00DE>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00DF>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00E0>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00E1>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00E2>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00E3>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00E4>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00E5>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00E6>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00E7>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00E8>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00E9>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00EA>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00EB>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00EC>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00ED>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00EE>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00EF>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00F0>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00F1>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00F2>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00F3>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00F4>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00F5>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00F6>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00F7>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00F8>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00F9>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00FA>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00FB>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00FC>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00FD>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00FE>(VMCpu*, VMContext*)
-{
-    return 0;
-}
-
-template <>
-int
-procedure<0x00FF>(VMCpu*, VMContext*)
+procedure<0x0403>(VMCpu*, VMContext*)
 {
     return 0;
 }
@@ -2217,8 +1687,10 @@ int
 initialize<Hash("AuthenticAMD")>(PVOID)
 {
     ULONG ProcessorIndex = KeGetCurrentProcessorIndex();
-    VMCpu* vcpu = (VMCpu*)allocate<0x2000>();
+    VMCpu* vcpu = (VMCpu*)allocate<0x10000>();
     VMCpus[ProcessorIndex] = vcpu;
+
+    memset(vcpu, 0, 0x10000);
 
     do {
         uint32_t eax;
@@ -2962,32 +2434,36 @@ initialize<Hash("AuthenticAMD")>(PVOID)
     KeReleaseSpinLockFromDpcLevel(&kSpinLock);
 
     vcpu->IoPermissionsMap = allocateContiguous<0x2000>();
-    vcpu->MsrPermissionsMap = allocateContiguous<0x2000>();
-    vcpu->VmcbGuest = allocate<0x1000>();
-    vcpu->VmcbHost = allocate<0x1000>();
     vcpu->IoPermissionsMapPa = MmGetPhysicalAddress(vcpu->IoPermissionsMap);
+    vcpu->MsrPermissionsMap = allocateContiguous<0x2000>();
     vcpu->MsrPermissionsMapPa = MmGetPhysicalAddress(vcpu->MsrPermissionsMap);
+    vcpu->VmcbGuest = allocateContiguous<0x1000>();
     vcpu->VmcbGuestPa = MmGetPhysicalAddress(vcpu->VmcbGuest);
+    vcpu->VmcbHost = allocateContiguous<0x1000>();
     vcpu->VmcbHostPa = MmGetPhysicalAddress(vcpu->VmcbHost);
 
-    memset(vcpu->IoPermissionsMap, 0, 0x1000);
-    memset(vcpu->MsrPermissionsMap, 0, 0x1000);
+    memset(vcpu->IoPermissionsMap, 0, 0x2000);
+    memset(vcpu->MsrPermissionsMap, 0, 0x2000);
     memset(vcpu->VmcbGuest, 0, 0x1000);
     memset(vcpu->VmcbHost, 0, 0x1000);
 
     CONTEXT Context;
     RtlCaptureContext(&Context);
 
+    KdBreakPoint();
+
+    uint64_t ia32_fs_base2222 = __asm_rdmsr(IA32_FS_BASE);
+    uint64_t ia32_gs_base2222 = __asm_rdmsr(IA32_GS_BASE);
+    uint64_t ia32_kernel_gs_base2222 = __asm_rdmsr(IA32_KERNEL_GS_BASE);
+
     if (Context.Rip == 0x12345678)
         return 0;
 
-    KdBreakPoint();
-
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0000) = 0; // Intercept reads of CR0–15, respectively
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0002) = 0; // Intercept writes of CR0–15, respectively
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0004) = 0; // Intercept reads of DR0–15, respectively
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0006) = 0; // Intercept writes of DR0–15, respectively.
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = 0; // Intercept exception vectors 0–31, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0000) = 0; // Intercept reads of CR0-15, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0002) = 0; // Intercept writes of CR0-15, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0004) = 0; // Intercept reads of DR0-15, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0006) = 0; // Intercept writes of DR0-15, respectively.
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = 0; // Intercept exception vectors 0-31, respectively
 
     *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) = 0;
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x00; // Intercept INTR (physical maskable interrupt)
@@ -3066,10 +2542,10 @@ initialize<Hash("AuthenticAMD")>(PVOID)
 
     /**
      * TLB_CONTROL
-     * 00h—Do nothing
-     * 01h—Flush entire TLB (all entries, all ASIDs) on VMRUN Should only be used by legacy hypervisors
-     * 03h—Flush this guest’s TLB entries
-     * 07h—Flush this guest’s non-global TLB entries
+     * 00h-Do nothing
+     * 01h-Flush entire TLB (all entries, all ASIDs) on VMRUN Should only be used by legacy hypervisors
+     * 03h-Flush this guest’s TLB entries
+     * 07h-Flush this guest’s non-global TLB entries
      **/
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 0;
 
@@ -3078,20 +2554,20 @@ initialize<Hash("AuthenticAMD")>(PVOID)
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005D) |= 1U << 0x01; // CLEAR_RAP
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) = 0;
-    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= (1ULL & 0x000000FF) << 0x08; // 7:0 V_TPR—The virtual TPR for the guest. Bits 3:0 are used for a 4-bit virtual TPR value; bits 7:4 are SBZ.
-    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x08;                // 8 V_IRQ—If nonzero, virtual INTR is pending
-    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x09;                // 9 VGIF value (0 – Virtual interrupts are masked, 1 – Virtual Interrupts are unmasked)
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= (1ULL & 0x000000FF) << 0x08; // 7:0 V_TPR-The virtual TPR for the guest. Bits 3:0 are used for a 4-bit virtual TPR value; bits 7:4 are SBZ.
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x08;                // 8 V_IRQ-If nonzero, virtual INTR is pending
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x09;                // 9 VGIF value (0 - Virtual interrupts are masked, 1 - Virtual Interrupts are unmasked)
     //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x0B;                // 11 V_NMI - If nonzero, virtual NMI is pending
     //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x0C;                // 12 V_NMI_MASK - if nonzero, virtual NMI is masked
-    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x10;                // 19:16 V_INTR_PRIO—Priority for virtual interrupt
-    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x14;                // 20 V_IGN_TPR—If nonzero, the current virtual interrupt ignores the (virtual) TPR
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x10;                // 19:16 V_INTR_PRIO-Priority for virtual interrupt
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x14;                // 20 V_IGN_TPR-If nonzero, the current virtual interrupt ignores the (virtual) TPR
     //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x15;                //
-    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x18;                // 24 V_INTR_MASKING—Virtualize masking of INTR interrupts
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x18;                // 24 V_INTR_MASKING-Virtualize masking of INTR interrupts
     //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x19;                // 25 AMD Virtual GIF enabled for this guest
     //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x1A;                // 26 V_NMI_ENABLE - NMI Virtualization Enable
     //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x1E;                // 30 x2AVIC Enable
     //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= 1ULL << 0x1F;                // 31 AVIC Enable
-    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= (1ULL & 0x000000FF) << 0x20; // 39:32 V_INTR_VECTOR—Vector to use for this interrupt
+    //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0060) |= (1ULL & 0x000000FF) << 0x20; // 39:32 V_INTR_VECTOR-Vector to use for this interrupt
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0068) = 0; //
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0070) = 0; // EXITCODE
@@ -3135,30 +2611,45 @@ initialize<Hash("AuthenticAMD")>(PVOID)
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0148) = 0; //
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0150) = 0; // 255:0 REQUESTED_IRR
 
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0000) = ES;                                    // ES selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0002) = svm_format_access_rights(__lar(ES));   // ES attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0004) = __lsl(ES);                             // ES limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0008) = __lsb(ES);                             // ES base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0010) = CS;                                    // CS selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0012) = svm_format_access_rights(__lar(CS));   // CS attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0014) = __lsl(CS);                             // CS limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0018) = __lsb(CS);                             // CS base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0020) = SS;                                    // SS selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0022) = svm_format_access_rights(__lar(SS));   // SS attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0024) = __lsl(SS);                             // SS limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0028) = __lsb(SS);                             // SS base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0030) = DS;                                    // DS selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0032) = svm_format_access_rights(__lar(DS));   // DS attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0034) = __lsl(DS);                             // DS limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0038) = __lsb(DS);                             // DS base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0040) = FS;                                    // FS selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0042) = svm_format_access_rights(__lar(FS));   // FS attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0044) = __lsl(FS);                             // FS limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0048) = __lsb(FS);                             // FS base
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0050) = GS;                                    // GS selector
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0052) = svm_format_access_rights(__lar(GS));   // GS attrib
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0054) = __lsl(GS);                             // GS limit
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0058) = __lsb(GS);                             // GS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0000) = ES;                                  // ES selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0002) = svm_format_access_rights(__lar(ES)); // ES attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0004) = __lsl(ES);                           // ES limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0008) = __lsb(ES);                           // ES base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0010) = CS;                                  // CS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0012) = svm_format_access_rights(__lar(CS)); // CS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0014) = __lsl(CS);                           // CS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0018) = __lsb(CS);                           // CS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0020) = SS;                                  // SS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0022) = svm_format_access_rights(__lar(SS)); // SS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0024) = __lsl(SS);                           // SS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0028) = __lsb(SS);                           // SS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0030) = DS;                                  // DS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0032) = svm_format_access_rights(__lar(DS)); // DS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0034) = __lsl(DS);                           // DS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0038) = __lsb(DS);                           // DS base
+
+#if defined(_M_AMD64) || defined(__x86_64__)
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0040) = FS;           // FS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0042) = 0;            // FS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0044) = 0;            // FS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0048) = ia32_fs_base; // FS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0050) = GS;           // GS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0052) = 0;            // GS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0054) = 0;            // GS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0058) = ia32_gs_base; // GS base
+#endif
+
+#if defined(_M_IX86) || defined(__i386__)
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0040) = FS;                                  // FS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0042) = svm_format_access_rights(__lar(FS)); // FS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0044) = __lsl(FS);                           // FS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0048) = __lsb(FS);                           // FS base
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0050) = GS;                                  // GS selector
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0052) = svm_format_access_rights(__lar(GS)); // GS attrib
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0054) = __lsl(GS);                           // GS limit
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0058) = __lsb(GS);                           // GS base
+#endif
+
     *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0060) = 0;                                     // GDTR selector
     *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0062) = 0;                                     // GDTR attrib
     *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0064) = GDTR.Limit;                            // GDTR limit
@@ -3207,14 +2698,14 @@ initialize<Hash("AuthenticAMD")>(PVOID)
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F0) = 0;                             // ISST_ADDR
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8) = Context.Rax;                   // RAX
 
-    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0200) = ia32_star;                     // STAR
-    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0208) = ia32_lstar;                    // LSTAR
-    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0210) = ia32_cstar;                    // CSTAR
-    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0218) = 0;                             // SFMASK
-    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0220) = ia32_kernel_gs_base;           // KernelGsBase
-    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0228) = ia32_sysenter_cs;              // SYSENTER_CS
-    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0230) = ia32_sysenter_esp;             // SYSENTER_ESP
-    // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0238) = ia32_sysenter_eip;             // SYSENTER_EIP
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0200) = ia32_star;           // STAR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0208) = ia32_lstar;          // LSTAR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0210) = ia32_cstar;          // CSTAR
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0218) = 0;                   // SFMASK
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0220) = ia32_kernel_gs_base; // KernelGsBase
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0228) = ia32_sysenter_cs;    // SYSENTER_CS
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0230) = ia32_sysenter_esp;   // SYSENTER_ESP
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0238) = ia32_sysenter_eip;   // SYSENTER_EIP
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0240) = CR2;           // CR2
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0268) = 0;             // G_PAT Guest PAT - only used if nested paging enabled
@@ -3247,27 +2738,28 @@ initialize<Hash("AuthenticAMD")>(PVOID)
     __asm_svm_vmsave(vcpu->VmcbGuestPa.QuadPart);
     __asm_svm_vmsave(vcpu->VmcbHostPa.QuadPart);
 
-    __asm_svm_clgi();
+    DbgBreakPoint();
 
-    __asm__ __volatile__("\n mov %0, %%rax"    // VMCB
-                         "\n mov %1, %%rcx"    // Context
-                         "\n mov %2, %%rsp"    //
-                         "\n push %c3(%%rcx)"  // Context.R15
-                         "\n push %c4(%%rcx)"  // Context.R14
-                         "\n push %c5(%%rcx)"  // Context.R13
-                         "\n push %c6(%%rcx)"  // Context.R12
-                         "\n push %c7(%%rcx)"  // Context.R11
-                         "\n push %c8(%%rcx)"  // Context.R10
-                         "\n push %c9(%%rcx)"  // Context.R9
-                         "\n push %c10(%%rcx)" // Context.R8
-                         "\n push %c11(%%rcx)" // Context.RSP
-                         "\n push %c12(%%rcx)" // Context.RBP
-                         "\n push %c13(%%rcx)" // Context.RSI
-                         "\n push %c14(%%rcx)" // Context.RDI
-                         "\n push %c15(%%rcx)" // Context.RDX
-                         "\n push %c16(%%rcx)" // Context.RCX
-                         "\n push %c17(%%rcx)" // Context.RBX
-                         "\n push %%rax"       // Context.RAX
+    __asm__ __volatile__("\n mov %0, %%rax"            // VMCB
+                         "\n mov %1, %%rcx"            // Context
+                         "\n mov %2, %%rdx"            // vcpu
+                         "\n lea 0x1FF0(%%rdx), %%rsp" //
+                         "\n push %c3(%%rcx)"          // Context.R15
+                         "\n push %c4(%%rcx)"          // Context.R14
+                         "\n push %c5(%%rcx)"          // Context.R13
+                         "\n push %c6(%%rcx)"          // Context.R12
+                         "\n push %c7(%%rcx)"          // Context.R11
+                         "\n push %c8(%%rcx)"          // Context.R10
+                         "\n push %c9(%%rcx)"          // Context.R9
+                         "\n push %c10(%%rcx)"         // Context.R8
+                         "\n push %c11(%%rcx)"         // Context.RSP
+                         "\n push %c12(%%rcx)"         // Context.RBP
+                         "\n push %c13(%%rcx)"         // Context.RSI
+                         "\n push %c14(%%rcx)"         // Context.RDI
+                         "\n push %c15(%%rcx)"         // Context.RDX
+                         "\n push %c16(%%rcx)"         // Context.RCX
+                         "\n push %c17(%%rcx)"         // Context.RBX
+                         "\n push %%rax"               // VMCB
 
                          "\n labelA:"
 
@@ -3288,7 +2780,18 @@ initialize<Hash("AuthenticAMD")>(PVOID)
                          "\n pop %%r14" //
                          "\n pop %%r15" //
 
-                         "\n vmrun" //
+                         "\n clgi"   //
+                         "\n sti"    //
+                         "\n vmload" //
+                         "\n vmrun"  //
+                         "\n vmsave" //
+                         "\n cli"    //
+                         "\n stgi"   //
+
+                         "\n mov $0xC0000101, %%rcx" // test
+                         "\n rdmsr"                  // test
+                         "\n swapgs"                 // 暂时没弄明白,按理说不需要swapgs.
+                         "\n int3"                   // test
 
                          "\n push %%r15" //
                          "\n push %%r14" //
@@ -3315,7 +2818,7 @@ initialize<Hash("AuthenticAMD")>(PVOID)
                          "\n cmp $0, %%rax"
                          "\n jl labelB"
 
-                         "\n lea Procedures(%%rip), %%rbx"
+                         "\n lea %20, %%rbx"
                          "\n mov (%%rbx, %%rax, 8), %%rdx"
                          "\n call *%%rdx"
                          "\n mov %%rdi, 0x400+0x0178(%%rsi)" // RIP=nRIP
@@ -3324,10 +2827,8 @@ initialize<Hash("AuthenticAMD")>(PVOID)
                          "\n labelB:"
                          "\n int3"
                          :
-                         : "m"(vcpu->VmcbGuestPa.QuadPart), "r"(&Context), "r"((uint8_t*)vcpu + 0x1FF0), "i"(offsetof(CONTEXT, R15)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, Rsp)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rax)), "i"(offsetof(VMCpu, VmcbGuest))
+                         : "m"(vcpu->VmcbGuestPa.QuadPart), "r"(&Context), "m"(vcpu), "i"(offsetof(CONTEXT, R15)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, Rsp)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rax)), "i"(offsetof(VMCpu, VmcbGuest)), "m"(Procedures)
                          : "memory");
-
-    __asm_svm_stgi();
 
     return 0;
 }

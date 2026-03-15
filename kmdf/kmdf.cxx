@@ -14,6 +14,7 @@ static lfqueue* Mem4K = NULL;
 static lfqueue* Mem8K = NULL;
 static lfqueue* Mem16K = NULL;
 static lfqueue* Mem32K = NULL;
+static lfqueue* Mem64K = NULL;
 
 static lfqueue* Contiguous4K = NULL;
 static lfqueue* Contiguous8K = NULL;
@@ -81,6 +82,20 @@ void
 deallocate<0x8000>(PVOID Mem)
 {
     Mem32K->push(Mem);
+}
+
+template <>
+PVOID
+allocate<0x10000>()
+{
+    return Mem64K->pop();
+}
+
+template <>
+void
+deallocate<0x10000>(PVOID Mem)
+{
+    Mem64K->push(Mem);
 }
 
 template <>
@@ -223,10 +238,30 @@ DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
         MmFreeContiguousMemory(m);
     }
 
+    while (auto m = allocate<0x8000>()) {
+        ExFreePool(m);
+    }
+
+    while (auto m = allocate<0x4000>()) {
+        ExFreePool(m);
+    }
+
+    while (auto m = allocate<0x2000>()) {
+        ExFreePool(m);
+    }
+
+    while (auto m = allocate<0x1000>()) {
+        ExFreePool(m);
+    }
+
     ExFreePool(Contiguous32K);
     ExFreePool(Contiguous16K);
     ExFreePool(Contiguous8K);
     ExFreePool(Contiguous4K);
+    ExFreePool(Mem32K);
+    ExFreePool(Mem16K);
+    ExFreePool(Mem8K);
+    ExFreePool(Mem4K);
 }
 
 EXTERN_C NTSTATUS
@@ -247,46 +282,52 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
     Mem8K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
     Mem16K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
     Mem32K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
+    Mem64K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
 
     for (ULONG i = 0; i < KeQueryActiveProcessorCount(NULL); ++i) {
-        for (size_t k = 0; k < 16; k++) {
+        for (size_t k = 0; k < 16; ++k) {
             auto m = MmAllocateContiguousMemory(0x1000, HighestAcceptableAddress);
             deallocateContiguous<0x1000>(m);
         }
 
-        for (size_t k = 0; k < 8; k++) {
+        for (size_t k = 0; k < 8; ++k) {
             auto m = MmAllocateContiguousMemory(0x2000, HighestAcceptableAddress);
             deallocateContiguous<0x2000>(m);
         }
 
-        for (size_t k = 0; k < 4; k++) {
+        for (size_t k = 0; k < 4; ++k) {
             auto m = MmAllocateContiguousMemory(0x4000, HighestAcceptableAddress);
             deallocateContiguous<0x4000>(m);
         }
 
-        for (size_t k = 0; k < 2; k++) {
+        for (size_t k = 0; k < 2; ++k) {
             auto m = MmAllocateContiguousMemory(0x8000, HighestAcceptableAddress);
             deallocateContiguous<0x8000>(m);
         }
 
-        for (size_t k = 0; k < 16; k++) {
+        for (size_t k = 0; k < 16; ++k) {
             auto m = ExAllocatePool(NonPagedPool, 0x1000);
             deallocate<0x1000>(m);
         }
 
-        for (size_t k = 0; k < 8; k++) {
+        for (size_t k = 0; k < 8; ++k) {
             auto m = ExAllocatePool(NonPagedPool, 0x2000);
             deallocate<0x2000>(m);
         }
 
-        for (size_t k = 0; k < 4; k++) {
+        for (size_t k = 0; k < 4; ++k) {
             auto m = ExAllocatePool(NonPagedPool, 0x4000);
             deallocate<0x4000>(m);
         }
 
-        for (size_t k = 0; k < 2; k++) {
+        for (size_t k = 0; k < 2; ++k) {
             auto m = ExAllocatePool(NonPagedPool, 0x8000);
             deallocate<0x8000>(m);
+        }
+
+        for (size_t k = 0; k < 1; ++k) {
+            auto m = ExAllocatePool(NonPagedPool, 0x10000);
+            deallocate<0x10000>(m);
         }
     }
 
