@@ -970,12 +970,17 @@ template <>
 int
 procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
 {
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8) = 0; // RAX
+    uint64_t* RAX = (uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8); // RAX
+
+    uint32_t leaf = *RAX;
+    uint32_t subleaf = ctx->RCX;
+
+    *RAX = {};
     ctx->RBX = {};
     ctx->RCX = {};
     ctx->RDX = {};
 
-    __asm_cpuid_ex(ctx->RCX, ctx->RDX, (uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8), (uint32_t*)&ctx->RBX, (uint32_t*)&ctx->RCX, (uint32_t*)&ctx->RDX);
+    __asm_cpuid_ex(leaf, subleaf, (uint32_t*)RAX, (uint32_t*)&ctx->RBX, (uint32_t*)&ctx->RCX, (uint32_t*)&ctx->RDX);
 
     return 0;
 }
@@ -2786,11 +2791,6 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
                          "\n cli"    //
                          "\n stgi"   //
 
-                         "\n mov $0xC0000101, %%rcx" // test
-                         "\n rdmsr"                  // test
-                         "\n swapgs"                 // 暂时没弄明白,按理说不需要swapgs.
-                         "\n int3"                   // test
-
                          "\n push %%r15" //
                          "\n push %%r14" //
                          "\n push %%r13" //
@@ -2808,6 +2808,9 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
                          "\n push %%rbx" //
                          "\n push %%rax" //
 
+                         "\n mov $0xC0000101, %%rcx" // test IA32_GS_BASE
+                         "\n rdmsr"                  // test IA32_GS_BASE
+
                          "\n mov %%rsp, %%rdx"               // VMContext*
                          "\n lea -0x1FF0+0x80(%%rsp), %%rcx" // VMCpu*
                          "\n mov %c19(%%rcx), %%rsi"         // VMCpu->VmcbGuest
@@ -2817,8 +2820,8 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
                          "\n jl labelB"
 
                          "\n lea %20, %%rbx"
-                         "\n mov (%%rbx, %%rax, 8), %%rdx"
-                         "\n call *%%rdx"
+                         "\n mov (%%rbx, %%rax, 8), %%rax"
+                         "\n call *%%rax"
                          "\n mov %%rdi, 0x400+0x0178(%%rsi)" // RIP=nRIP
                          "\n jmp labelA"                     //
 
