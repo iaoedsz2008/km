@@ -1416,8 +1416,9 @@ initializeNPT()
 {
 }
 
-static void
-initializeProcedures()
+template <>
+void
+initialize<Hash("AuthenticAMD")>()
 {
     Procedures[0x0000] = &procedure<0x0000>;
     Procedures[0x0001] = &procedure<0x0001>;
@@ -1680,11 +1681,13 @@ initializeProcedures()
     Procedures[0x0401] = &procedure<0x0401>;
     Procedures[0x0402] = &procedure<0x0402>;
     Procedures[0x0403] = &procedure<0x0403>;
+
+    initializeNPT();
 }
 
 template <>
 int
-initialize<Hash("AuthenticAMD")>(PVOID)
+vmxon<Hash("AuthenticAMD")>(PVOID)
 {
     ULONG ProcessorIndex = KeGetCurrentProcessorIndex();
     VMCpu* vcpu = (VMCpu*)allocate<0x10000>();
@@ -2428,11 +2431,6 @@ initialize<Hash("AuthenticAMD")>(PVOID)
         msr = __asm_rdmsr(0xC001109A); // L3RangeReserveWayMask
     } while (0);
 
-    KeAcquireSpinLockAtDpcLevel(&kSpinLock);
-    initializeNPT();
-    initializeProcedures();
-    KeReleaseSpinLockFromDpcLevel(&kSpinLock);
-
     vcpu->IoPermissionsMap = allocateContiguous<0x2000>();
     vcpu->IoPermissionsMapPa = MmGetPhysicalAddress(vcpu->IoPermissionsMap);
     vcpu->MsrPermissionsMap = allocateContiguous<0x2000>();
@@ -2835,7 +2833,7 @@ initialize<Hash("AuthenticAMD")>(PVOID)
 
 template <>
 int
-cleanup<Hash("AuthenticAMD")>(PVOID)
+vmxoff<Hash("AuthenticAMD")>(PVOID)
 {
     return 0;
 }

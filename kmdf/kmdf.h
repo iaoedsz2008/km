@@ -16,18 +16,21 @@ template <size_t>
 PVOID allocate();
 
 template <size_t>
-void deallocate(PVOID Mem);
+void deallocate(PVOID);
 
 template <size_t>
 PVOID allocateContiguous();
 
 template <size_t>
-void deallocateContiguous(PVOID Mem);
+void deallocateContiguous(PVOID);
 
 template <size_t T>
-int initialize(PVOID);
+void initialize();
 
 template <size_t T>
-int cleanup(PVOID);
+int vmxon(PVOID);
+
+template <size_t T>
+int vmxoff(PVOID);
 
 #endif // !__3a1c6fd0f7b982d2d5718381b6ebc2dc__

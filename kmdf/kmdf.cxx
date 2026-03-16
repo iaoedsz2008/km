@@ -154,8 +154,33 @@ deallocateContiguous<0x8000>(PVOID Mem)
     Contiguous32K->push(Mem);
 }
 
+static void
+initialize()
+{
+    char vendor[0x10] = {};
+
+    uint32_t eax;
+    uint32_t ebx;
+    uint32_t ecx;
+    uint32_t edx;
+
+    KdBreakPoint();
+
+    __asm_cpuid(0, &eax, &ebx, &ecx, &edx);
+
+    ((uint32_t*)vendor)[0] = ebx;
+    ((uint32_t*)vendor)[1] = edx;
+    ((uint32_t*)vendor)[2] = ecx;
+
+    if (memcmp(vendor, "GenuineIntel", 12) == 0)
+        initialize<Hash("GenuineIntel")>();
+
+    if (memcmp(vendor, "AuthenticAMD", 12) == 0)
+        initialize<Hash("AuthenticAMD")>();
+}
+
 static ULONG_PTR
-load(_In_ ULONG_PTR Argument)
+vmxon(_In_ ULONG_PTR Argument)
 {
     UNREFERENCED_PARAMETER(Argument);
 
@@ -175,16 +200,16 @@ load(_In_ ULONG_PTR Argument)
     ((uint32_t*)vendor)[2] = ecx;
 
     if (memcmp(vendor, "GenuineIntel", 12) == 0)
-        return initialize<Hash("GenuineIntel")>(NULL);
+        return vmxon<Hash("GenuineIntel")>(NULL);
 
     if (memcmp(vendor, "AuthenticAMD", 12) == 0)
-        return initialize<Hash("AuthenticAMD")>(NULL);
+        return vmxon<Hash("AuthenticAMD")>(NULL);
 
     return -1;
 }
 
 static ULONG_PTR
-unload(_In_ ULONG_PTR Argument)
+vmxoff(_In_ ULONG_PTR Argument)
 {
     UNREFERENCED_PARAMETER(Argument);
 
@@ -204,10 +229,10 @@ unload(_In_ ULONG_PTR Argument)
     ((uint32_t*)vendor)[2] = ecx;
 
     if (memcmp(vendor, "GenuineIntel", 12) == 0)
-        cleanup<Hash("GenuineIntel")>(NULL);
+        vmxoff<Hash("GenuineIntel")>(NULL);
 
     if (memcmp(vendor, "AuthenticAMD", 12) == 0)
-        cleanup<Hash("AuthenticAMD")>(NULL);
+        vmxoff<Hash("AuthenticAMD")>(NULL);
 
     return 0;
 }
@@ -219,7 +244,7 @@ DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
 
     KdBreakPoint();
 
-    if (KeIpiGenericCall(unload, 0))
+    if (KeIpiGenericCall(vmxoff, 0))
         return;
 
     while (auto m = allocateContiguous<0x8000>()) {
@@ -345,7 +370,9 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 
     ExFreePool(Ranges);
 
-    if (KeIpiGenericCall(load, 0))
+    initialize();
+
+    if (KeIpiGenericCall(vmxon, 0))
         return STATUS_UNSUCCESSFUL;
 
     DriverObject->DriverUnload = DriverUnload;

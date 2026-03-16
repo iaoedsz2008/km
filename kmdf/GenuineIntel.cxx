@@ -1139,8 +1139,273 @@ vmx_vmexit(void)
                          : "memory");
 }
 
+template <size_t __pagesize__>
+class ExtendedPageTable {
+  public:
+    ExtendedPageTable();
+    ~ExtendedPageTable();
+
+  private:
+};
+
+template <>
+class ExtendedPageTable<0x1000> {
+  public:
+    ExtendedPageTable();
+    ~ExtendedPageTable();
+
+  private:
+};
+
+template <>
+class ExtendedPageTable<0x200000> {
+  public:
+    ExtendedPageTable();
+    ~ExtendedPageTable();
+
+  private:
+};
+
+template <>
+class ExtendedPageTable<0x40000000> {
+  public:
+    ExtendedPageTable();
+    ~ExtendedPageTable();
+
+  private:
+};
+
 static void
 initializeEPT()
+{
+    uint64_t EPTP = {};
+
+    uint64_t PML5 = {};
+    uint64_t PML4 = {};
+    uint64_t PDPT = {};
+    uint64_t PD = {};
+    uint64_t PT = {};
+
+    uint64_t PML5E = {};
+    uint64_t PML4E = {};
+    uint64_t PDPTE = {};
+    uint64_t PDE = {};
+    uint64_t PTE = {};
+
+    /**
+     * Format of an EPT PML5 Entry (PML5E) that References an EPT PML4 Table
+     **/
+
+    /**
+     * 0 Read access; indicates whether reads are allowed from the 256-TByte region controlled by this entry.
+     **/
+    PML5E |= (1ULL << 0x00);
+
+    /**
+     * 1 Write access; indicates whether writes are allowed to the 256-TByte region controlled by this entry.
+     **/
+    PML5E |= (1ULL << 0x01);
+
+    /**
+     * 2
+     * If the “mode-based execute control for EPT” VM-execution control is 0, execute access; indicates whether instruction fetches are allowed from the 256-TByte region controlled by this entry.
+     * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are allowed from supervisor-mode linear addresses in the 256-TByte region controlled by this entry.
+     **/
+    PML5E |= (1ULL << 0x02);
+
+    /**
+     *8 If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 256-TByte region controlled by this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
+     **/
+    PML5E |= (1ULL << 0x08);
+
+    /**
+     * 10
+     * Execute access for user-mode linear addresses. If the “mode-based execute control for EPT” VM-execution control is 1, indicates whether instruction fetches are allowed from user-mode linear addresses in the 256-TByte region controlled by this entry.
+     * If that control is 0, this bit is ignored.
+     **/
+    PML5E |= (1ULL << 0x0A);
+
+    /**
+     * M–1:12 Physical address of 4-KByte aligned EPT PML4 table referenced by this entry.
+     **/
+    PML5E |= (1ULL << 0x0C);
+
+    /**
+     * Format of an EPT PML4 Entry (PML4E) that References an EPT Page-Directory-Pointer Table
+     **/
+
+    /**
+     *
+     **/
+    PML4E |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PML4E |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PML4E |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PML4E |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PML4E |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PML4E |= (1ULL << 0x00);
+
+    /**
+     * Format of an EPT Page-Directory-Pointer-Table Entry (PDPTE) that Maps a 1-GByte Page
+     **/
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     * M–1:30 Physical address of the 1-GByte page referenced by this entry.
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     * 63
+     * Suppress #VE. If the “EPT-violation #VE” VM-execution control is 1, EPT violations caused by accesses to this page
+     * are convertible to virtualization exceptions only if this bit is 0 (see Section 28.5.7.1). If “EPT-violation #VE” VM-
+     * execution control is 0, this bit is ignored.
+     **/
+    PDPTE |= (1ULL << 0x3F);
+
+    /**
+     * Format of an EPT Page-Directory-Pointer-Table Entry (PDPTE) that References an EPT Page Directory
+     **/
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     *
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     * M–1:12 Physical address of 4-KByte aligned EPT page directory referenced by this entry.
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     * Format of an EPT Page-Directory Entry (PDE) that Maps a 2-MByte Page
+     **/
+
+    /**
+     *
+     **/
+    PDE |= (1ULL << 0x00);
+
+    /**
+     * Format of an EPT Page-Directory Entry (PDE) that References an EPT Page Table
+     **/
+
+    /**
+     *
+     **/
+    PDE |= (1ULL << 0x00);
+
+    /**
+     * Format of an EPT Page-Table Entry that Maps a 4-KByte Page
+     **/
+
+    /**
+     *
+     **/
+    PTE |= (1ULL << 0x00);
+}
+
+template <>
+void
+initialize<Hash("GenuineIntel")>()
 {
     Procedures[0x0000] = &procedure<0x0000>;
     Procedures[0x0001] = &procedure<0x0001>;
@@ -1222,11 +1487,13 @@ initializeEPT()
     Procedures[0x004D] = &procedure<0x004D>;
     Procedures[0x004E] = &procedure<0x004E>;
     Procedures[0x004F] = &procedure<0x004F>;
+
+    initializeEPT();
 }
 
 template <>
 int
-initialize<Hash("GenuineIntel")>(PVOID)
+vmxon<Hash("GenuineIntel")>(PVOID)
 {
     uint32_t eax;
     uint32_t ebx;
@@ -1831,10 +2098,6 @@ initialize<Hash("GenuineIntel")>(PVOID)
 
     CR0 = __asm_cr0();
     CR4 = __asm_cr4();
-
-    KeAcquireSpinLockAtDpcLevel(&kSpinLock);
-    initializeEPT();
-    KeReleaseSpinLockFromDpcLevel(&kSpinLock);
 
     PVOID vmcsGuest = allocateContiguous<0x1000>();
     PVOID vmxonRegion = allocateContiguous<0x1000>();
@@ -2773,7 +3036,7 @@ initialize<Hash("GenuineIntel")>(PVOID)
 
 template <>
 int
-cleanup<Hash("GenuineIntel")>(PVOID)
+vmxoff<Hash("GenuineIntel")>(PVOID)
 {
     __asm_vmx_vmxoff();
     return 0;

@@ -99,9 +99,9 @@ static constexpr uint32_t IA32_KERNEL_GS_BASE = 0xC0000102;
 static constexpr uint32_t IA32_TSC_AUX = 0xC0000103;
 
 template <>
-int initialize<Hash("GenuineIntel")>(PVOID vcpu);
+int vmxon<Hash("GenuineIntel")>(PVOID vcpu);
 
 template <>
-int cleanup<Hash("GenuineIntel")>(PVOID vcpu);
+int vmxoff<Hash("GenuineIntel")>(PVOID vcpu);
 
 #endif // !__398ab4fa7c7ae78c3d6413bc104aff31__
