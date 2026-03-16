@@ -2739,7 +2739,6 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     Context.Rip = 0x12345678;
 
     __asm_svm_vmsave(vcpu->VmcbGuestPa.QuadPart);
-    __asm_svm_vmsave(vcpu->VmcbHostPa.QuadPart);
 
     DbgBreakPoint();
 
@@ -2785,9 +2784,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
 
                          "\n clgi"   //
                          "\n sti"    //
-                         "\n vmload" //
                          "\n vmrun"  //
-                         "\n vmsave" //
                          "\n cli"    //
                          "\n stgi"   //
 
@@ -2807,9 +2804,6 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
                          "\n push %%rcx" //
                          "\n push %%rbx" //
                          "\n push %%rax" //
-
-                         "\n mov $0xC0000101, %%rcx" // test IA32_GS_BASE
-                         "\n rdmsr"                  // test IA32_GS_BASE
 
                          "\n mov %%rsp, %%rdx"               // VMContext*
                          "\n lea -0x1FF0+0x80(%%rsp), %%rcx" // VMCpu*
