@@ -407,7 +407,7 @@ procedure<0x0000>(VMContext*)
     return 0;
 }
 
-// 1 External interrupt. An external interrupt arrived and the “external-interrupt exiting” VM-execution control was 1.
+// 1 External interrupt. An external interrupt arrived and the "external-interrupt exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x0001>(VMContext*)
@@ -431,7 +431,7 @@ procedure<0x0003>(VMContext*)
     return 0;
 }
 
-// 4 Start-up IPI (SIPI). A SIPI arrived while the logical processor was in the “wait-for-SIPI” state.
+// 4 Start-up IPI (SIPI). A SIPI arrived while the logical processor was in the "wait-for-SIPI" state.
 template <>
 int
 procedure<0x0004>(VMContext*)
@@ -455,7 +455,7 @@ procedure<0x0006>(VMContext*)
     return 0;
 }
 
-// 7 Interrupt window. At the beginning of an instruction, RFLAGS.IF was 1; events were not blocked by STI or by MOV SS; and the “interrupt-window exiting” VM-execution control was 1.
+// 7 Interrupt window. At the beginning of an instruction, RFLAGS.IF was 1; events were not blocked by STI or by MOV SS; and the "interrupt-window exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x0007>(VMContext*)
@@ -463,7 +463,7 @@ procedure<0x0007>(VMContext*)
     return 0;
 }
 
-// 8 NMI window. At the beginning of an instruction, there was no virtual-NMI blocking; events were not blocked by MOV SS; and the “NMI-window exiting” VM-execution control was 1.
+// 8 NMI window. At the beginning of an instruction, there was no virtual-NMI blocking; events were not blocked by MOV SS; and the "NMI-window exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x0008>(VMContext*)
@@ -496,7 +496,7 @@ procedure<0x000B>(VMContext*)
     return 0;
 }
 
-// 12 HLT. Guest software attempted to execute HLT and the “HLT exiting” VM-execution control was 1.
+// 12 HLT. Guest software attempted to execute HLT and the "HLT exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x000C>(VMContext*)
@@ -512,7 +512,7 @@ procedure<0x000D>(VMContext*)
     return 0;
 }
 
-// 14 INVLPG. Guest software attempted to execute INVLPG and the “INVLPG exiting” VM-execution control was 1.
+// 14 INVLPG. Guest software attempted to execute INVLPG and the "INVLPG exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x000E>(VMContext*)
@@ -520,7 +520,7 @@ procedure<0x000E>(VMContext*)
     return 0;
 }
 
-// 15 RDPMC. Guest software attempted to execute RDPMC and the “RDPMC exiting” VM-execution control was 1.
+// 15 RDPMC. Guest software attempted to execute RDPMC and the "RDPMC exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x000F>(VMContext*)
@@ -528,7 +528,7 @@ procedure<0x000F>(VMContext*)
     return 0;
 }
 
-// 16 RDTSC. Guest software attempted to execute RDTSC and the “RDTSC exiting” VM-execution control was 1.
+// 16 RDTSC. Guest software attempted to execute RDTSC and the "RDTSC exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x0010>(VMContext*)
@@ -632,7 +632,7 @@ procedure<0x001C>(VMContext*)
     return 0;
 }
 
-// 29 MOV DR. Guest software attempted a MOV to or from a debug register and the “MOV-DR exiting” VM-execution control was 1.
+// 29 MOV DR. Guest software attempted a MOV to or from a debug register and the "MOV-DR exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x001D>(VMContext*)
@@ -692,7 +692,7 @@ procedure<0x0023>(VMContext*)
     return 0;
 }
 
-// 36 MWAIT. Guest software attempted to execute MWAIT and the “MWAIT exiting” VM-execution control was 1.
+// 36 MWAIT. Guest software attempted to execute MWAIT and the "MWAIT exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x0024>(VMContext*)
@@ -700,7 +700,7 @@ procedure<0x0024>(VMContext*)
     return 0;
 }
 
-// 37 Monitor trap flag. A VM exit occurred due to the 1-setting of the “monitor trap flag” VM-execution control (see Section 28.5.2) or VM entry injected a pending MTF VM exit as part of VM entry (see Section 29.6.2).
+// 37 Monitor trap flag. A VM exit occurred due to the 1-setting of the "monitor trap flag" VM-execution control (see Section 28.5.2) or VM entry injected a pending MTF VM exit as part of VM entry (see Section 29.6.2).
 template <>
 int
 procedure<0x0025>(VMContext*)
@@ -715,7 +715,7 @@ procedure<0x0026>(VMContext*)
     return 0;
 }
 
-// 39 MONITOR. Guest software attempted to execute MONITOR and the “MONITOR exiting” VM-execution control was 1.
+// 39 MONITOR. Guest software attempted to execute MONITOR and the "MONITOR exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x0027>(VMContext*)
@@ -723,7 +723,7 @@ procedure<0x0027>(VMContext*)
     return 0;
 }
 
-// 40 PAUSE. Either guest software attempted to execute PAUSE and the “PAUSE exiting” VM-execution control was 1 or the “PAUSE-loop exiting” VM-execution control was 1 and guest software executed a PAUSE loop with execution time exceeding PLE_Window
+// 40 PAUSE. Either guest software attempted to execute PAUSE and the "PAUSE exiting" VM-execution control was 1 or the "PAUSE-loop exiting" VM-execution control was 1 and guest software executed a PAUSE loop with execution time exceeding PLE_Window
 template <>
 int
 procedure<0x0028>(VMContext*)
@@ -748,7 +748,7 @@ procedure<0x002A>(VMContext*)
 
 /**
  * 43 TPR below threshold. The logical processor determined that the value of bits 7:4 of the byte at offset 080H on the
- * virtual-APIC page was below that of the TPR threshold VM-execution control field while the “use TPR shadow” VM-
+ * virtual-APIC page was below that of the TPR threshold VM-execution control field while the "use TPR shadow" VM-
  * execution control was 1 either as part of TPR virtualization (Section 32.1.2) or VM entry (Section 29.7.7).
  **/
 template <>
@@ -758,7 +758,7 @@ procedure<0x002B>(VMContext*)
     return 0;
 }
 
-// 44 APIC access. Guest software attempted to access memory at a physical address on the APIC-access page and the “virtualize APIC accesses” VM-execution control was 1 (see Section 32.4).
+// 44 APIC access. Guest software attempted to access memory at a physical address on the APIC-access page and the "virtualize APIC accesses" VM-execution control was 1 (see Section 32.4).
 template <>
 int
 procedure<0x002C>(VMContext*)
@@ -774,7 +774,7 @@ procedure<0x002D>(VMContext*)
     return 0;
 }
 
-// 46 Access to GDTR or IDTR. Guest software attempted to execute LGDT, LIDT, SGDT, or SIDT and the “descriptor-table exiting” VM-execution control was 1.
+// 46 Access to GDTR or IDTR. Guest software attempted to execute LGDT, LIDT, SGDT, or SIDT and the "descriptor-table exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x002E>(VMContext*)
@@ -782,7 +782,7 @@ procedure<0x002E>(VMContext*)
     return 0;
 }
 
-// 47 Access to LDTR or TR. Guest software attempted to execute LLDT, LTR, SLDT, or STR and the “descriptor-table exiting” VM-execution control was 1.
+// 47 Access to LDTR or TR. Guest software attempted to execute LLDT, LTR, SLDT, or STR and the "descriptor-table exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x002F>(VMContext*)
@@ -814,7 +814,7 @@ procedure<0x0032>(VMContext*)
     return 0;
 }
 
-// 51 RDTSCP. Guest software attempted to execute RDTSCP and the “enable RDTSCP” and “RDTSC exiting” VM-execution controls were both 1.
+// 51 RDTSCP. Guest software attempted to execute RDTSCP and the "enable RDTSCP" and "RDTSC exiting" VM-execution controls were both 1.
 template <>
 int
 procedure<0x0033>(VMContext*)
@@ -838,7 +838,7 @@ procedure<0x0035>(VMContext*)
     return 0;
 }
 
-// 54 WBINVD or WBNOINVD. Guest software attempted to execute WBINVD or WBNOINVD and the “WBINVD exiting” VM-execution control was 1.
+// 54 WBINVD or WBNOINVD. Guest software attempted to execute WBINVD or WBNOINVD and the "WBINVD exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x0036>(VMContext*)
@@ -862,7 +862,7 @@ procedure<0x0038>(VMContext*)
     return 0;
 }
 
-// 57 RDRAND. Guest software attempted to execute RDRAND and the “RDRAND exiting” VM-execution control was 1.
+// 57 RDRAND. Guest software attempted to execute RDRAND and the "RDRAND exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x0039>(VMContext*)
@@ -870,7 +870,7 @@ procedure<0x0039>(VMContext*)
     return 0;
 }
 
-// 58 INVPCID. Guest software attempted to execute INVPCID and the “enable INVPCID” and “INVLPG exiting” VM-execution controls were both 1.
+// 58 INVPCID. Guest software attempted to execute INVPCID and the "enable INVPCID" and "INVLPG exiting" VM-execution controls were both 1.
 template <>
 int
 procedure<0x003A>(VMContext*)
@@ -887,7 +887,7 @@ procedure<0x003B>(VMContext*)
 }
 
 /**
- * 60 ENCLS. Guest software attempted to execute ENCLS, “enable ENCLS exiting” VM-execution control was 1, and either
+ * 60 ENCLS. Guest software attempted to execute ENCLS, "enable ENCLS exiting" VM-execution control was 1, and either
  * (1) EAX < 63 and the corresponding bit in the ENCLS-exiting bitmap is 1; or (2) EAX ? 63 and bit 63 in the ENCLS-exiting bitmap is 1.
  **/
 template <>
@@ -897,7 +897,7 @@ procedure<0x003C>(VMContext*)
     return 0;
 }
 
-// 61 RDSEED. Guest software attempted to execute RDSEED and the “RDSEED exiting” VM-execution control was 1.
+// 61 RDSEED. Guest software attempted to execute RDSEED and the "RDSEED exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x003D>(VMContext*)
@@ -913,7 +913,7 @@ procedure<0x003E>(VMContext*)
     return 0;
 }
 
-// 63 XSAVES. Guest software attempted to execute XSAVES, the “enable XSAVES/XRSTORS” was 1, and a bit was set in the logical-AND of the following three values: EDX:EAX, the IA32_XSS MSR, and the XSS-exiting bitmap.
+// 63 XSAVES. Guest software attempted to execute XSAVES, the "enable XSAVES/XRSTORS" was 1, and a bit was set in the logical-AND of the following three values: EDX:EAX, the IA32_XSS MSR, and the XSS-exiting bitmap.
 template <>
 int
 procedure<0x003F>(VMContext*)
@@ -921,7 +921,7 @@ procedure<0x003F>(VMContext*)
     return 0;
 }
 
-// 64 XRSTORS. Guest software attempted to execute XRSTORS, the “enable XSAVES/XRSTORS” was 1, and a bit was set in the logical-AND of the following three values: EDX:EAX, the IA32_XSS MSR, and the XSS-exiting bitmap.
+// 64 XRSTORS. Guest software attempted to execute XRSTORS, the "enable XSAVES/XRSTORS" was 1, and a bit was set in the logical-AND of the following three values: EDX:EAX, the IA32_XSS MSR, and the XSS-exiting bitmap.
 template <>
 int
 procedure<0x0040>(VMContext*)
@@ -930,7 +930,7 @@ procedure<0x0040>(VMContext*)
 }
 
 /**
- * 65 PCONFIG. Guest software attempted to execute PCONFIG, “enable PCONFIG” VM-execution control was 1, and either
+ * 65 PCONFIG. Guest software attempted to execute PCONFIG, "enable PCONFIG" VM-execution control was 1, and either
  * (1) EAX < 63 and the corresponding bit in the PCONFIG-exiting bitmap is 1; or (2) EAX ? 63 and bit 63 in the
  * PCONFIG-exiting bitmap is 1.
  **/
@@ -949,7 +949,7 @@ procedure<0x0042>(VMContext*)
     return 0;
 }
 
-// 67 UMWAIT. Guest software attempted to execute UMWAIT and the “enable user wait and pause” and “RDTSC exiting” VM-execution controls were both 1.
+// 67 UMWAIT. Guest software attempted to execute UMWAIT and the "enable user wait and pause" and "RDTSC exiting" VM-execution controls were both 1.
 template <>
 int
 procedure<0x0043>(VMContext*)
@@ -957,7 +957,7 @@ procedure<0x0043>(VMContext*)
     return 0;
 }
 
-// 68 TPAUSE. Guest software attempted to execute TPAUSE and the “enable user wait and pause” and “RDTSC exiting” VM-execution controls were both 1.
+// 68 TPAUSE. Guest software attempted to execute TPAUSE and the "enable user wait and pause" and "RDTSC exiting" VM-execution controls were both 1.
 template <>
 int
 procedure<0x0044>(VMContext*)
@@ -965,7 +965,7 @@ procedure<0x0044>(VMContext*)
     return 0;
 }
 
-// 69 LOADIWKEY. Guest software attempted to execute LOADIWKEY and the “LOADIWKEY exiting” VM-execution control was 1.
+// 69 LOADIWKEY. Guest software attempted to execute LOADIWKEY and the "LOADIWKEY exiting" VM-execution control was 1.
 template <>
 int
 procedure<0x0045>(VMContext*)
@@ -1010,7 +1010,7 @@ procedure<0x0049>(VMContext*)
 }
 
 /**
- * 74 Bus lock. The processor asserted a bus lock while the “bus-lock detection” VM-execution control was 1. (Such
+ * 74 Bus lock. The processor asserted a bus lock while the "bus-lock detection" VM-execution control was 1. (Such
  * VM exits will also set bit 26 of the exit-reason field.)
  **/
 template <>
@@ -1021,7 +1021,7 @@ procedure<0x004A>(VMContext*)
 }
 
 /**
- * 75 Instruction timeout. The “instruction timeout” VM-execution control was 1 and certain operations prevented the
+ * 75 Instruction timeout. The "instruction timeout" VM-execution control was 1 and certain operations prevented the
  * processor from reaching an instruction boundary within the amount of time specified by the instruction-timeout control.
  **/
 template <>
@@ -1052,7 +1052,7 @@ procedure<0x004D>(VMContext*)
 }
 
 /**
- * 78 RDMSRLIST. Guest software attempted to execute RDMSRLIST and either the “use MSR bitmaps” VM-execution control was 0 or any of the following holds for the index an MSR being accessed:
+ * 78 RDMSRLIST. Guest software attempted to execute RDMSRLIST and either the "use MSR bitmaps" VM-execution control was 0 or any of the following holds for the index an MSR being accessed:
  * The index is neither in the range 00000000H – 00001FFFH nor in the range C0000000H – C0001FFFH.
  * The index is in the range 00000000H – 00001FFFH and the n th bit in read bitmap for low MSRs is 1, where n is the index.
  * The index is in the range C0000000H – C0001FFFH and the n th bit in read bitmap for high MSRs is 1, where n is the logical AND of the index and the value 00001FFFH.
@@ -1065,7 +1065,7 @@ procedure<0x004E>(VMContext*)
 }
 
 /**
- * 79 WRMSRLIST. Guest software attempted to execute WRMSRLIST and either the “use MSR bitmaps” VM-execution control was 0 or any of the following holds for the index an MSR being accessed:
+ * 79 WRMSRLIST. Guest software attempted to execute WRMSRLIST and either the "use MSR bitmaps" VM-execution control was 0 or any of the following holds for the index an MSR being accessed:
  * The index is neither in the range 00000000H – 00001FFFH nor in the range C0000000H – C0001FFFH.
  * The index is in the range 00000000H – 00001FFFH and the n th bit in write bitmap for low MSRs is 1, where n is the index.
  * The index is in the range C0000000H – C0001FFFH and the n th bit in write bitmap for high MSRs is 1, where n is the logical AND of the index and the value 00001FFFH.
@@ -1139,58 +1139,68 @@ vmx_vmexit(void)
                          : "memory");
 }
 
-template <size_t __pagesize__>
-class ExtendedPageTable {
-  public:
-    ExtendedPageTable();
-    ~ExtendedPageTable();
+static uint64_t buildEPTP(PVOID);
 
-  private:
-};
+template <size_t>
+static uint64_t buildPML5E(PVOID);
 
-template <>
-class ExtendedPageTable<0x1000> {
-  public:
-    ExtendedPageTable();
-    ~ExtendedPageTable();
+template <size_t>
+static uint64_t buildPML4E(PVOID);
 
-  private:
-};
+template <size_t>
+static uint64_t buildPDPTE(PVOID);
 
-template <>
-class ExtendedPageTable<0x200000> {
-  public:
-    ExtendedPageTable();
-    ~ExtendedPageTable();
+template <size_t>
+static uint64_t buildPDE(PVOID);
 
-  private:
-};
+template <size_t>
+static uint64_t buildPTE(PVOID);
 
-template <>
-class ExtendedPageTable<0x40000000> {
-  public:
-    ExtendedPageTable();
-    ~ExtendedPageTable();
-
-  private:
-};
-
-static void
-initializeEPT()
+uint64_t
+buildEPTP(PVOID EPT)
 {
+    /**
+     * Format of Extended-Page-Table Pointer
+     **/
+
     uint64_t EPTP = {};
 
-    uint64_t PML5 = {};
-    uint64_t PML4 = {};
-    uint64_t PDPT = {};
-    uint64_t PD = {};
-    uint64_t PT = {};
+    /**
+     * EPT paging-structure memory type (see Section 31.3.7):
+     *   0 = Uncacheable (UC)
+     *   6 = Write-back (WB)
+     * Other values are reserved.
+     **/
+    EPTP |= ((0ULL & 0x07) << 0x00);
 
+    /**
+     * This value is 1 less than the EPT page-walk length (see Section 31.3.2)
+     **/
+    EPTP |= ((0ULL & 0x07) << 0x03);
+
+    /**
+     * Setting this control to 1 enables accessed and dirty flags for EPT (see Section 31.3.5)
+     **/
+    EPTP |= (1ULL << 0x06);
+
+    /**
+     * Setting this control to 1 enables enforcement of access rights for supervisor shadow-stack pages (see Section 31.3.3.2)
+     **/
+    EPTP |= (1ULL << 0x07);
+
+    /**
+     * Bits M–1:12 of the physical address of the 4-KByte aligned EPT paging-structure (an EPT PML4 table with 4-level EPT and an EPT PML5 table with 5-level EPT)
+     **/
+    EPTP |= ((uint64_t)EPT & 0xFFFFFFFFFFFFF000);
+
+    return EPTP;
+}
+
+template <>
+uint64_t
+buildPML5E<0x1000>(PVOID PML4)
+{
     uint64_t PML5E = {};
-    uint64_t PML4E = {};
-    uint64_t PDPTE = {};
-    uint64_t PDE = {};
-    uint64_t PTE = {};
 
     /**
      * Format of an EPT PML5 Entry (PML5E) that References an EPT PML4 Table
@@ -1208,19 +1218,19 @@ initializeEPT()
 
     /**
      * 2
-     * If the “mode-based execute control for EPT” VM-execution control is 0, execute access; indicates whether instruction fetches are allowed from the 256-TByte region controlled by this entry.
+     * If the "mode-based execute control for EPT" VM-execution control is 0, execute access; indicates whether instruction fetches are allowed from the 256-TByte region controlled by this entry.
      * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are allowed from supervisor-mode linear addresses in the 256-TByte region controlled by this entry.
      **/
     PML5E |= (1ULL << 0x02);
 
     /**
-     *8 If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 256-TByte region controlled by this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
+     * 8 If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 256-TByte region controlled by this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
      **/
     PML5E |= (1ULL << 0x08);
 
     /**
      * 10
-     * Execute access for user-mode linear addresses. If the “mode-based execute control for EPT” VM-execution control is 1, indicates whether instruction fetches are allowed from user-mode linear addresses in the 256-TByte region controlled by this entry.
+     * Execute access for user-mode linear addresses. If the "mode-based execute control for EPT" VM-execution control is 1, indicates whether instruction fetches are allowed from user-mode linear addresses in the 256-TByte region controlled by this entry.
      * If that control is 0, this bit is ignored.
      **/
     PML5E |= (1ULL << 0x0A);
@@ -1228,41 +1238,463 @@ initializeEPT()
     /**
      * M–1:12 Physical address of 4-KByte aligned EPT PML4 table referenced by this entry.
      **/
-    PML5E |= (1ULL << 0x0C);
+    PML5E |= ((uint64_t)PML4 & 0xFFFFFFFFFFFFF000);
+
+    /**
+     * 51:M Reserved (must be 0).
+     **/
+
+    return PML5E;
+}
+
+template <>
+uint64_t
+buildPML4E<0x1000>(PVOID PDPT)
+{
+    uint64_t PML4E = {};
 
     /**
      * Format of an EPT PML4 Entry (PML4E) that References an EPT Page-Directory-Pointer Table
      **/
 
     /**
-     *
+     * 0 Read access; indicates whether reads are allowed from the 512-GByte region controlled by this entry.
      **/
     PML4E |= (1ULL << 0x00);
 
     /**
-     *
+     * 1 Write access; indicates whether writes are allowed to the 512-GByte region controlled by this entry.
      **/
-    PML4E |= (1ULL << 0x00);
+    PML4E |= (1ULL << 0x01);
 
     /**
-     *
+     * 2
+     * If the "mode-based execute control for EPT" VM-execution control is 0, execute access; indicates whether instruction
+     * fetches are allowed from the 512-GByte region controlled by this entry.
+     * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
+     * allowed from supervisor-mode linear addresses in the 512-GByte region controlled by this entry.
      **/
-    PML4E |= (1ULL << 0x00);
+    PML4E |= (1ULL << 0x02);
 
     /**
-     *
+     * 7:3 Reserved (must be 0).
      **/
-    PML4E |= (1ULL << 0x00);
 
     /**
-     *
+     * 8
+     * If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 512-GByte region
+     * controlled by this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
      **/
-    PML4E |= (1ULL << 0x00);
+    PML4E |= (1ULL << 0x08);
 
     /**
-     *
+     * 10
+     * Execute access for user-mode linear addresses. If the "mode-based execute control for EPT" VM-execution control is 1,
+     * indicates whether instruction fetches are allowed from user-mode linear addresses in the 512-GByte region
+     * controlled by this entry. If that control is 0, this bit is ignored.
      **/
-    PML4E |= (1ULL << 0x00);
+    PML4E |= (1ULL << 0x0A);
+
+    /**
+     * M–1:12 Physical address of 4-KByte aligned EPT page-directory-pointer table referenced by this entry.
+     **/
+    PML4E |= ((uint64_t)PDPT & 0xFFFFFFFFFFFFF000);
+
+    /**
+     * 51:M Reserved (must be 0).
+     **/
+
+    return PML4E;
+}
+
+template <>
+uint64_t
+buildPDPTE<0x1000>(PVOID PD)
+{
+    uint64_t PDPTE = {};
+
+    /**
+     * Format of an EPT Page-Directory-Pointer-Table Entry (PDPTE) that References an EPT Page Directory
+     **/
+
+    /**
+     * 0 Read access; indicates whether reads are allowed from the 1-GByte region controlled by this entry.
+     **/
+    PDPTE |= (1ULL << 0x00);
+
+    /**
+     * 1 Write access; indicates whether writes are allowed to the 1-GByte region controlled by this entry.
+     **/
+    PDPTE |= (1ULL << 0x01);
+
+    /**
+     * 2
+     * If the "mode-based execute control for EPT" VM-execution control is 0, execute access; indicates whether instruction
+     * fetches are allowed from the 1-GByte region controlled by this entry.
+     * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
+     * allowed from supervisor-mode linear addresses in the 1-GByte region controlled by this entry.
+     **/
+    PDPTE |= (1ULL << 0x02);
+
+    /**
+     * 7:3 Reserved (must be 0).
+     **/
+
+    /**
+     * 8
+     * If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 1-GByte region controlled
+     * by this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
+     **/
+    PDPTE |= (1ULL << 0x08);
+
+    /**
+     * 10 Execute access for user-mode linear addresses. If the "mode-based execute control for EPT" VM-execution control is 1,
+     * indicates whether instruction fetches are allowed from user-mode linear addresses in the 1-GByte region
+     * controlled by this entry. If that control is 0, this bit is ignored.
+     **/
+    PDPTE |= (1ULL << 0x0A);
+
+    /**
+     * M–1:12 Physical address of 4-KByte aligned EPT page directory referenced by this entry.
+     **/
+    PDPTE |= ((uint64_t)PD & 0xFFFFFFFFFFFFF000);
+
+    /**
+     * 51:M Reserved (must be 0).
+     **/
+
+    return PDPTE;
+}
+
+template <>
+uint64_t
+buildPDE<0x1000>(PVOID PT)
+{
+    uint64_t PDE = {};
+
+    /**
+     * Format of an EPT Page-Directory Entry (PDE) that References an EPT Page Table
+     **/
+
+    /**
+     * 0 Read access; indicates whether reads are allowed from the 2-MByte region controlled by this entry.
+     **/
+    PDE |= (1ULL << 0x00);
+
+    /**
+     * 1 Write access; indicates whether writes are allowed to the 2-MByte region controlled by this entry.
+     **/
+    PDE |= (1ULL << 0x01);
+
+    /**
+     * 2
+     * If the "mode-based execute control for EPT" VM-execution control is 0, execute access; indicates whether instruction
+     * fetches are allowed from the 2-MByte region controlled by this entry.
+     * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
+     * allowed from supervisor-mode linear addresses in the 2-MByte region controlled by this entry.
+     **/
+    PDE |= (1ULL << 0x02);
+
+    /**
+     * 6:3 Reserved (must be 0).
+     **/
+
+    /**
+     * 7 Must be 0 (otherwise, this entry maps a 2-MByte page).
+     **/
+
+    /**
+     * 8 If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 2-MByte region controlled
+     * by this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
+     **/
+    PDE |= (1ULL << 0x08);
+
+    /**
+     * 10 Execute access for user-mode linear addresses. If the "mode-based execute control for EPT" VM-execution control is 1,
+     * indicates whether instruction fetches are allowed from user-mode linear addresses in the 2-MByte region
+     * controlled by this entry. If that control is 0, this bit is ignored.
+     **/
+    PDE |= (1ULL << 0x0A);
+
+    /**
+     * M–1:12 Physical address of 4-KByte aligned EPT page table referenced by this entry.
+     **/
+    PDE |= ((uint64_t)PT & 0xFFFFFFFFFFFFF000);
+
+    /**
+     * 51:M Reserved (must be 0).
+     **/
+
+    return PDE;
+}
+
+template <>
+uint64_t
+buildPTE<0x1000>(PVOID M)
+{
+    uint64_t PTE = {};
+
+    /**
+     * Format of an EPT Page-Table Entry that Maps a 4-KByte Page
+     **/
+
+    /**
+     * 0 Read access; indicates whether reads are allowed from the 4-KByte page referenced by this entry.
+     **/
+    PTE |= (1ULL << 0x00);
+
+    /**
+     * 1 Write access; indicates whether writes are allowed to the 4-KByte page referenced by this entry.
+     **/
+    PTE |= (1ULL << 0x01);
+
+    /**
+     * 2
+     * If the "mode-based execute control for EPT" VM-execution control is 0, execute access; indicates whether
+     * instruction fetches are allowed from the 4-KByte page controlled by this entry.
+     * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
+     * allowed from supervisor-mode linear addresses in the 4-KByte page controlled by this entry.
+     **/
+    PTE |= (1ULL << 0x02);
+
+    /**
+     * 5:3 EPT memory type for this 4-KByte page (see Section 31.3.7).
+     **/
+    PTE |= ((1ULL & 0x7) << 0x03);
+
+    /**
+     * 6 Ignore PAT memory type for this 4-KByte page (see Section 31.3.7).
+     **/
+    PTE |= (1ULL << 0x06);
+
+    /**
+     * 8
+     * If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 4-KByte page referenced
+     * by this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
+     **/
+    PTE |= (1ULL << 0x08);
+
+    /**
+     * 9
+     * If bit 6 of EPTP is 1, dirty flag for EPT; indicates whether software has written to the 4-KByte page referenced by
+     * this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
+     **/
+    PTE |= (1ULL << 0x09);
+
+    /**
+     * 10
+     * Execute access for user-mode linear addresses. If the "mode-based execute control for EPT" VM-execution control is
+     * 1, indicates whether instruction fetches are allowed from user-mode linear addresses in the 4-KByte page controlled
+     * by this entry. If that control is 0, this bit is ignored.
+     **/
+    PTE |= (1ULL << 0x0A);
+
+    /**
+     * M–1:12 Physical address of the 4-KByte page referenced by this entry.
+     **/
+    PTE |= ((uint64_t)M & 0xFFFFFFFFFFFFF000);
+
+    /**
+     * 51:M Reserved (must be 0).
+     **/
+
+    /**
+     * 57
+     * Verify guest paging. If the "guest-paging verification" VM-execution control is 1, indicates limits on the guest paging
+     * structures used to access the 4-KByte page controlled by this entry (see Section 31.3.3.2). If that control is 0, this
+     * bit is ignored.
+     **/
+    PTE |= (1ULL << 0x39);
+
+    /**
+     * 58
+     * Paging-write access. If the "EPT paging-write control" VM-execution control is 1, indicates that guest paging may
+     * update the 4-KByte page controlled by this entry (see Section 31.3.3.2). If that control is 0, this bit is ignored.
+     **/
+    PTE |= (1ULL << 0x3A);
+
+    /**
+     * 60
+     * Supervisor shadow stack. If bit 7 of EPTP is 1, indicates whether supervisor shadow stack accesses are allowed to
+     * guest-physical addresses in the 4-KByte page mapped by this entry (see Section 31.3.3.2).
+     * Ignored if bit 7 of EPTP is 0.
+     **/
+    PTE |= (1ULL << 0x3C);
+
+    /**
+     * 61
+     * Sub-page write permissions. If the "sub-page write permissions for EPT" VM-execution control is 1, writes to
+     * individual 128-byte regions of the 4-KByte page referenced by this entry may be allowed even if the page would
+     * normally not be writable (see Section 31.3.4). If "sub-page write permissions for EPT" VM-execution control is 0, this
+     * bit is ignored.
+     **/
+    PTE |= (1ULL << 0x3D);
+
+    /**
+     * 63
+     * Suppress #VE. If the "EPT-violation #VE" VM-execution control is 1, EPT violations caused by accesses to this page
+     * are convertible to virtualization exceptions only if this bit is 0 (see Section 28.5.7.1). If "EPT-violation #VE" VM-
+     * execution control is 0, this bit is ignored.
+     **/
+    PTE |= (1ULL << 0x3F);
+
+    return PTE;
+}
+
+template <>
+uint64_t
+buildPML5E<0x200000>(PVOID PML4)
+{
+    return buildPML5E<0x1000>(PML4);
+}
+
+template <>
+uint64_t
+buildPML4E<0x200000>(PVOID PDPT)
+{
+    return buildPML4E<0x1000>(PDPT);
+}
+
+template <>
+uint64_t
+buildPDPTE<0x200000>(PVOID PD)
+{
+    return buildPDPTE<0x1000>(PD);
+}
+
+template <>
+uint64_t
+buildPDE<0x200000>(PVOID PT)
+{
+    uint64_t PDE = {};
+
+    /**
+     * Format of an EPT Page-Directory Entry (PDE) that Maps a 2-MByte Page
+     **/
+
+    /**
+     * 0 Read access; indicates whether reads are allowed from the 2-MByte page referenced by this entry.
+     **/
+    PDE |= (1ULL << 0x00);
+
+    /**
+     * 1 Write access; indicates whether writes are allowed to the 2-MByte page referenced by this entry.
+     **/
+    PDE |= (1ULL << 0x01);
+
+    /**
+     * 2
+     * If the "mode-based execute control for EPT" VM-execution control is 0, execute access; indicates whether instruction fetches are allowed from the 2-MByte page controlled by this entry.
+     * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are allowed from supervisor-mode linear addresses in the 2-MByte page controlled by this entry.
+     **/
+    PDE |= (1ULL << 0x02);
+
+    /**
+     * 5:3 EPT memory type for this 2-MByte page (see Section 31.3.7).
+     **/
+    PDE |= (1ULL << 0x03);
+
+    /**
+     * 6 Ignore PAT memory type for this 2-MByte page (see Section 31.3.7).
+     **/
+    PDE |= (1ULL << 0x06);
+
+    /**
+     * 7 Must be 1 (otherwise, this entry references an EPT page table).
+     **/
+    PDE |= (1ULL << 0x07);
+
+    /**
+     * 8
+     * If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 2-MByte page referenced
+     * by this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
+     **/
+    PDE |= (1ULL << 0x08);
+
+    /**
+     * 9
+     * If bit 6 of EPTP is 1, dirty flag for EPT; indicates whether software has written to the 2-MByte page referenced by
+     * this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
+     **/
+    PDE |= (1ULL << 0x09);
+
+    /**
+     * 10
+     * Execute access for user-mode linear addresses. If the "mode-based execute control for EPT" VM-execution control is 1,
+     * indicates whether instruction fetches are allowed from user-mode linear addresses in the 2-MByte page controlled
+     * by this entry. If that control is 0, this bit is ignored.
+     **/
+    PDE |= (1ULL << 0x0A);
+
+    /**
+     * 20:12 Reserved (must be 0).
+     **/
+
+    /**
+     * M–1:21 Physical address of the 2-MByte page referenced by this entry.
+     **/
+    PDE |= ((uint64_t)PT & 0xFFFFFFFFFFE00000);
+
+    /**
+     * 51:M Reserved (must be 0).
+     **/
+
+    /**
+     * 57
+     * Verify guest paging. If the "guest-paging verification" VM-execution control is 1, indicates limits on the guest paging
+     * structures used to access the 2-MByte page controlled by this entry (see Section 31.3.3.2). If that control is 0, this
+     * bit is ignored.
+     **/
+    PDE |= (1ULL << 0x39);
+
+    /**
+     * 58
+     * Paging-write access. If the "EPT paging-write control" VM-execution control is 1, indicates that guest paging may
+     * update the 2-MByte page controlled by this entry (see Section 31.3.3.2). If that control is 0, this bit is ignored.
+     **/
+    PDE |= (1ULL << 0x3A);
+
+    /**
+     * 60
+     * Supervisor shadow stack. If bit 7 of EPTP is 1, indicates whether supervisor shadow stack accesses are allowed to
+     * guest-physical addresses in the 2-MByte page mapped by this entry (see Section 31.3.3.2).
+     * Ignored if bit 7 of EPTP is 0.
+     **/
+    PDE |= (1ULL << 0x3C);
+
+    /**
+     * 63
+     * Suppress #VE. If the "EPT-violation #VE" VM-execution control is 1, EPT violations caused by accesses to this page
+     * are convertible to virtualization exceptions only if this bit is 0 (see Section 28.5.7.1). If "EPT-violation #VE" VM-
+     * execution control is 0, this bit is ignored.
+     **/
+    PDE |= (1ULL << 0x3F);
+
+    return PDE;
+}
+
+template <>
+uint64_t buildPTE<0x200000>(PVOID);
+
+template <>
+uint64_t
+buildPML5E<0x40000000>(PVOID PML4)
+{
+    return buildPML5E<0x1000>(PML4);
+}
+
+template <>
+uint64_t
+buildPML4E<0x40000000>(PVOID PDPT)
+{
+    return buildPML4E<0x1000>(PDPT);
+}
+
+template <>
+uint64_t
+buildPDPTE<0x40000000>(PVOID PD)
+{
+    uint64_t PDPTE = {};
 
     /**
      * Format of an EPT Page-Directory-Pointer-Table Entry (PDPTE) that Maps a 1-GByte Page
@@ -1316,7 +1748,7 @@ initializeEPT()
     /**
      * M–1:30 Physical address of the 1-GByte page referenced by this entry.
      **/
-    PDPTE |= (1ULL << 0x00);
+    PDPTE |= ((uint64_t)PD & 0xFFFFFFFFC0000000);
 
     /**
      *
@@ -1335,72 +1767,45 @@ initializeEPT()
 
     /**
      * 63
-     * Suppress #VE. If the “EPT-violation #VE” VM-execution control is 1, EPT violations caused by accesses to this page
-     * are convertible to virtualization exceptions only if this bit is 0 (see Section 28.5.7.1). If “EPT-violation #VE” VM-
+     * Suppress #VE. If the "EPT-violation #VE" VM-execution control is 1, EPT violations caused by accesses to this page
+     * are convertible to virtualization exceptions only if this bit is 0 (see Section 28.5.7.1). If "EPT-violation #VE" VM-
      * execution control is 0, this bit is ignored.
      **/
     PDPTE |= (1ULL << 0x3F);
 
-    /**
-     * Format of an EPT Page-Directory-Pointer-Table Entry (PDPTE) that References an EPT Page Directory
-     **/
+    return PDPTE;
+}
 
-    /**
-     *
-     **/
-    PDPTE |= (1ULL << 0x00);
+template <>
+uint64_t buildPDE<0x40000000>(PVOID);
 
-    /**
-     *
-     **/
-    PDPTE |= (1ULL << 0x00);
+template <>
+uint64_t buildPTE<0x40000000>(PVOID);
 
-    /**
-     *
-     **/
-    PDPTE |= (1ULL << 0x00);
+static void
+initializeEPT()
+{
+    uint64_t EPTP = {};
 
-    /**
-     *
-     **/
-    PDPTE |= (1ULL << 0x00);
+    uint64_t pa = 0;
 
-    /**
-     *
-     **/
-    PDPTE |= (1ULL << 0x00);
+    uint64_t* pml4 = (uint64_t*)allocate<0x1000>();
+    for (size_t i = 0; i < 0x200; i++) {
+        uint64_t* pdpt = (uint64_t*)allocate<0x1000>();
+        for (size_t j = 0; j < 0x200; j++) {
+            uint64_t* pd = (uint64_t*)allocate<0x1000>();
+            for (size_t k = 0; k < 0x200; k++) {
+                pd[i] = buildPDE<0x200000>((PVOID)pa);
+                pa += 0x200000;
+            }
 
-    /**
-     * M–1:12 Physical address of 4-KByte aligned EPT page directory referenced by this entry.
-     **/
-    PDPTE |= (1ULL << 0x00);
+            pdpt[i] = buildPDPTE<0x200000>(pd);
+        }
 
-    /**
-     * Format of an EPT Page-Directory Entry (PDE) that Maps a 2-MByte Page
-     **/
+        pml4[i] = buildPML4E<0x200000>(pdpt);
+    }
 
-    /**
-     *
-     **/
-    PDE |= (1ULL << 0x00);
-
-    /**
-     * Format of an EPT Page-Directory Entry (PDE) that References an EPT Page Table
-     **/
-
-    /**
-     *
-     **/
-    PDE |= (1ULL << 0x00);
-
-    /**
-     * Format of an EPT Page-Table Entry that Maps a 4-KByte Page
-     **/
-
-    /**
-     *
-     **/
-    PTE |= (1ULL << 0x00);
+    EPTP = buildEPTP(pml4);
 }
 
 template <>
