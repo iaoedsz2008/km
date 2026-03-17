@@ -10,6 +10,9 @@
 #include <ntddk.h>
 #include <ntstrsafe.h>
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "Support.h"
 #include "lfqueue.h"
 

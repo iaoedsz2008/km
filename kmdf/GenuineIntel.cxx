@@ -6,6 +6,7 @@
 #include "GenuineIntel.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 // Taken: VirtualBox/include/VBox/vmm/hm_vmx.h
 
@@ -1781,6 +1782,12 @@ uint64_t buildPDE<0x40000000>(PVOID);
 
 template <>
 uint64_t buildPTE<0x40000000>(PVOID);
+
+#define NUM_OF_PTEs_FOR_4K_PAGING(__SIZE__)   (((__SIZE__) + 0xFFF) >> 12)
+#define NUM_OF_PDEs_FOR_4K_PAGING(__SIZE__)   ((NUM_OF_PTEs_FOR_4K_PAGING(__SIZE__) + 0x1FF) >> 9)
+#define NUM_OF_PDPTEs_FOR_4K_PAGING(__SIZE__) ((NUM_OF_PDEs_FOR_4K_PAGING(__SIZE__) + 0x1FF) >> 9)
+#define NUM_OF_PML4Es_FOR_4K_PAGING(__SIZE__) ((NUM_OF_PDPTEs_FOR_4K_PAGING(__SIZE__) + 0x1FF) >> 9)
+#define NUM_OF_BYTEs_FOR_4K_PAGING(__SIZE__)  ((NUM_OF_PTEs_FOR_4K_PAGING(__SIZE__) + NUM_OF_PDEs_FOR_4K_PAGING(__SIZE__) + NUM_OF_PDPTEs_FOR_4K_PAGING(__SIZE__) + NUM_OF_PML4Es_FOR_4K_PAGING(__SIZE__)) << 3)
 
 static void
 initializeEPT()

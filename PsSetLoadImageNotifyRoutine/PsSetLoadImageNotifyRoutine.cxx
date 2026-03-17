@@ -7,6 +7,9 @@
 
 #include <ntddk.h>
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "Support.h"
 
 VOID

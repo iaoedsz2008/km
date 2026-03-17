@@ -7,6 +7,9 @@
 
 #include <ntddk.h>
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "Support.h"
 
 static PCALLBACK_OBJECT g_CallbackObject = nullptr;

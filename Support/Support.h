@@ -6,19 +6,6 @@
 #if !defined(__d51ea43e6e0790432a424e5b22f82ddd__)
 #define __d51ea43e6e0790432a424e5b22f82ddd__
 
-typedef INT8 int8_t;
-typedef INT16 int16_t;
-typedef INT32 int32_t;
-typedef INT64 int64_t;
-typedef UINT8 uint8_t;
-typedef UINT16 uint16_t;
-typedef UINT32 uint32_t;
-typedef UINT64 uint64_t;
-typedef LONG_PTR intptr_t;
-typedef LONG_PTR ssize_t;
-typedef ULONG_PTR uintptr_t;
-typedef ULONG_PTR size_t;
-
 #include "StringHash.h"
 
 #if defined(__clang__) || defined(__GNUC__)

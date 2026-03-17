@@ -8,6 +8,7 @@
 #include "GenuineIntel.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct VMContext {
     uint64_t RAX;
@@ -972,15 +973,7 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
 {
     uint64_t* RAX = (uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8); // RAX
 
-    uint32_t leaf = *RAX;
-    uint32_t subleaf = ctx->RCX;
-
-    *RAX = {};
-    ctx->RBX = {};
-    ctx->RCX = {};
-    ctx->RDX = {};
-
-    __asm_cpuid_ex(leaf, subleaf, (uint32_t*)RAX, (uint32_t*)&ctx->RBX, (uint32_t*)&ctx->RCX, (uint32_t*)&ctx->RDX);
+    __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
 
     return 0;
 }
@@ -1415,6 +1408,23 @@ procedure<0x0403>(VMCpu*, VMContext*)
 {
     return 0;
 }
+
+static uint64_t buildEPTP(PVOID);
+
+template <size_t>
+static uint64_t buildPML5E(PVOID);
+
+template <size_t>
+static uint64_t buildPML4E(PVOID);
+
+template <size_t>
+static uint64_t buildPDPTE(PVOID);
+
+template <size_t>
+static uint64_t buildPDE(PVOID);
+
+template <size_t>
+static uint64_t buildPTE(PVOID);
 
 static void
 initializeNPT()
@@ -2780,11 +2790,11 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
                          "\n pop %%r14" //
                          "\n pop %%r15" //
 
-                         "\n clgi"   //
-                         "\n sti"    //
-                         "\n vmrun"  //
-                         "\n cli"    //
-                         "\n stgi"   //
+                         "\n clgi"  //
+                         "\n sti"   //
+                         "\n vmrun" //
+                         "\n cli"   //
+                         "\n stgi"  //
 
                          "\n push %%r15" //
                          "\n push %%r14" //

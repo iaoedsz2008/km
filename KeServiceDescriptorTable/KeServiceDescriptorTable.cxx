@@ -7,6 +7,9 @@
 
 #include <ntddk.h>
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "KeServiceDescriptorTable.h"
 #include "Support.h"
 #include "anylog.h"
@@ -270,7 +273,7 @@ SyscallId(UINT16 ID)
 #define XX(__no__, __api__) \
     case __no__:            \
         return L## #__api__;
-//#include "10.0.17763.316.def"
+// #include "10.0.17763.316.def"
 #include "10.0.19041.1348.def"
     }
 
