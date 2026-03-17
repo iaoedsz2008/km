@@ -356,6 +356,24 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
         }
     }
 
+    size_t x = CalculatePML4Es<0x200000>(0x800000000ULL);
+    for (size_t i = 0; i < x; ++i) {
+        auto m = ExAllocatePool(NonPagedPool, 0x1000);
+        deallocate<0x1000>(m);
+    }
+
+    x = CalculatePDPTEs<0x200000>(0x800000000ULL);
+    for (size_t i = 0; i < x; ++i) {
+        auto m = ExAllocatePool(NonPagedPool, 0x1000);
+        deallocate<0x1000>(m);
+    }
+
+    x = CalculatePDEs<0x200000>(0x800000000ULL);
+    for (size_t i = 0; i < x; ++i) {
+        auto m = ExAllocatePool(NonPagedPool, 0x1000);
+        deallocate<0x1000>(m);
+    }
+
     PHYSICAL_MEMORY_RANGE* Ranges = MmGetPhysicalMemoryRanges();
 
     if (Ranges == NULL)
@@ -369,6 +387,8 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
     }
 
     ExFreePool(Ranges);
+
+    KdBreakPoint();
 
     initialize();
 
