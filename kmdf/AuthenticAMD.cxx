@@ -1695,10 +1695,10 @@ int
 vmxon<Hash("AuthenticAMD")>(PVOID)
 {
     ULONG ProcessorIndex = KeGetCurrentProcessorIndex();
-    VMCpu* vcpu = (VMCpu*)allocate<0x10000>();
+    VMCpu* vcpu = (VMCpu*)allocate<0x2000>();
     VMCpus[ProcessorIndex] = vcpu;
 
-    memset(vcpu, 0, 0x10000);
+    memset(vcpu, 0, 0x2000);
 
     do {
         uint32_t eax;
@@ -2739,8 +2739,6 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     Context.Rip = 0x12345678;
 
     __asm_svm_vmsave(vcpu->VmcbGuestPa.QuadPart);
-
-    DbgBreakPoint();
 
     __asm__ __volatile__("\n mov %0, %%rax"            // VMCB
                          "\n mov %1, %%rcx"            // Context
