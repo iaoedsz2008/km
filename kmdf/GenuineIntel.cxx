@@ -404,6 +404,10 @@ template <>
 int
 procedure<0x0000>(VMContext*)
 {
+    size_t e;
+    __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
+    __asm_int3();
+    e = 0x0000;
     return 0;
 }
 
@@ -420,6 +424,10 @@ template <>
 int
 procedure<0x0002>(VMContext*)
 {
+    size_t e;
+    __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
+    __asm_int3();
+    e = 0x0002;
     return 0;
 }
 
@@ -484,7 +492,7 @@ template <>
 int
 procedure<0x000A>(VMContext* ctx)
 {
-    __asm_cpuid_ex(ctx->RAX, ctx->RCX, (uint32_t*)&ctx->RAX, (uint32_t*)&ctx->RBX, (uint32_t*)&ctx->RCX, (uint32_t*)&ctx->RDX);
+    __asm__("cpuid" : "=a"(ctx->RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(ctx->RAX), "c"(ctx->RCX));
     return 0;
 }
 
@@ -672,7 +680,10 @@ template <>
 int
 procedure<0x0021>(VMContext*)
 {
+    size_t e;
+    __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
     __asm_int3();
+    e = 0x0021;
     return 0;
 }
 
@@ -681,7 +692,10 @@ template <>
 int
 procedure<0x0022>(VMContext*)
 {
+    size_t e;
+    __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
     __asm_int3();
+    e = 0x0022;
     return 0;
 }
 
@@ -736,6 +750,10 @@ template <>
 int
 procedure<0x0029>(VMContext*)
 {
+    size_t e;
+    __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
+    __asm_int3();
+    e = 0x0029;
     return 0;
 }
 
@@ -795,6 +813,10 @@ template <>
 int
 procedure<0x0030>(VMContext*)
 {
+    size_t e;
+    __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
+    __asm_int3();
+    e = 0x0030;
     return 0;
 }
 
@@ -803,6 +825,10 @@ template <>
 int
 procedure<0x0031>(VMContext*)
 {
+    size_t e;
+    __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
+    __asm_int3();
+    e = 0x0031;
     return 0;
 }
 
@@ -1703,12 +1729,12 @@ buildPDPTE<0x40000000>(PVOID PD)
     /**
      * 0 Read access; indicates whether reads are allowed from the 1-GByte page referenced by this entry.
      **/
-    PDPTE |= (0ULL << 0x00);
+    PDPTE |= (1ULL << 0x00);
 
     /**
      * 1 Write access; indicates whether writes are allowed to the 1-GByte page referenced by this entry.
      **/
-    PDPTE |= (0ULL << 0x01);
+    PDPTE |= (1ULL << 0x01);
 
     /**
      * 2
@@ -1717,7 +1743,7 @@ buildPDPTE<0x40000000>(PVOID PD)
      * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
      * allowed from supervisor-mode linear addresses in the 1-GByte page controlled by this entry.
      **/
-    PDPTE |= (0ULL << 0x02);
+    PDPTE |= (1ULL << 0x02);
 
     /**
      * 5:3 EPT memory type for this 1-GByte page (see Section 31.3.7).
@@ -1732,7 +1758,7 @@ buildPDPTE<0x40000000>(PVOID PD)
     /**
      * 7 Must be 1 (otherwise, this entry references an EPT page directory).
      **/
-    PDPTE |= (0ULL << 0x07);
+    PDPTE |= (1ULL << 0x07);
 
     /**
      * 8
@@ -1754,7 +1780,7 @@ buildPDPTE<0x40000000>(PVOID PD)
      * indicates whether instruction fetches are allowed from user-mode linear addresses in the 1-GByte page controlled
      * by this entry. If that control is 0, this bit is ignored.
      **/
-    PDPTE |= (0ULL << 0x0A);
+    PDPTE |= (1ULL << 0x0A);
 
     /**
      * 29:12 Reserved (must be 0).
