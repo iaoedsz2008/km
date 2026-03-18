@@ -1624,7 +1624,7 @@ buildPDE<0x200000>(PVOID PT)
      * indicates whether instruction fetches are allowed from user-mode linear addresses in the 2-MByte page controlled
      * by this entry. If that control is 0, this bit is ignored.
      **/
-    PDE |= (0ULL << 0x0A);
+    PDE |= (1ULL << 0x0A);
 
     /**
      * 20:12 Reserved (must be 0).
@@ -1701,49 +1701,64 @@ buildPDPTE<0x40000000>(PVOID PD)
      **/
 
     /**
-     *
+     * 0 Read access; indicates whether reads are allowed from the 1-GByte page referenced by this entry.
      **/
-    PDPTE |= (1ULL << 0x00);
+    PDPTE |= (0ULL << 0x00);
 
     /**
-     *
+     * 1 Write access; indicates whether writes are allowed to the 1-GByte page referenced by this entry.
      **/
-    PDPTE |= (1ULL << 0x00);
+    PDPTE |= (0ULL << 0x01);
 
     /**
-     *
+     * 2
+     * If the "mode-based execute control for EPT" VM-execution control is 0, execute access; indicates whether
+     * instruction fetches are allowed from the 1-GByte page controlled by this entry.
+     * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
+     * allowed from supervisor-mode linear addresses in the 1-GByte page controlled by this entry.
      **/
-    PDPTE |= (1ULL << 0x00);
+    PDPTE |= (0ULL << 0x02);
 
     /**
-     *
+     * 5:3 EPT memory type for this 1-GByte page (see Section 31.3.7).
      **/
-    PDPTE |= (1ULL << 0x00);
+    PDPTE |= ((6ULL & 0x7) << 0x03);
 
     /**
-     *
+     * 6 Ignore PAT memory type for this 1-GByte page (see Section 31.3.7).
      **/
-    PDPTE |= (1ULL << 0x00);
+    PDPTE |= (0ULL << 0x06);
 
     /**
-     *
+     * 7 Must be 1 (otherwise, this entry references an EPT page directory).
      **/
-    PDPTE |= (1ULL << 0x00);
+    PDPTE |= (0ULL << 0x07);
 
     /**
-     *
+     * 8
+     * If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 1-GByte page referenced
+     * by this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
      **/
-    PDPTE |= (1ULL << 0x00);
+    PDPTE |= (0ULL << 0x08);
 
     /**
-     *
+     * 9
+     * If bit 6 of EPTP is 1, dirty flag for EPT; indicates whether software has written to the 1-GByte page referenced by
+     * this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
      **/
-    PDPTE |= (1ULL << 0x00);
+    PDPTE |= (0ULL << 0x09);
 
     /**
-     *
+     * 10
+     * Execute access for user-mode linear addresses. If the "mode-based execute control for EPT" VM-execution control is 1,
+     * indicates whether instruction fetches are allowed from user-mode linear addresses in the 1-GByte page controlled
+     * by this entry. If that control is 0, this bit is ignored.
      **/
-    PDPTE |= (1ULL << 0x00);
+    PDPTE |= (0ULL << 0x0A);
+
+    /**
+     * 29:12 Reserved (must be 0).
+     **/
 
     /**
      * M–1:30 Physical address of the 1-GByte page referenced by this entry.
@@ -1751,19 +1766,31 @@ buildPDPTE<0x40000000>(PVOID PD)
     PDPTE |= ((uint64_t)PD & 0xFFFFFFFFC0000000);
 
     /**
-     *
+     * 51:M Reserved (must be 0).
      **/
-    PDPTE |= (1ULL << 0x00);
 
     /**
-     *
+     * 57
+     * Verify guest paging. If the "guest-paging verification" VM-execution control is 1, indicates limits on the guest paging
+     * structures used to access the 1-GByte page controlled by this entry (see Section 31.3.3.2). If that control is 0, this
+     * bit is ignored.
      **/
-    PDPTE |= (1ULL << 0x00);
+    PDPTE |= (0ULL << 0x39);
 
     /**
-     *
+     * 58
+     * Paging-write access. If the "EPT paging-write control" VM-execution control is 1, indicates that guest paging may
+     * update the 1-GByte page controlled by this entry (see Section 31.3.3.2). If that control is 0, this bit is ignored.
      **/
-    PDPTE |= (1ULL << 0x00);
+    PDPTE |= (0ULL << 0x3A);
+
+    /**
+     * 60
+     * Supervisor shadow stack. If bit 7 of EPTP is 1, indicates whether supervisor shadow stack accesses are allowed to
+     * guest-physical addresses in the 1-GByte page mapped by this entry (see Section 31.3.3.2).
+     * Ignored if bit 7 of EPTP is 0.
+     **/
+    PDPTE |= (0ULL << 0x3C);
 
     /**
      * 63
@@ -1771,7 +1798,7 @@ buildPDPTE<0x40000000>(PVOID PD)
      * are convertible to virtualization exceptions only if this bit is 0 (see Section 28.5.7.1). If "EPT-violation #VE" VM-
      * execution control is 0, this bit is ignored.
      **/
-    PDPTE |= (1ULL << 0x3F);
+    PDPTE |= (0ULL << 0x3F);
 
     return PDPTE;
 }
