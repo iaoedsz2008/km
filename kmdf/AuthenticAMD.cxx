@@ -1409,8 +1409,6 @@ procedure<0x0403>(VMCpu*, VMContext*)
     return 0;
 }
 
-static uint64_t buildEPTP(PVOID);
-
 template <size_t>
 static uint64_t buildPML5E(PVOID);
 
@@ -1426,9 +1424,79 @@ static uint64_t buildPDE(PVOID);
 template <size_t>
 static uint64_t buildPTE(PVOID);
 
+template <>
+uint64_t
+buildPML5E<0x200000>(PVOID)
+{
+}
+
+template <>
+uint64_t
+buildPML4E<0x200000>(PVOID)
+{
+}
+
+template <>
+uint64_t
+buildPDPTE<0x200000>(PVOID)
+{
+}
+
+template <>
+uint64_t
+buildPDE<0x200000>(PVOID)
+{
+}
+
+template <>
+uint64_t
+buildPTE<0x200000>(PVOID)
+{
+}
+
+static inline void
+buildNPT(uint64_t npt, uint64_t pa)
+{
+    uint64_t I = (pa >> 0x27) & 0x00000000000001FF;
+    uint64_t II = (pa >> 0x1E) & 0x00000000000001FF;
+    uint64_t III = (pa >> 0x15) & 0x00000000000001FF;
+    PHYSICAL_ADDRESS PA;
+
+    PA.QuadPart = npt & 0xFFFFFFFFFFFFF000;
+    uint64_t* PML4 = (uint64_t*)MmGetVirtualForPhysical(PA);
+    if (PML4[I] == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        memset(p, 0, 0x1000);
+        PA = MmGetPhysicalAddress(p);
+        PML4[I] = buildPML4E<0x200000>((PVOID)PA.QuadPart);
+    }
+
+    PA.QuadPart = PML4[I] & 0xFFFFFFFFFFFFF000;
+    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(PA);
+    if (PDPT[II] == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        memset(p, 0, 0x1000);
+        PA = MmGetPhysicalAddress(p);
+        PDPT[II] = buildPDPTE<0x200000>((PVOID)PA.QuadPart);
+    }
+
+    PA.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
+    uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(PA);
+    if (PD[III] == 0) {
+        PD[III] = buildPDE<0x200000>((PVOID)pa);
+    }
+}
+
 static void
 initializeNPT()
 {
+    KdBreakPoint();
+
+    uint64_t NPT = {};
+
+    for (size_t i = 0; i < 0x80000000; i += 0x200000) {
+        buildNPT(NPT, i);
+    }
 }
 
 template <>
