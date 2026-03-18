@@ -276,6 +276,7 @@ typedef struct VMCpu {
     PHYSICAL_ADDRESS VmcsGuestPa;
 } VMCpu;
 
+static uint64_t EPTP = {};
 static int (*Procedures[0x100])(VMContext* ctx);
 
 static FORCEINLINE uint32_t
@@ -1170,22 +1171,22 @@ buildEPTP(PVOID EPT)
      *   6 = Write-back (WB)
      * Other values are reserved.
      **/
-    EPTP |= ((0ULL & 0x07) << 0x00);
+    EPTP |= ((6ULL & 0x07) << 0x00);
 
     /**
      * This value is 1 less than the EPT page-walk length (see Section 31.3.2)
      **/
-    EPTP |= ((0ULL & 0x07) << 0x03);
+    EPTP |= ((3ULL & 0x07) << 0x03);
 
     /**
      * Setting this control to 1 enables accessed and dirty flags for EPT (see Section 31.3.5)
      **/
-    EPTP |= (1ULL << 0x06);
+    EPTP |= (0ULL << 0x06);
 
     /**
      * Setting this control to 1 enables enforcement of access rights for supervisor shadow-stack pages (see Section 31.3.3.2)
      **/
-    EPTP |= (1ULL << 0x07);
+    EPTP |= (0ULL << 0x07);
 
     /**
      * Bits M–1:12 of the physical address of the 4-KByte aligned EPT paging-structure (an EPT PML4 table with 4-level EPT and an EPT PML5 table with 5-level EPT)
@@ -1459,7 +1460,7 @@ buildPTE<0x1000>(PVOID M)
     /**
      * 5:3 EPT memory type for this 4-KByte page (see Section 31.3.7).
      **/
-    PTE |= ((1ULL & 0x7) << 0x03);
+    PTE |= ((6ULL & 0x7) << 0x03);
 
     /**
      * 6 Ignore PAT memory type for this 4-KByte page (see Section 31.3.7).
@@ -1591,12 +1592,12 @@ buildPDE<0x200000>(PVOID PT)
     /**
      * 5:3 EPT memory type for this 2-MByte page (see Section 31.3.7).
      **/
-    PDE |= (1ULL << 0x03);
+    PDE |= ((6ULL & 0x7) << 0x03);
 
     /**
      * 6 Ignore PAT memory type for this 2-MByte page (see Section 31.3.7).
      **/
-    PDE |= (1ULL << 0x06);
+    PDE |= (0ULL << 0x06);
 
     /**
      * 7 Must be 1 (otherwise, this entry references an EPT page table).
@@ -1608,14 +1609,14 @@ buildPDE<0x200000>(PVOID PT)
      * If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 2-MByte page referenced
      * by this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
      **/
-    PDE |= (1ULL << 0x08);
+    PDE |= (0ULL << 0x08);
 
     /**
      * 9
      * If bit 6 of EPTP is 1, dirty flag for EPT; indicates whether software has written to the 2-MByte page referenced by
      * this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
      **/
-    PDE |= (1ULL << 0x09);
+    PDE |= (0ULL << 0x09);
 
     /**
      * 10
@@ -1623,7 +1624,7 @@ buildPDE<0x200000>(PVOID PT)
      * indicates whether instruction fetches are allowed from user-mode linear addresses in the 2-MByte page controlled
      * by this entry. If that control is 0, this bit is ignored.
      **/
-    PDE |= (1ULL << 0x0A);
+    PDE |= (0ULL << 0x0A);
 
     /**
      * 20:12 Reserved (must be 0).
@@ -1644,14 +1645,14 @@ buildPDE<0x200000>(PVOID PT)
      * structures used to access the 2-MByte page controlled by this entry (see Section 31.3.3.2). If that control is 0, this
      * bit is ignored.
      **/
-    PDE |= (1ULL << 0x39);
+    PDE |= (0ULL << 0x39);
 
     /**
      * 58
      * Paging-write access. If the "EPT paging-write control" VM-execution control is 1, indicates that guest paging may
      * update the 2-MByte page controlled by this entry (see Section 31.3.3.2). If that control is 0, this bit is ignored.
      **/
-    PDE |= (1ULL << 0x3A);
+    PDE |= (0ULL << 0x3A);
 
     /**
      * 60
@@ -1659,7 +1660,7 @@ buildPDE<0x200000>(PVOID PT)
      * guest-physical addresses in the 2-MByte page mapped by this entry (see Section 31.3.3.2).
      * Ignored if bit 7 of EPTP is 0.
      **/
-    PDE |= (1ULL << 0x3C);
+    PDE |= (0ULL << 0x3C);
 
     /**
      * 63
@@ -1667,7 +1668,7 @@ buildPDE<0x200000>(PVOID PT)
      * are convertible to virtualization exceptions only if this bit is 0 (see Section 28.5.7.1). If "EPT-violation #VE" VM-
      * execution control is 0, this bit is ignored.
      **/
-    PDE |= (1ULL << 0x3F);
+    PDE |= (0ULL << 0x3F);
 
     return PDE;
 }
@@ -1781,32 +1782,58 @@ uint64_t buildPDE<0x40000000>(PVOID);
 template <>
 uint64_t buildPTE<0x40000000>(PVOID);
 
+static inline uint64_t
+buildEPT(uint64_t eptp, uint64_t pa)
+{
+    uint64_t I = (pa >> 0x27) & 0x00000000000001FF;
+    uint64_t II = (pa >> 0x1E) & 0x00000000000001FF;
+    uint64_t III = (pa >> 0x15) & 0x00000000000001FF;
+    PHYSICAL_ADDRESS PA;
+
+    if (eptp == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        memset(p, 0, 0x1000);
+        PA = MmGetPhysicalAddress(p);
+        eptp = buildEPTP((PVOID)PA.QuadPart);
+    }
+
+    PA.QuadPart = eptp & 0xFFFFFFFFFFFFF000;
+    uint64_t* PML4 = (uint64_t*)MmGetVirtualForPhysical(PA);
+    if (PML4[I] == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        memset(p, 0, 0x1000);
+        PA = MmGetPhysicalAddress(p);
+        PML4[I] = buildPML4E<0x200000>((PVOID)PA.QuadPart);
+    }
+
+    PA.QuadPart = PML4[I] & 0xFFFFFFFFFFFFF000;
+    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(PA);
+    if (PDPT[II] == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        memset(p, 0, 0x1000);
+        PA = MmGetPhysicalAddress(p);
+        PDPT[II] = buildPDPTE<0x200000>((PVOID)PA.QuadPart);
+    }
+
+    PA.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
+    uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(PA);
+    if (PD[III] == 0) {
+        PD[III] = buildPDE<0x200000>((PVOID)pa);
+    }
+
+    return eptp;
+}
+
 static void
 initializeEPT()
 {
     KdBreakPoint();
 
-    uint64_t EPTP = {};
+    EPTP = {};
 
-    uint64_t pa = 0;
-
-    uint64_t* pml4 = (uint64_t*)allocate<0x1000>();
-    for (size_t i = 0; i < 0x200; ++i) {
-        uint64_t* pdpt = (uint64_t*)allocate<0x1000>();
-        for (size_t j = 0; j < 0x200; ++j) {
-            uint64_t* pd = (uint64_t*)allocate<0x1000>();
-            for (size_t k = 0; k < 0x200; ++k) {
-                pd[k] = buildPDE<0x200000>((PVOID)pa);
-                pa += 0x200000;
-            }
-
-            pdpt[j] = buildPDPTE<0x200000>(pd);
-        }
-
-        pml4[i] = buildPML4E<0x200000>(pdpt);
+    for (size_t i = 0; i < 0x80000000; i += 0x200000) {
+        EPTP = buildEPT(EPTP, i);
     }
-
-    EPTP = buildEPTP(pml4);
 }
 
 template <>
@@ -2643,7 +2670,9 @@ vmxon<Hash("GenuineIntel")>(PVOID)
     if (PrimaryProcessorBasedVmExecutionControls & (1ULL << 0x1F)) { // Activate secondary controls
 
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x00); // Virtualize APIC accesses
-        // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x01); // Enable EPT
+
+        SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x01); // Enable EPT
+
         // SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x02); // Descriptor-table exiting
 
         SecondaryProcessorBasedVmExecutionControls |= (1ULL << 0x03); // Enable RDTSCP
@@ -2782,7 +2811,7 @@ vmxon<Hash("GenuineIntel")>(PVOID)
             Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_MSR_BITMAP_FULL, msrpmPA.QuadPart);
 
         if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x01)) // Enable EPT
-            ;
+            Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, EPTP);
 
         if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x05)) // Enable VPID
             Status |= __asm_vmx_vmwrite(VMX_VMCS16_VPID, __asm_rdpid() + 1);
