@@ -1060,33 +1060,35 @@ template <>
 uint64_t buildPTE<0x40000000>(uint64_t, uint64_t);
 
 static inline void
-buildEPT(uint64_t* PML4, uint64_t pa, uint64_t mt)
+buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
 {
-    uint64_t I = (pa >> 0x27) & 0x00000000000001FF;
-    uint64_t II = (pa >> 0x1E) & 0x00000000000001FF;
-    uint64_t III = (pa >> 0x15) & 0x00000000000001FF;
-    PHYSICAL_ADDRESS PA;
+    uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
+    uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
+    uint64_t III = (PA >> 0x15) & 0x00000000000001FF;
+    PHYSICAL_ADDRESS Pa;
 
     if (PML4[I] == 0) {
         uint64_t* p = (uint64_t*)allocate<0x1000>();
+        ASSERT(p);
         memset(p, 0, 0x1000);
-        PA = MmGetPhysicalAddress(p);
-        PML4[I] = buildPML4E<0x200000>(PA.QuadPart, mt);
+        Pa = MmGetPhysicalAddress(p);
+        PML4[I] = buildPML4E<0x200000>(Pa.QuadPart, MT);
     }
 
-    PA.QuadPart = PML4[I] & 0xFFFFFFFFFFFFF000;
-    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(PA);
+    Pa.QuadPart = PML4[I] & 0xFFFFFFFFFFFFF000;
+    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PDPT[II] == 0) {
         uint64_t* p = (uint64_t*)allocate<0x1000>();
+        ASSERT(p);
         memset(p, 0, 0x1000);
-        PA = MmGetPhysicalAddress(p);
-        PDPT[II] = buildPDPTE<0x200000>(PA.QuadPart, mt);
+        Pa = MmGetPhysicalAddress(p);
+        PDPT[II] = buildPDPTE<0x200000>(Pa.QuadPart, MT);
     }
 
-    PA.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
-    uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(PA);
+    Pa.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
+    uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PD[III] == 0) {
-        PD[III] = buildPDE<0x200000>(pa & 0xFFFFFFFFFFE00000, mt);
+        PD[III] = buildPDE<0x200000>(PA & 0xFFFFFFFFFFE00000, MT);
     }
 }
 
@@ -2050,6 +2052,8 @@ initializeEPT()
     KdBreakPoint();
 
     PML4 = (uint64_t*)allocate<0x1000>();
+    ASSERT(PML4);
+    memset(PML4, 0, 0x1000);
 
     for (size_t i = 0; i < 0x80000000; i += 0x200000) {
         buildEPT(PML4, i, 6);
@@ -2756,6 +2760,10 @@ vmxon<Hash("GenuineIntel")>(PVOID)
     PVOID vmxonRegion = allocateContiguous<0x1000>();
     PVOID msrpm = allocateContiguous<0x1000>();
 
+    ASSERT(vmcsGuest);
+    ASSERT(vmxonRegion);
+    ASSERT(msrpm);
+
     if ((SIZE_T)vmcsGuest & 0xFFF)
         return -1;
 
@@ -3048,6 +3056,7 @@ vmxon<Hash("GenuineIntel")>(PVOID)
     // Host Fields
     {
         size_t stack = (size_t)allocate<0x8000>();
+        ASSERT(stack);
 
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RSP, stack + 0x8000 - 0x20);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RIP, (uint64_t)&vmx_vmexit);

@@ -189,33 +189,35 @@ buildPTE<0x200000>(uint64_t, uint64_t)
 }
 
 static inline void
-buildNPT(uint64_t* PML4, uint64_t pa, uint64_t mt)
+buildNPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
 {
-    uint64_t I = (pa >> 0x27) & 0x00000000000001FF;
-    uint64_t II = (pa >> 0x1E) & 0x00000000000001FF;
-    uint64_t III = (pa >> 0x15) & 0x00000000000001FF;
-    PHYSICAL_ADDRESS PA;
+    uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
+    uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
+    uint64_t III = (PA >> 0x15) & 0x00000000000001FF;
+    PHYSICAL_ADDRESS Pa;
 
     if (PML4[I] == 0) {
         uint64_t* p = (uint64_t*)allocate<0x1000>();
+        ASSERT(p);
         memset(p, 0, 0x1000);
-        PA = MmGetPhysicalAddress(p);
-        PML4[I] = buildPML4E<0x200000>(PA.QuadPart, mt);
+        Pa = MmGetPhysicalAddress(p);
+        PML4[I] = buildPML4E<0x200000>(Pa.QuadPart, MT);
     }
 
-    PA.QuadPart = PML4[I] & 0xFFFFFFFFFFFFF000;
-    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(PA);
+    Pa.QuadPart = PML4[I] & 0xFFFFFFFFFFFFF000;
+    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PDPT[II] == 0) {
         uint64_t* p = (uint64_t*)allocate<0x1000>();
+        ASSERT(p);
         memset(p, 0, 0x1000);
-        PA = MmGetPhysicalAddress(p);
-        PDPT[II] = buildPDPTE<0x200000>(PA.QuadPart, mt);
+        Pa = MmGetPhysicalAddress(p);
+        PDPT[II] = buildPDPTE<0x200000>(Pa.QuadPart, MT);
     }
 
-    PA.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
-    uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(PA);
+    Pa.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
+    uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PD[III] == 0) {
-        PD[III] = buildPDE<0x200000>(pa & 0xFFFFFFFFFFE00000, mt);
+        PD[III] = buildPDE<0x200000>(PA & 0xFFFFFFFFFFE00000, MT);
     }
 }
 
@@ -1492,6 +1494,8 @@ initializeNPT()
     KdBreakPoint();
 
     PML4 = (uint64_t*)allocate<0x1000>();
+    ASSERT(PML4);
+    memset(PML4, 0, 0x1000);
 
     for (size_t i = 0; i < 0x80000000; i += 0x200000) {
         buildNPT(PML4, i, 6);
@@ -1773,6 +1777,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
 {
     ULONG ProcessorIndex = KeGetCurrentProcessorIndex();
     VMCpu* vcpu = (VMCpu*)allocate<0x2000>();
+    ASSERT(vcpu);
     VMCpus[ProcessorIndex] = vcpu;
 
     memset(vcpu, 0, 0x2000);
@@ -2522,6 +2527,11 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     vcpu->VmcbHost = allocateContiguous<0x1000>();
     vcpu->VmcbHostPa = MmGetPhysicalAddress(vcpu->VmcbHost);
 
+    ASSERT(vcpu->IoPermissionsMap);
+    ASSERT(vcpu->MsrPermissionsMap);
+    ASSERT(vcpu->VmcbGuest);
+    ASSERT(vcpu->VmcbHost);
+
     memset(vcpu->IoPermissionsMap, 0, 0x2000);
     memset(vcpu->MsrPermissionsMap, 0, 0x2000);
     memset(vcpu->VmcbGuest, 0, 0x1000);
@@ -2618,7 +2628,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0048) = vcpu->MsrPermissionsMapPa.QuadPart; // MSRPM_BASE_PA - Physical base address of MSRPM (bits 11:0 are ignored)
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0050) = 0;                                  // TSC_OFFSET - To be added in RDTSC and RDTSCP
 
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0058) = 1; // Guest ASID
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0058) = __asm_rdpid() + 1; // Guest ASID
 
     /**
      * TLB_CONTROL
