@@ -144,9 +144,6 @@ svm_format_access_rights(uint32_t access_rights)
 }
 
 template <size_t>
-static uint64_t buildPML5E(uint64_t, uint64_t);
-
-template <size_t>
 static uint64_t buildPML4E(uint64_t, uint64_t);
 
 template <size_t>
@@ -160,33 +157,239 @@ static uint64_t buildPTE(uint64_t, uint64_t);
 
 template <>
 uint64_t
-buildPML5E<0x200000>(uint64_t, uint64_t)
+buildPML4E<0x1000>(uint64_t, uint64_t)
 {
+    uint64_t PML4E = {};
+
+    PML4E |= (0ULL << 0x00);
+    PML4E |= (0ULL << 0x01);
+    PML4E |= (0ULL << 0x02);
+    PML4E |= (0ULL << 0x03);
+    PML4E |= (0ULL << 0x04);
+    PML4E |= (0ULL << 0x05);
+    PML4E |= (0ULL << 0x06);
+    PML4E |= (0ULL << 0x07);
+    PML4E |= (0ULL << 0x08);
+    PML4E |= (0ULL << 0x09);
+    PML4E |= (0ULL << 0x0A);
+    PML4E |= (0ULL << 0x0B);
+    PML4E |= (0ULL << 0x0C);
+    PML4E |= (0ULL << 0x0D);
+    PML4E |= (0ULL << 0x0E);
+    PML4E |= (0ULL << 0x0F);
+
+    return PML4E;
 }
 
 template <>
 uint64_t
-buildPML4E<0x200000>(uint64_t, uint64_t)
+buildPDPTE<0x1000>(uint64_t, uint64_t)
 {
+    uint64_t PDPTE = {};
+
+    PDPTE |= (0ULL << 0x00);
+    PDPTE |= (0ULL << 0x01);
+    PDPTE |= (0ULL << 0x02);
+    PDPTE |= (0ULL << 0x03);
+    PDPTE |= (0ULL << 0x04);
+    PDPTE |= (0ULL << 0x05);
+    PDPTE |= (0ULL << 0x06);
+    PDPTE |= (0ULL << 0x07);
+    PDPTE |= (0ULL << 0x08);
+    PDPTE |= (0ULL << 0x09);
+    PDPTE |= (0ULL << 0x0A);
+    PDPTE |= (0ULL << 0x0B);
+    PDPTE |= (0ULL << 0x0C);
+    PDPTE |= (0ULL << 0x0D);
+    PDPTE |= (0ULL << 0x0E);
+    PDPTE |= (0ULL << 0x0F);
+
+    return PDPTE;
 }
 
 template <>
 uint64_t
-buildPDPTE<0x200000>(uint64_t, uint64_t)
+buildPDE<0x1000>(uint64_t, uint64_t)
 {
+    uint64_t PDE = {};
+
+    PDE |= (0ULL << 0x00);
+    PDE |= (0ULL << 0x01);
+    PDE |= (0ULL << 0x02);
+    PDE |= (0ULL << 0x03);
+    PDE |= (0ULL << 0x04);
+    PDE |= (0ULL << 0x05);
+    PDE |= (0ULL << 0x06);
+    PDE |= (0ULL << 0x07);
+    PDE |= (0ULL << 0x08);
+    PDE |= (0ULL << 0x09);
+    PDE |= (0ULL << 0x0A);
+    PDE |= (0ULL << 0x0B);
+    PDE |= (0ULL << 0x0C);
+    PDE |= (0ULL << 0x0D);
+    PDE |= (0ULL << 0x0E);
+    PDE |= (0ULL << 0x0F);
+
+    return PDE;
 }
 
 template <>
 uint64_t
-buildPDE<0x200000>(uint64_t, uint64_t)
+buildPTE<0x1000>(uint64_t, uint64_t)
 {
+    uint64_t PTE = {};
+
+    PTE |= (0ULL << 0x00);
+    PTE |= (0ULL << 0x01);
+    PTE |= (0ULL << 0x02);
+    PTE |= (0ULL << 0x03);
+    PTE |= (0ULL << 0x04);
+    PTE |= (0ULL << 0x05);
+    PTE |= (0ULL << 0x06);
+    PTE |= (0ULL << 0x07);
+    PTE |= (0ULL << 0x08);
+    PTE |= (0ULL << 0x09);
+    PTE |= (0ULL << 0x0A);
+    PTE |= (0ULL << 0x0B);
+    PTE |= (0ULL << 0x0C);
+    PTE |= (0ULL << 0x0D);
+    PTE |= (0ULL << 0x0E);
+    PTE |= (0ULL << 0x0F);
+
+    return PTE;
 }
 
 template <>
 uint64_t
-buildPTE<0x200000>(uint64_t, uint64_t)
+buildPML4E<0x200000>(uint64_t PDPT, uint64_t)
 {
+    uint64_t PML4E = {};
+
+    PML4E |= (1ULL << 0x00);         // P
+    PML4E |= (1ULL << 0x01);         // R/W
+    PML4E |= (1ULL << 0x02);         // U/S
+    PML4E |= (1ULL << 0x03);         // PWT
+    PML4E |= (0ULL << 0x04);         // PCD
+    PML4E |= (0ULL << 0x05);         // A
+    PML4E |= (0ULL << 0x06);         // IGN
+    PML4E |= (0ULL << 0x07);         // MBZ
+    PML4E |= (0ULL << 0x08);         // MBZ
+    PML4E |= ((0ULL & 0x7) << 0x09); // AVL
+
+    PML4E |= ((uint64_t)PDPT & 0xFFFFFFFFFFFFF000);
+
+    return PML4E;
 }
+
+template <>
+uint64_t
+buildPDPTE<0x200000>(uint64_t PD, uint64_t)
+{
+    uint64_t PDPTE = {};
+
+    PDPTE |= (1ULL << 0x00);         // P
+    PDPTE |= (1ULL << 0x01);         // R/W
+    PDPTE |= (1ULL << 0x02);         // U/S
+    PDPTE |= (1ULL << 0x03);         // PWT
+    PDPTE |= (0ULL << 0x04);         // PCD
+    PDPTE |= (0ULL << 0x05);         // A
+    PDPTE |= (0ULL << 0x06);         // IGN
+    PDPTE |= (0ULL << 0x07);         // 0
+    PDPTE |= (0ULL << 0x08);         // MBZ
+    PDPTE |= ((0ULL & 0x7) << 0x09); // AVL
+
+    PDPTE |= ((uint64_t)PD & 0xFFFFFFFFFFFFF000);
+
+    PDPTE |= (0ULL << 0x3F); // NX
+
+    return PDPTE;
+}
+
+template <>
+uint64_t
+buildPDE<0x200000>(uint64_t M, uint64_t)
+{
+    uint64_t PDE = {};
+
+    PDE |= (1ULL << 0x00);         // P
+    PDE |= (1ULL << 0x01);         // R/W
+    PDE |= (1ULL << 0x02);         // U/S
+    PDE |= (1ULL << 0x03);         // PWT
+    PDE |= (0ULL << 0x04);         // PCD
+    PDE |= (0ULL << 0x05);         // A
+    PDE |= (0ULL << 0x06);         // D
+    PDE |= (1ULL << 0x07);         // 1
+    PDE |= (1ULL << 0x08);         // G
+    PDE |= ((0ULL & 0x7) << 0x09); // AVL
+    PDE |= (0ULL << 0x0C);         // PAT
+
+    PDE |= ((uint64_t)M & 0xFFFFFFFFFFE00000);
+
+    PDE |= (0ULL << 0x3F); // NX
+
+    return PDE;
+}
+
+template <>
+uint64_t buildPTE<0x200000>(uint64_t, uint64_t);
+
+template <>
+uint64_t
+buildPML4E<0x40000000>(uint64_t, uint64_t)
+{
+    uint64_t PML4E = {};
+
+    PML4E |= (0ULL << 0x00);
+    PML4E |= (0ULL << 0x01);
+    PML4E |= (0ULL << 0x02);
+    PML4E |= (0ULL << 0x03);
+    PML4E |= (0ULL << 0x04);
+    PML4E |= (0ULL << 0x05);
+    PML4E |= (0ULL << 0x06);
+    PML4E |= (0ULL << 0x07);
+    PML4E |= (0ULL << 0x08);
+    PML4E |= (0ULL << 0x09);
+    PML4E |= (0ULL << 0x0A);
+    PML4E |= (0ULL << 0x0B);
+    PML4E |= (0ULL << 0x0C);
+    PML4E |= (0ULL << 0x0D);
+    PML4E |= (0ULL << 0x0E);
+    PML4E |= (0ULL << 0x0F);
+
+    return PML4E;
+}
+
+template <>
+uint64_t
+buildPDPTE<0x40000000>(uint64_t, uint64_t)
+{
+    uint64_t PDPTE = {};
+
+    PDPTE |= (0ULL << 0x00);
+    PDPTE |= (0ULL << 0x01);
+    PDPTE |= (0ULL << 0x02);
+    PDPTE |= (0ULL << 0x03);
+    PDPTE |= (0ULL << 0x04);
+    PDPTE |= (0ULL << 0x05);
+    PDPTE |= (0ULL << 0x06);
+    PDPTE |= (0ULL << 0x07);
+    PDPTE |= (0ULL << 0x08);
+    PDPTE |= (0ULL << 0x09);
+    PDPTE |= (0ULL << 0x0A);
+    PDPTE |= (0ULL << 0x0B);
+    PDPTE |= (0ULL << 0x0C);
+    PDPTE |= (0ULL << 0x0D);
+    PDPTE |= (0ULL << 0x0E);
+    PDPTE |= (0ULL << 0x0F);
+
+    return PDPTE;
+}
+
+template <>
+uint64_t buildPDE<0x40000000>(uint64_t, uint64_t);
+
+template <>
+uint64_t buildPTE<0x40000000>(uint64_t, uint64_t);
 
 static inline void
 buildNPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
@@ -201,7 +404,9 @@ buildNPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        PML4[I] = buildPML4E<0x200000>(Pa.QuadPart, MT);
+        uint64_t PML4E = buildPML4E<0x200000>(Pa.QuadPart, MT);
+        if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
+            deallocate<0x1000>(p);
     }
 
     Pa.QuadPart = PML4[I] & 0xFFFFFFFFFFFFF000;
@@ -211,13 +416,16 @@ buildNPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        PDPT[II] = buildPDPTE<0x200000>(Pa.QuadPart, MT);
+        uint64_t PDPTE = buildPDPTE<0x200000>(Pa.QuadPart, MT);
+        if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPTE, 0))
+            deallocate<0x1000>(p);
     }
 
     Pa.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
     uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PD[III] == 0) {
-        PD[III] = buildPDE<0x200000>(PA & 0xFFFFFFFFFFE00000, MT);
+        uint64_t PDE = buildPDE<0x200000>(PA & 0xFFFFFFFFFFE00000, MT);
+        InterlockedCompareExchange64((LONG64*)&PD[III], PDE, 0);
     }
 }
 
@@ -1459,8 +1667,86 @@ procedure<0x00A6>(VMCpu*, VMContext*)
 // 400h VMEXIT_NPF Nested paging: host-level page fault occurred (EXITINFO1 contains fault error code; EXITINFO2 contains the guest physical address causing the fault).
 template <>
 int
-procedure<0x0400>(VMCpu*, VMContext*)
+procedure<0x0400>(VMCpu* vcpu, VMContext*)
 {
+    bool ViolationR = {};
+    bool ViolationW = {};
+    bool ViolationX = {};
+    bool EptR = {};
+    bool EptW = {};
+    bool EptX = {};
+
+    uint64_t RIP = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178); // RIP
+    uint64_t ExitInfo1 = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0078);   // EXITINFO1
+    uint64_t ExitInfo2 = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0080);   // EXITINFO2
+
+    /**
+     * Bit 0 (P) - cleared to 0 if the nested page was not present, 1 otherwise
+     **/
+    if (ExitInfo1 & (1ULL << 0x00))
+        ;
+
+    /**
+     * Bit 1 (RW) - set to 1 if the nested page table level access was a write. Note that host table walks for
+     * guest page tables are always treated as data writes.
+     **/
+    if (ExitInfo1 & (1ULL << 0x01))
+        ;
+
+    /**
+     * Bit 2 (US) - set to 1 if the nested page table level access was a user access. Note that nested page
+     * table accesses performed by the MMU are treated as user accesses unless there are features
+     * enabled that override this.
+     **/
+    if (ExitInfo1 & (1ULL << 0x02))
+        ;
+
+    /**
+     * Bit 3 (RSV) - set to 1 if reserved bits were set in the corresponding nested page table entry
+     **/
+    if (ExitInfo1 & (1ULL << 0x03))
+        ;
+
+    /**
+     * Bit 4 (ID) - set to 1 if the nested page table level access was a code read. Note that nested table
+     * walks for guest page tables are always treated as data writes, even if the access itself is a code read
+     **/
+    if (ExitInfo1 & (1ULL << 0x04))
+        ;
+
+    /**
+     * Bit 6 (SS) - set to 1 if the fault was caused by a shadow stack access.
+     **/
+    if (ExitInfo1 & (1ULL << 0x06))
+        ;
+
+    /**
+     * Bit 32 - set to 1 if nested page fault occurred while translating the guest’s final physical address
+     **/
+    if (ExitInfo1 & (1ULL << 0x20))
+        ;
+
+    /**
+     * Bit 33 - set to 1 if nested page fault occurred while translating the guest page tables
+     **/
+    if (ExitInfo1 & (1ULL << 0x21))
+        ;
+
+    /**
+     * Bit 37 - set to 1 if the page was marked as a supervisor shadow stack page in the leaf node of the
+     * nested page table and the shadow stack check feature is enabled in VMCB offset 90h.
+     **/
+    if (ExitInfo1 & (1ULL << 0x25))
+        ;
+
+    buildNPT(PML4, ExitInfo2 & 0xFFFFFFFFFFE00000, 0);
+
+    // __asm__ __volatile__(".byte 0xEB, 0xFE" ::: "memory");
+
+    RIP = 0;
+    ExitInfo1 = 0;
+    ExitInfo2 = 0;
+
     return 0;
 }
 
@@ -2081,7 +2367,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
             ;
         if (edx & (1U << 0x13))
             ;
-        if (edx & (1U << 0x14)) // NX - No-execute page protection. See “Page Translation and Protection” in APM Volume 2.
+        if (edx & (1U << 0x14)) // NX - No-execute page protection. See "Page Translation and Protection" in APM Volume 2.
             ;
         if (edx & (1U << 0x15))
             ;
@@ -2091,7 +2377,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
             ;
         if (edx & (1U << 0x18)) // FXSR - FXSAVE and FXRSTOR instructions. Same as CPUID Fn0000_0001_EDX [FXSR].
             ;
-        if (edx & (1U << 0x19)) // FFXSR - FXSAVE and FXRSTOR instruction optimizations. See “FXSAVE” and “FXRSTOR” in APM Volume 5.
+        if (edx & (1U << 0x19)) // FFXSR - FXSAVE and FXRSTOR instruction optimizations. See "FXSAVE" and "FXRSTOR" in APM Volume 5.
             ;
         if (edx & (1U << 0x1A)) // Page1GB - 1-GB large page support
             ;
@@ -2542,10 +2828,6 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
 
     KdBreakPoint();
 
-    uint64_t ia32_fs_base2222 = __asm_rdmsr(IA32_FS_BASE);
-    uint64_t ia32_gs_base2222 = __asm_rdmsr(IA32_GS_BASE);
-    uint64_t ia32_kernel_gs_base2222 = __asm_rdmsr(IA32_KERNEL_GS_BASE);
-
     if (Context.Rip == 0x12345678)
         return 0;
 
@@ -2579,16 +2861,20 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
 
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x13; // Intercept RSM instruction
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x14; // Intercept IRET instruction
+
     *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x15; // Intercept INTn instruction
+
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x16; // Intercept INVD instruction
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x17; // Intercept PAUSE instruction
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x18; // Intercept HLT instruction
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x19; // Intercept INVLPG instruction
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1A; // Intercept INVLPGA instruction
-    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1B; // IOIO_PROT - Intercept IN/OUT accesses to selected ports
-    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1C; // MSR_PROT - intercept RDMSR or WRMSR accesses to selected MSRs
+
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1B; // IOIO_PROT - Intercept IN/OUT accesses to selected ports
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1C; // MSR_PROT - intercept RDMSR or WRMSR accesses to selected MSRs
+
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1D; // Intercept task switches
-    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1E; // FERR_FREEZE: intercept processor “freezing” during legacy FERR handling
+    // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1E; // FERR_FREEZE: intercept processor "freezing" during legacy FERR handling
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x1F; // Intercept shutdown events
 
     *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0010) = 0;
@@ -2628,7 +2914,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0048) = vcpu->MsrPermissionsMapPa.QuadPart; // MSRPM_BASE_PA - Physical base address of MSRPM (bits 11:0 are ignored)
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0050) = 0;                                  // TSC_OFFSET - To be added in RDTSC and RDTSCP
 
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0058) = __asm_rdpid() + 1; // Guest ASID
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0058) = SecureSeed32; // Guest ASID
 
     /**
      * TLB_CONTROL
@@ -2666,7 +2952,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0088) = 0; // EXITINTINFO
 
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) = 0;
-    //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x00; // NP_ENABLE - Enable nested paging.
+    *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x00; // NP_ENABLE - Enable nested paging.
     //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x01; // Enable Secure Encrypted Virtualization
     //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x02; // Enable Encrypted State for Secure Encrypted Virtualization
     //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x03; // Guest Mode Execute Trap
@@ -2675,10 +2961,10 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x06; // Enable Read Only Guest Page Tables
     //*(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x07; // Enable INVLPGB/TLBSYNC.
 
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0098) = 0; //
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A0) = 0; // Guest physical address of GHCB
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A8) = 0; // EVENTINJ - Event injection
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = 0; // N_CR3 - Nested page table CR3 to use for nested paging
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0098) = 0;                                   //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A0) = 0;                                   // Guest physical address of GHCB
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A8) = 0;                                   // EVENTINJ - Event injection
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = MmGetPhysicalAddress(PML4).QuadPart; // N_CR3 - Nested page table CR3 to use for nested paging
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B8) = 0;
     //*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B8) |= 1U << 0x00; // LBR Virtualization Enable

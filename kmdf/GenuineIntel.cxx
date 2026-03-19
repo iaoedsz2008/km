@@ -1073,9 +1073,8 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
         uint64_t PML4E = buildPML4E<0x200000>(Pa.QuadPart, MT);
-        if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0)) {
+        if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
             deallocate<0x1000>(p);
-        }
     }
 
     Pa.QuadPart = PML4[I] & 0xFFFFFFFFFFFFF000;
@@ -1086,9 +1085,8 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
         uint64_t PDPTE = buildPDPTE<0x200000>(Pa.QuadPart, MT);
-        if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPTE, 0)) {
+        if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPTE, 0))
             deallocate<0x1000>(p);
-        }
     }
 
     Pa.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
