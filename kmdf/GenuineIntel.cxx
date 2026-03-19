@@ -394,22 +394,22 @@ vmx_format_access_rights(uint32_t access_rights)
 static uint64_t buildEPTP(PVOID);
 
 template <size_t>
-static uint64_t buildPML5E(PVOID);
+static uint64_t buildPML5E(uint64_t, uint64_t);
 
 template <size_t>
-static uint64_t buildPML4E(PVOID);
+static uint64_t buildPML4E(uint64_t, uint64_t);
 
 template <size_t>
-static uint64_t buildPDPTE(PVOID);
+static uint64_t buildPDPTE(uint64_t, uint64_t);
 
 template <size_t>
-static uint64_t buildPDE(PVOID);
+static uint64_t buildPDE(uint64_t, uint64_t);
 
 template <size_t>
-static uint64_t buildPTE(PVOID);
+static uint64_t buildPTE(uint64_t, uint64_t);
 
 uint64_t
-buildEPTP(PVOID EPT)
+buildEPTP(uint64_t EPT)
 {
     /**
      * Format of Extended-Page-Table Pointer
@@ -450,7 +450,7 @@ buildEPTP(PVOID EPT)
 
 template <>
 uint64_t
-buildPML5E<0x1000>(PVOID PML4)
+buildPML5E<0x1000>(uint64_t PML4, uint64_t)
 {
     uint64_t PML5E = {};
 
@@ -501,7 +501,7 @@ buildPML5E<0x1000>(PVOID PML4)
 
 template <>
 uint64_t
-buildPML4E<0x1000>(PVOID PDPT)
+buildPML4E<0x1000>(uint64_t PDPT, uint64_t)
 {
     uint64_t PML4E = {};
 
@@ -561,7 +561,7 @@ buildPML4E<0x1000>(PVOID PDPT)
 
 template <>
 uint64_t
-buildPDPTE<0x1000>(PVOID PD)
+buildPDPTE<0x1000>(uint64_t PD, uint64_t)
 {
     uint64_t PDPTE = {};
 
@@ -620,7 +620,7 @@ buildPDPTE<0x1000>(PVOID PD)
 
 template <>
 uint64_t
-buildPDE<0x1000>(PVOID PT)
+buildPDE<0x1000>(uint64_t PT, uint64_t)
 {
     uint64_t PDE = {};
 
@@ -682,7 +682,7 @@ buildPDE<0x1000>(PVOID PT)
 
 template <>
 uint64_t
-buildPTE<0x1000>(PVOID M)
+buildPTE<0x1000>(uint64_t M, uint64_t MT)
 {
     uint64_t PTE = {};
 
@@ -712,7 +712,7 @@ buildPTE<0x1000>(PVOID M)
     /**
      * 5:3 EPT memory type for this 4-KByte page (see Section 31.3.7).
      **/
-    PTE |= ((6ULL & 0x7) << 0x03);
+    PTE |= ((MT & 0x7) << 0x03);
 
     /**
      * 6 Ignore PAT memory type for this 4-KByte page (see Section 31.3.7).
@@ -795,28 +795,28 @@ buildPTE<0x1000>(PVOID M)
 
 template <>
 uint64_t
-buildPML5E<0x200000>(PVOID PML4)
+buildPML5E<0x200000>(uint64_t PML4, uint64_t MT)
 {
-    return buildPML5E<0x1000>(PML4);
+    return buildPML5E<0x1000>(PML4, MT);
 }
 
 template <>
 uint64_t
-buildPML4E<0x200000>(PVOID PDPT)
+buildPML4E<0x200000>(uint64_t PDPT, uint64_t MT)
 {
-    return buildPML4E<0x1000>(PDPT);
+    return buildPML4E<0x1000>(PDPT, MT);
 }
 
 template <>
 uint64_t
-buildPDPTE<0x200000>(PVOID PD)
+buildPDPTE<0x200000>(uint64_t PD, uint64_t MT)
 {
-    return buildPDPTE<0x1000>(PD);
+    return buildPDPTE<0x1000>(PD, MT);
 }
 
 template <>
 uint64_t
-buildPDE<0x200000>(PVOID PT)
+buildPDE<0x200000>(uint64_t PT, uint64_t MT)
 {
     uint64_t PDE = {};
 
@@ -844,7 +844,7 @@ buildPDE<0x200000>(PVOID PT)
     /**
      * 5:3 EPT memory type for this 2-MByte page (see Section 31.3.7).
      **/
-    PDE |= ((6ULL & 0x7) << 0x03);
+    PDE |= ((MT & 0x7) << 0x03);
 
     /**
      * 6 Ignore PAT memory type for this 2-MByte page (see Section 31.3.7).
@@ -926,25 +926,25 @@ buildPDE<0x200000>(PVOID PT)
 }
 
 template <>
-uint64_t buildPTE<0x200000>(PVOID);
+uint64_t buildPTE<0x200000>(uint64_t, uint64_t);
 
 template <>
 uint64_t
-buildPML5E<0x40000000>(PVOID PML4)
+buildPML5E<0x40000000>(uint64_t PML4, uint64_t MT)
 {
-    return buildPML5E<0x1000>(PML4);
+    return buildPML5E<0x1000>(PML4, MT);
 }
 
 template <>
 uint64_t
-buildPML4E<0x40000000>(PVOID PDPT)
+buildPML4E<0x40000000>(uint64_t PDPT, uint64_t MT)
 {
-    return buildPML4E<0x1000>(PDPT);
+    return buildPML4E<0x1000>(PDPT, MT);
 }
 
 template <>
 uint64_t
-buildPDPTE<0x40000000>(PVOID PD)
+buildPDPTE<0x40000000>(uint64_t PD, uint64_t MT)
 {
     uint64_t PDPTE = {};
 
@@ -974,7 +974,7 @@ buildPDPTE<0x40000000>(PVOID PD)
     /**
      * 5:3 EPT memory type for this 1-GByte page (see Section 31.3.7).
      **/
-    PDPTE |= ((6ULL & 0x7) << 0x03);
+    PDPTE |= ((MT & 0x7) << 0x03);
 
     /**
      * 6 Ignore PAT memory type for this 1-GByte page (see Section 31.3.7).
@@ -1056,13 +1056,13 @@ buildPDPTE<0x40000000>(PVOID PD)
 }
 
 template <>
-uint64_t buildPDE<0x40000000>(PVOID);
+uint64_t buildPDE<0x40000000>(uint64_t, uint64_t);
 
 template <>
-uint64_t buildPTE<0x40000000>(PVOID);
+uint64_t buildPTE<0x40000000>(uint64_t, uint64_t);
 
 static inline uint64_t
-buildEPT(uint64_t eptp, uint64_t pa)
+buildEPT(uint64_t eptp, uint64_t pa, uint64_t mt)
 {
     uint64_t I = (pa >> 0x27) & 0x00000000000001FF;
     uint64_t II = (pa >> 0x1E) & 0x00000000000001FF;
@@ -1073,7 +1073,7 @@ buildEPT(uint64_t eptp, uint64_t pa)
         uint64_t* p = (uint64_t*)allocate<0x1000>();
         memset(p, 0, 0x1000);
         PA = MmGetPhysicalAddress(p);
-        eptp = buildEPTP((PVOID)PA.QuadPart);
+        eptp = buildEPTP(PA.QuadPart);
     }
 
     PA.QuadPart = eptp & 0xFFFFFFFFFFFFF000;
@@ -1082,7 +1082,7 @@ buildEPT(uint64_t eptp, uint64_t pa)
         uint64_t* p = (uint64_t*)allocate<0x1000>();
         memset(p, 0, 0x1000);
         PA = MmGetPhysicalAddress(p);
-        PML4[I] = buildPML4E<0x200000>((PVOID)PA.QuadPart);
+        PML4[I] = buildPML4E<0x200000>(PA.QuadPart, mt);
     }
 
     PA.QuadPart = PML4[I] & 0xFFFFFFFFFFFFF000;
@@ -1091,13 +1091,13 @@ buildEPT(uint64_t eptp, uint64_t pa)
         uint64_t* p = (uint64_t*)allocate<0x1000>();
         memset(p, 0, 0x1000);
         PA = MmGetPhysicalAddress(p);
-        PDPT[II] = buildPDPTE<0x200000>((PVOID)PA.QuadPart);
+        PDPT[II] = buildPDPTE<0x200000>(PA.QuadPart, mt);
     }
 
     PA.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
     uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(PA);
     if (PD[III] == 0) {
-        PD[III] = buildPDE<0x200000>((PVOID)pa);
+        PD[III] = buildPDE<0x200000>(pa & 0xFFFFFFFFFFE00000, mt);
     }
 
     return eptp;
@@ -1196,6 +1196,9 @@ template <>
 int
 procedure<0x0009>(VMContext*)
 {
+    /**
+     * Exit Qualification for Task Switches
+     **/
     return 0;
 }
 
@@ -1349,6 +1352,9 @@ template <>
 int
 procedure<0x001C>(VMContext*)
 {
+    /**
+     * Exit Qualification for Control-Register Accesses
+     **/
     return 0;
 }
 
@@ -1357,6 +1363,9 @@ template <>
 int
 procedure<0x001D>(VMContext*)
 {
+    /**
+     * Exit Qualification for MOV DR
+     **/
     return 0;
 }
 
@@ -1365,6 +1374,9 @@ template <>
 int
 procedure<0x001E>(VMContext*)
 {
+    /**
+     * Exit Qualification for I/O Instructions
+     **/
     return 0;
 }
 
@@ -1493,6 +1505,9 @@ template <>
 int
 procedure<0x002C>(VMContext*)
 {
+    /**
+     * Exit Qualification for APIC-Access VM Exits from Linear Accesses and Guest-Physical Accesses
+     **/
     return 0;
 }
 
@@ -1525,9 +1540,9 @@ template <>
 int
 procedure<0x0030>(VMContext*)
 {
-    size_t ExitQualification = 0;
-    size_t GuestPhysicalAddress = 0;
-    size_t GuestLinearAddress = 0;
+    size_t ExitQualification = {};
+    size_t GuestPhysicalAddress = {};
+    size_t GuestLinearAddress = {};
 
     bool ViolationR = {};
     bool ViolationW = {};
@@ -1582,7 +1597,7 @@ procedure<0x0030>(VMContext*)
      * 5
      * The logical-AND of bit 2 in the EPT paging-structure entries used to translate the guest-physical address of the
      * access causing the EPT violation.
-     * If the “mode-based execute control for EPT” VM-execution control is 0, this indicates whether the guest-physical
+     * If the "mode-based execute control for EPT" VM-execution control is 0, this indicates whether the guest-physical
      * address was executable. If that control is 1, this indicates whether the guest-physical address was executable
      * for supervisor-mode linear addresses.
      **/
@@ -1591,7 +1606,7 @@ procedure<0x0030>(VMContext*)
 
     /**
      * 6
-     * If the “mode-based execute control” VM-execution control is 0, the value of this bit is undefined. If that control is
+     * If the "mode-based execute control" VM-execution control is 0, the value of this bit is undefined. If that control is
      * 1, this bit is the logical-AND of bit 10 in the EPT paging-structure entries used to translate the guest-physical
      * address of the access causing the EPT violation. In this case, it indicates whether the guest-physical address was
      * executable for user-mode linear addresses.
@@ -1681,13 +1696,13 @@ procedure<0x0030>(VMContext*)
      * 16
      * This bit is set if the access was asynchronous to instruction execution not the result of event delivery. The bit is
      * set if the access is related to trace output by Intel PT (see Section 28.5.4), accesses related to PEBS on
-     * processors with the “EPT-friendly” enhancement (see Section 22.9.5), or to user-interrupt delivery (see Section
+     * processors with the "EPT-friendly" enhancement (see Section 22.9.5), or to user-interrupt delivery (see Section
      * 9.4.2). Otherwise, this bit is cleared.
      **/
     if (ExitQualification & (1ULL << 0x10))
         ;
 
-    EPTP = buildEPT(EPTP, GuestPhysicalAddress & 0xFFFFFFFFFFE00000);
+    EPTP = buildEPT(EPTP, GuestPhysicalAddress & 0xFFFFFFFFFFE00000, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
 
     return 0;
 }
@@ -1697,10 +1712,15 @@ template <>
 int
 procedure<0x0031>(VMContext*)
 {
-    size_t e;
-    __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
+    size_t ExitQualification = {};
+    size_t GuestPhysicalAddress = {};
+    size_t GuestLinearAddress = {};
+
+    __asm_vmx_vmread(VMX_VMCS_RO_EXIT_QUALIFICATION, &ExitQualification);
+    __asm_vmx_vmread(VMX_VMCS64_RO_GUEST_PHYS_ADDR_FULL, &GuestPhysicalAddress);
+    __asm_vmx_vmread(VMX_VMCS_RO_GUEST_LINEAR_ADDR, &GuestLinearAddress);
+
     __asm_int3();
-    e = 0x0031;
     return 0;
 }
 
@@ -1839,7 +1859,7 @@ procedure<0x0041>(VMContext*)
     return 0;
 }
 
-// 66 SPP-related event. The processor attempted to determine an access’s sub-page write permission and encountered an SPP miss or an SPP misconfiguration.
+// 66 SPP-related event. The processor attempted to determine an access's sub-page write permission and encountered an SPP miss or an SPP misconfiguration.
 template <>
 int
 procedure<0x0042>(VMContext*)
@@ -2045,7 +2065,7 @@ initializeEPT()
     EPTP = {};
 
     for (size_t i = 0; i < 0x80000000; i += 0x200000) {
-        EPTP = buildEPT(EPTP, i);
+        EPTP = buildEPT(EPTP, i, 6);
     }
 }
 
