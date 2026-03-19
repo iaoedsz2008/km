@@ -276,7 +276,7 @@ typedef struct VMCpu {
     PHYSICAL_ADDRESS VmcsGuestPa;
 } VMCpu;
 
-static uint64_t EPTP = {};
+static uint64_t* PML4 = {};
 static int (*Procedures[0x100])(VMContext* ctx);
 
 static FORCEINLINE uint32_t
@@ -390,8 +390,6 @@ vmx_format_access_rights(uint32_t access_rights)
 
     return result;
 }
-
-static uint64_t buildEPTP(PVOID);
 
 template <size_t>
 static uint64_t buildPML5E(uint64_t, uint64_t);
@@ -1061,23 +1059,14 @@ uint64_t buildPDE<0x40000000>(uint64_t, uint64_t);
 template <>
 uint64_t buildPTE<0x40000000>(uint64_t, uint64_t);
 
-static inline uint64_t
-buildEPT(uint64_t eptp, uint64_t pa, uint64_t mt)
+static inline void
+buildEPT(uint64_t* PML4, uint64_t pa, uint64_t mt)
 {
     uint64_t I = (pa >> 0x27) & 0x00000000000001FF;
     uint64_t II = (pa >> 0x1E) & 0x00000000000001FF;
     uint64_t III = (pa >> 0x15) & 0x00000000000001FF;
     PHYSICAL_ADDRESS PA;
 
-    if (eptp == 0) {
-        uint64_t* p = (uint64_t*)allocate<0x1000>();
-        memset(p, 0, 0x1000);
-        PA = MmGetPhysicalAddress(p);
-        eptp = buildEPTP(PA.QuadPart);
-    }
-
-    PA.QuadPart = eptp & 0xFFFFFFFFFFFFF000;
-    uint64_t* PML4 = (uint64_t*)MmGetVirtualForPhysical(PA);
     if (PML4[I] == 0) {
         uint64_t* p = (uint64_t*)allocate<0x1000>();
         memset(p, 0, 0x1000);
@@ -1099,8 +1088,6 @@ buildEPT(uint64_t eptp, uint64_t pa, uint64_t mt)
     if (PD[III] == 0) {
         PD[III] = buildPDE<0x200000>(pa & 0xFFFFFFFFFFE00000, mt);
     }
-
-    return eptp;
 }
 
 template <int e>
@@ -1702,7 +1689,7 @@ procedure<0x0030>(VMContext*)
     if (ExitQualification & (1ULL << 0x10))
         ;
 
-    EPTP = buildEPT(EPTP, GuestPhysicalAddress & 0xFFFFFFFFFFE00000, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+    buildEPT(PML4, GuestPhysicalAddress & 0xFFFFFFFFFFE00000, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
 
     return 0;
 }
@@ -2062,10 +2049,10 @@ initializeEPT()
 {
     KdBreakPoint();
 
-    EPTP = {};
+    PML4 = (uint64_t*)allocate<0x1000>();
 
     for (size_t i = 0; i < 0x80000000; i += 0x200000) {
-        EPTP = buildEPT(EPTP, i, 6);
+        buildEPT(PML4, i, 6);
     }
 }
 
@@ -3044,7 +3031,7 @@ vmxon<Hash("GenuineIntel")>(PVOID)
             Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_MSR_BITMAP_FULL, msrpmPA.QuadPart);
 
         if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x01)) // Enable EPT
-            Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, EPTP);
+            Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, buildEPTP(MmGetPhysicalAddress(PML4).QuadPart));
 
         if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x05)) // Enable VPID
             Status |= __asm_vmx_vmwrite(VMX_VMCS16_VPID, __asm_rdpid() + 1);
