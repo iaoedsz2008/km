@@ -10,6 +10,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef struct VM {
+} VM;
+
 typedef struct VMContext {
     uint64_t RAX;
     uint64_t RBX;
@@ -30,6 +33,8 @@ typedef struct VMContext {
 } VMContext;
 
 typedef struct VMCpu {
+    VM* VM;
+ 
     void* IoPermissionsMap;
     void* MsrPermissionsMap;
     void* VmcbHost;

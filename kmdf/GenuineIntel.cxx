@@ -243,6 +243,9 @@
 #define VMX_VMCS_HOST_RSP                          0x6C14
 #define VMX_VMCS_HOST_RIP                          0x6C16
 
+typedef struct VM {
+} VM;
+
 typedef struct VMContext {
     uint64_t RAX;
     uint64_t RBX;
@@ -263,7 +266,7 @@ typedef struct VMContext {
 } VMContext;
 
 typedef struct VMCpu {
-    VMContext Context;
+    VM* VM;
 
     void* IoBitmap;
     void* MsrBitmap;
@@ -277,6 +280,7 @@ typedef struct VMCpu {
 } VMCpu;
 
 static uint64_t* PML4 = {};
+static uint64_t EPTP = {};
 static int (*Procedures[0x100])(VMContext* ctx);
 
 static FORCEINLINE uint32_t
@@ -441,7 +445,7 @@ buildEPTP(uint64_t EPT)
     /**
      * Bits M–1:12 of the physical address of the 4-KByte aligned EPT paging-structure (an EPT PML4 table with 4-level EPT and an EPT PML5 table with 5-level EPT)
      **/
-    EPTP |= ((uint64_t)EPT & 0xFFFFFFFFFFFFF000);
+    EPTP |= ((uint64_t)EPT & 0x0000FFFFFFFFF000);
 
     return EPTP;
 }
@@ -548,7 +552,7 @@ buildPML4E<0x1000>(uint64_t PDPT, uint64_t)
     /**
      * M–1:12 Physical address of 4-KByte aligned EPT page-directory-pointer table referenced by this entry.
      **/
-    PML4E |= ((uint64_t)PDPT & 0xFFFFFFFFFFFFF000);
+    PML4E |= ((uint64_t)PDPT & 0x0000FFFFFFFFF000);
 
     /**
      * 51:M Reserved (must be 0).
@@ -607,7 +611,7 @@ buildPDPTE<0x1000>(uint64_t PD, uint64_t)
     /**
      * M–1:12 Physical address of 4-KByte aligned EPT page directory referenced by this entry.
      **/
-    PDPTE |= ((uint64_t)PD & 0xFFFFFFFFFFFFF000);
+    PDPTE |= ((uint64_t)PD & 0x0000FFFFFFFFF000);
 
     /**
      * 51:M Reserved (must be 0).
@@ -669,7 +673,7 @@ buildPDE<0x1000>(uint64_t PT, uint64_t)
     /**
      * M–1:12 Physical address of 4-KByte aligned EPT page table referenced by this entry.
      **/
-    PDE |= ((uint64_t)PT & 0xFFFFFFFFFFFFF000);
+    PDE |= ((uint64_t)PT & 0x0000FFFFFFFFF000);
 
     /**
      * 51:M Reserved (must be 0).
@@ -742,7 +746,7 @@ buildPTE<0x1000>(uint64_t M, uint64_t MT)
     /**
      * M–1:12 Physical address of the 4-KByte page referenced by this entry.
      **/
-    PTE |= ((uint64_t)M & 0xFFFFFFFFFFFFF000);
+    PTE |= ((uint64_t)M & 0x0000FFFFFFFFF000);
 
     /**
      * 51:M Reserved (must be 0).
@@ -883,7 +887,7 @@ buildPDE<0x200000>(uint64_t PT, uint64_t MT)
     /**
      * M–1:21 Physical address of the 2-MByte page referenced by this entry.
      **/
-    PDE |= ((uint64_t)PT & 0xFFFFFFFFFFE00000);
+    PDE |= ((uint64_t)PT & 0x0000FFFFFFE00000);
 
     /**
      * 51:M Reserved (must be 0).
@@ -1698,6 +1702,15 @@ procedure<0x0030>(VMContext*)
 
     buildEPT(PML4, GuestPhysicalAddress & 0xFFFFFFFFFFE00000, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
 
+    // The INVEPT descriptor comprises 128 bits and contains a 64-bit EPTP value in bits 63:0
+    struct {
+        uint64_t eptp;
+        uint64_t reserved;
+    } descriptor;
+    descriptor.eptp = EPTP;
+    descriptor.reserved = 0;
+    __asm_vmx_invept(1, &descriptor);
+
     return 0;
 }
 
@@ -2063,6 +2076,8 @@ initializeEPT()
     for (size_t i = 0; i < 0x80000000; i += 0x200000) {
         buildEPT(PML4, i, 6);
     }
+
+    EPTP = buildEPTP(MmGetPhysicalAddress(PML4).QuadPart);
 }
 
 template <>
@@ -3044,7 +3059,7 @@ vmxon<Hash("GenuineIntel")>(PVOID)
             Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_MSR_BITMAP_FULL, msrpmPA.QuadPart);
 
         if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x01)) // Enable EPT
-            Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, buildEPTP(MmGetPhysicalAddress(PML4).QuadPart));
+            Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, EPTP);
 
         if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x05)) // Enable VPID
             Status |= __asm_vmx_vmwrite(VMX_VMCS16_VPID, __asm_rdpid() + 1);
