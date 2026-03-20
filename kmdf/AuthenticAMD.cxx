@@ -34,7 +34,7 @@ typedef struct VMContext {
 
 typedef struct VMCpu {
     VM* VM;
- 
+
     void* IoPermissionsMap;
     void* MsrPermissionsMap;
     void* VmcbHost;
@@ -2831,8 +2831,6 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     CONTEXT Context;
     RtlCaptureContext(&Context);
 
-    KdBreakPoint();
-
     if (Context.Rip == 0x12345678)
         return 0;
 
@@ -3112,9 +3110,9 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
 
     __asm_wrmsr(0xC0010117, vcpu->VmcbHostPa.QuadPart);
 
-    KdBreakPoint();
-
     Context.Rip = 0x12345678;
+
+    KdBreakPoint();
 
     __asm_svm_vmsave(vcpu->VmcbGuestPa.QuadPart);
 

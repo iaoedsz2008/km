@@ -2170,7 +2170,7 @@ initialize<Hash("GenuineIntel")>()
 
 template <>
 int
-vmxon<Hash("GenuineIntel")>(PVOID)
+vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
 {
     uint32_t eax;
     uint32_t ebx;
@@ -2768,8 +2768,6 @@ vmxon<Hash("GenuineIntel")>(PVOID)
     if (Context.Rip == 0x12345678)
         return 0;
 
-    KdBreakPoint();
-
     __asm_cr0((CR0 & ia32_vmx_cr0_fixed1) | ia32_vmx_cr0_fixed0);
     __asm_cr4(((CR4 | 0x00002000 /*VMXE*/) & ia32_vmx_cr4_fixed1) | ia32_vmx_cr4_fixed0);
 
@@ -3071,8 +3069,6 @@ vmxon<Hash("GenuineIntel")>(PVOID)
         Status |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR4_READ_SHADOW, CR4);
     }
 
-    KdBreakPoint();
-
     // Host Fields
     {
         size_t stack = (size_t)allocate<0x8000>();
@@ -3109,7 +3105,7 @@ vmxon<Hash("GenuineIntel")>(PVOID)
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_SYSENTER_EIP, ia32_sysenter_eip);
 
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR0, CR0);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR3, CR3);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR3, (size_t)DirectoryTableBase);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_CR4, CR4);
     }
 

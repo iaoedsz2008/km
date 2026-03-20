@@ -164,8 +164,6 @@ initialize()
     uint32_t ecx;
     uint32_t edx;
 
-    KdBreakPoint();
-
     __asm_cpuid(0, &eax, &ebx, &ecx, &edx);
 
     ((uint32_t*)vendor)[0] = ebx;
@@ -182,7 +180,7 @@ initialize()
 static ULONG_PTR
 vmxon(_In_ ULONG_PTR Argument)
 {
-    UNREFERENCED_PARAMETER(Argument);
+    PEPROCESS* System = (PEPROCESS*)Argument;
 
     char vendor[0x10] = {};
 
@@ -191,19 +189,24 @@ vmxon(_In_ ULONG_PTR Argument)
     uint32_t ecx;
     uint32_t edx;
 
-    KdBreakPoint();
-
     __asm_cpuid(0, &eax, &ebx, &ecx, &edx);
 
     ((uint32_t*)vendor)[0] = ebx;
     ((uint32_t*)vendor)[1] = edx;
     ((uint32_t*)vendor)[2] = ecx;
 
+#if defined(_M_AMD64) || defined(__x86_64__)
+    PVOID DirectoryTableBase = *(PVOID*)((UINT8*)System + 0x28);
+#endif
+#if defined(_M_IX86) || defined(__i386__)
+    PVOID DirectoryTableBase = *(PVOID*)((UINT8*)System + 0x18);
+#endif
+
     if (memcmp(vendor, "GenuineIntel", 12) == 0)
-        return vmxon<Hash("GenuineIntel")>(NULL);
+        return vmxon<Hash("GenuineIntel")>(DirectoryTableBase);
 
     if (memcmp(vendor, "AuthenticAMD", 12) == 0)
-        return vmxon<Hash("AuthenticAMD")>(NULL);
+        return vmxon<Hash("AuthenticAMD")>(DirectoryTableBase);
 
     return -1;
 }
@@ -388,11 +391,15 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 
     ExFreePool(Ranges);
 
-    KdBreakPoint();
-
     initialize();
 
-    if (KeIpiGenericCall(vmxon, 0))
+    /**
+     * 注意
+     * 如果需要将代码移植至其他平台,此时必须保证获取到的CR3是系统进程的.
+     **/
+    ASSERT(PsGetCurrentProcessId() == (HANDLE)4);
+
+    if (KeIpiGenericCall(vmxon, (ULONG_PTR)PsGetCurrentProcess()))
         return STATUS_UNSUCCESSFUL;
 
     DriverObject->DriverUnload = DriverUnload;
