@@ -393,14 +393,36 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 
     initialize();
 
+    PROCESSOR_NUMBER ProcessorNumber;
+    GROUP_AFFINITY GroupAffinity;
+    GROUP_AFFINITY UserGroupAffinity;
+    ULONG ProcessorCount = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
+
+    NTSTATUS Status = STATUS_SUCCESS;
+
+    for (ULONG i = 0; i < ProcessorCount; i++) {
+        Status = KeGetProcessorNumberFromIndex(i, &ProcessorNumber);
+        if (!NT_SUCCESS(Status))
+            break;
+
+        GroupAffinity.Group = ProcessorNumber.Group;
+        GroupAffinity.Mask = 1ULL << ProcessorNumber.Number;
+        GroupAffinity.Reserved[0] = GroupAffinity.Reserved[1] = GroupAffinity.Reserved[2] = 0;
+        KeSetSystemGroupAffinityThread(&GroupAffinity, &UserGroupAffinity);
+
+        vmxon((ULONG_PTR)PsGetCurrentProcess());
+
+        KeRevertToUserGroupAffinityThread(&UserGroupAffinity);
+    }
+
     /**
      * 注意
      * 如果需要将代码移植至其他平台,此时必须保证获取到的CR3是系统进程的.
      **/
     ASSERT(PsGetCurrentProcessId() == (HANDLE)4);
 
-    if (KeIpiGenericCall(vmxon, (ULONG_PTR)PsGetCurrentProcess()))
-        return STATUS_UNSUCCESSFUL;
+    // if (KeIpiGenericCall(vmxon, (ULONG_PTR)PsGetCurrentProcess()))
+    //     return STATUS_UNSUCCESSFUL;
 
     DriverObject->DriverUnload = DriverUnload;
 
