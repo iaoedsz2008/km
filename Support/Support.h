@@ -569,14 +569,14 @@ __asm_rdmsr(uint32_t msr)
 {
     uint32_t low, high;
     __asm__ __volatile__("rdmsr" : "=a"(low), "=d"(high) : "c"(msr));
-    return (((uint64_t)high << 32) | (uint64_t)low);
+    return (((uint64_t)high << 0x20) | (uint64_t)low);
 }
 
 static inline void
 __asm_wrmsr(uint32_t msr, uint64_t value)
 {
-    uint32_t low = value & 0xFFFFFFFF;
-    uint32_t high = value >> 32;
+    uint32_t low = (uint32_t)value;
+    uint32_t high = value >> 0x20;
     __asm__ __volatile__("wrmsr" ::"a"(low), "d"(high), "c"(msr) : "memory");
 }
 
