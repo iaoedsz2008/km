@@ -3398,9 +3398,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     __asm_svm_vmsave(vcpu->VmcbGuestPa.QuadPart);
     __asm_svm_vmsave(vcpu->VmcbHostPa.QuadPart);
 
-    __asm__ __volatile__("\n mov %0, %%rax"    // VmcbGuestPa
-                         "\n mov %1, %%rbx"    // Context
-                         "\n mov %2, %%rsp"    // RSP
+    __asm__ __volatile__("\n mov %2, %%rsp"    // RSP
                          "\n push %c3(%%rbx)"  // Context.R15
                          "\n push %c4(%%rbx)"  // Context.R14
                          "\n push %c5(%%rbx)"  // Context.R13
@@ -3469,7 +3467,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
 
                          "\n jmp labelA"
                          :
-                         : "m"(vcpu->VmcbGuestPa.QuadPart), "r"(&Context), "r"((uint8_t*)vcpu + 0x1F00), "i"(offsetof(CONTEXT, R15)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, Rsp)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rax)), "i"(HandleVmExit)
+                         : "a"(vcpu->VmcbGuestPa.QuadPart), "b"(&Context), "r"((uint8_t*)vcpu + 0x1F00), "i"(offsetof(CONTEXT, R15)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, Rsp)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rax)), "i"(HandleVmExit)
                          : "memory");
 
     return 0;
