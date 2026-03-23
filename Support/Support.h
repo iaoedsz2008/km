@@ -496,13 +496,13 @@ typedef struct _IA32_GDT_REGISTER {
     uint16_t Limit;
     void* BaseAddress;
 } __attribute__((packed)) IA32_GDT_REGISTER;
-static_assert(sizeof(IA32_GDT_REGISTER) == 10, "");
+static_assert(sizeof(IA32_GDT_REGISTER) == (sizeof(uint16_t) + sizeof(size_t)), "");
 
 typedef struct _IA32_IDT_REGISTER {
     uint16_t Limit;
     void* BaseAddress;
 } __attribute__((packed)) IA32_IDT_REGISTER;
-static_assert(sizeof(IA32_IDT_REGISTER) == 10, "");
+static_assert(sizeof(IA32_IDT_REGISTER) == (sizeof(uint16_t) + sizeof(size_t)), "");
 
 static inline void
 __asm_lgdt(const IA32_GDT_REGISTER* gdt)
