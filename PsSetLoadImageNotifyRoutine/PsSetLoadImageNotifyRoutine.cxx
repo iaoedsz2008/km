@@ -13,7 +13,7 @@
 #include "Support.h"
 
 VOID
-LoadImageNotifyCallback(_In_opt_ PUNICODE_STRING FullImageName, IN HANDLE ProcessId, IN PIMAGE_INFO ImageInfo)
+LoadImageNotifyCallback(IN PUNICODE_STRING FullImageName OPTIONAL, IN HANDLE ProcessId, IN PIMAGE_INFO ImageInfo)
 {
     UNREFERENCED_PARAMETER(ImageInfo);
 

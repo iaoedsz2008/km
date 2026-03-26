@@ -777,7 +777,7 @@ _CreateProcessNotifyRoutine(IN HANDLE ParentId, IN HANDLE ProcessId, IN BOOLEAN 
 }
 
 VOID
-_LoadImageNotifyRoutine(_In_opt_ PUNICODE_STRING FullImageName, IN HANDLE ProcessId, IN PIMAGE_INFO ImageInfo)
+_LoadImageNotifyRoutine(IN PUNICODE_STRING FullImageName OPTIONAL, IN HANDLE ProcessId, IN PIMAGE_INFO ImageInfo)
 {
     UNREFERENCED_PARAMETER(ImageInfo);
 

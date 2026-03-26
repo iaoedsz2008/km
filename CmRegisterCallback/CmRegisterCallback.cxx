@@ -15,7 +15,7 @@
 static LARGE_INTEGER Cookie;
 
 static NTSTATUS
-_ExCallbackFunction(IN PVOID CallbackContext, _In_opt_ PVOID Argument1, _In_opt_ PVOID Argument2)
+_ExCallbackFunction(IN PVOID CallbackContext, IN PVOID Argument1 OPTIONAL, IN PVOID Argument2 OPTIONAL)
 {
     UNREFERENCED_PARAMETER(CallbackContext);
 

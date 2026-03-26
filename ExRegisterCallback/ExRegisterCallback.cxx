@@ -16,7 +16,7 @@ static PCALLBACK_OBJECT g_CallbackObject = nullptr;
 static PVOID g_CallbackRegistration = nullptr;
 
 static VOID
-ExDemoCallbackRoutine(IN PVOID CallbackContext, _In_opt_ PVOID Argument1, _In_opt_ PVOID Argument2)
+ExDemoCallbackRoutine(IN PVOID CallbackContext, IN PVOID Argument1 OPTIONAL, IN PVOID Argument2 OPTIONAL)
 {
     UNREFERENCED_PARAMETER(CallbackContext);
 

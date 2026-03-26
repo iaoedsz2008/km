@@ -132,7 +132,7 @@ ExampleZwUnmapViewOfSection(VOID)
 }
 
 static VOID
-DeferredRoutine(IN KDPC* Dpc, _In_opt_ PVOID DeferredContext, _In_opt_ PVOID SystemArgument1, _In_opt_ PVOID SystemArgument2)
+DeferredRoutine(IN KDPC* Dpc, IN PVOID DeferredContext OPTIONAL, IN PVOID SystemArgument1 OPTIONAL, IN PVOID SystemArgument2 OPTIONAL)
 {
     UNREFERENCED_PARAMETER(Dpc);
     UNREFERENCED_PARAMETER(DeferredContext);
