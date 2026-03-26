@@ -178,7 +178,7 @@ initialize()
 }
 
 static ULONG_PTR
-vmxon(_In_ ULONG_PTR Argument)
+vmxon(IN ULONG_PTR Argument)
 {
     PEPROCESS* System = (PEPROCESS*)Argument;
 
@@ -212,7 +212,7 @@ vmxon(_In_ ULONG_PTR Argument)
 }
 
 static ULONG_PTR
-vmxoff(_In_ ULONG_PTR Argument)
+vmxoff(IN ULONG_PTR Argument)
 {
     UNREFERENCED_PARAMETER(Argument);
 
@@ -241,7 +241,7 @@ vmxoff(_In_ ULONG_PTR Argument)
 }
 
 EXTERN_C VOID
-DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
+DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
 
@@ -293,7 +293,7 @@ DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
 }
 
 EXTERN_C NTSTATUS
-DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
+DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 

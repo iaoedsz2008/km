@@ -132,7 +132,7 @@ ExampleZwUnmapViewOfSection(VOID)
 }
 
 static VOID
-DeferredRoutine(_In_ KDPC* Dpc, _In_opt_ PVOID DeferredContext, _In_opt_ PVOID SystemArgument1, _In_opt_ PVOID SystemArgument2)
+DeferredRoutine(IN KDPC* Dpc, _In_opt_ PVOID DeferredContext, _In_opt_ PVOID SystemArgument1, _In_opt_ PVOID SystemArgument2)
 {
     UNREFERENCED_PARAMETER(Dpc);
     UNREFERENCED_PARAMETER(DeferredContext);
@@ -152,7 +152,7 @@ static KTIMER kTimer;
 static KDPC kDpc;
 
 EXTERN_C VOID
-DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
+DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
 
@@ -163,7 +163,7 @@ DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
 }
 
 EXTERN_C NTSTATUS
-DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
+DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 

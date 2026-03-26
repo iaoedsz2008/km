@@ -16,7 +16,7 @@ static PCALLBACK_OBJECT g_CallbackObject = nullptr;
 static PVOID g_CallbackRegistration = nullptr;
 
 static VOID
-ExDemoCallbackRoutine(_In_ PVOID CallbackContext, _In_opt_ PVOID Argument1, _In_opt_ PVOID Argument2)
+ExDemoCallbackRoutine(IN PVOID CallbackContext, _In_opt_ PVOID Argument1, _In_opt_ PVOID Argument2)
 {
     UNREFERENCED_PARAMETER(CallbackContext);
 
@@ -24,7 +24,7 @@ ExDemoCallbackRoutine(_In_ PVOID CallbackContext, _In_opt_ PVOID Argument1, _In_
 }
 
 EXTERN_C VOID
-DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
+DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
 
@@ -42,7 +42,7 @@ DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
 }
 
 EXTERN_C NTSTATUS
-DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
+DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 

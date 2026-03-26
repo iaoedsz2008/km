@@ -15,7 +15,7 @@
 PVOID ObCallbacks;
 
 static OB_PREOP_CALLBACK_STATUS
-_ObPreOperationCallback(_In_ PVOID RegistrationContext, _Inout_ POB_PRE_OPERATION_INFORMATION OperationInformation)
+_ObPreOperationCallback(IN PVOID RegistrationContext, _Inout_ POB_PRE_OPERATION_INFORMATION OperationInformation)
 {
     UNREFERENCED_PARAMETER(RegistrationContext);
     UNREFERENCED_PARAMETER(OperationInformation);
@@ -33,7 +33,7 @@ _ObPreOperationCallback(_In_ PVOID RegistrationContext, _Inout_ POB_PRE_OPERATIO
 }
 
 static VOID
-_ObPostOperationCallback(_In_ PVOID RegistrationContext, _In_ POB_POST_OPERATION_INFORMATION OperationInformation)
+_ObPostOperationCallback(IN PVOID RegistrationContext, IN POB_POST_OPERATION_INFORMATION OperationInformation)
 {
     UNREFERENCED_PARAMETER(RegistrationContext);
     UNREFERENCED_PARAMETER(OperationInformation);
@@ -49,7 +49,7 @@ _ObPostOperationCallback(_In_ PVOID RegistrationContext, _In_ POB_POST_OPERATION
 }
 
 EXTERN_C VOID
-DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
+DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
 
@@ -57,7 +57,7 @@ DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
 }
 
 EXTERN_C NTSTATUS
-DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
+DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 

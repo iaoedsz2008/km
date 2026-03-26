@@ -13,13 +13,13 @@
 #include "Support.h"
 
 EXTERN_C VOID
-DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
+DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
 }
 
 EXTERN_C NTSTATUS
-DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
+DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 

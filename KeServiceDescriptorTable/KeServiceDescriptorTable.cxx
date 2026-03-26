@@ -523,7 +523,7 @@ static UINT8 shellcode64[] = {
 // clang-format on
 
 static ULONG_PTR
-AttachSyscall(_In_ ULONG_PTR Argument)
+AttachSyscall(IN ULONG_PTR Argument)
 {
     UNREFERENCED_PARAMETER(Argument);
 
@@ -595,7 +595,7 @@ AttachSyscall(_In_ ULONG_PTR Argument)
 }
 
 static ULONG_PTR
-DetachSyscall(_In_ ULONG_PTR Argument)
+DetachSyscall(IN ULONG_PTR Argument)
 {
     UNREFERENCED_PARAMETER(Argument);
 
@@ -614,7 +614,7 @@ DetachSyscall(_In_ ULONG_PTR Argument)
 }
 
 static ULONG_PTR
-AttachIDT(_In_ ULONG_PTR Argument)
+AttachIDT(IN ULONG_PTR Argument)
 {
     UNREFERENCED_PARAMETER(Argument);
 
@@ -725,7 +725,7 @@ AttachIDT(_In_ ULONG_PTR Argument)
 }
 
 static ULONG_PTR
-DetachIDT(_In_ ULONG_PTR Argument)
+DetachIDT(IN ULONG_PTR Argument)
 {
     UNREFERENCED_PARAMETER(Argument);
 
@@ -737,7 +737,7 @@ DetachIDT(_In_ ULONG_PTR Argument)
 }
 
 static VOID
-_CreateProcessNotifyRoutine(_In_ HANDLE ParentId, _In_ HANDLE ProcessId, _In_ BOOLEAN Create)
+_CreateProcessNotifyRoutine(IN HANDLE ParentId, IN HANDLE ProcessId, IN BOOLEAN Create)
 {
     UNREFERENCED_PARAMETER(ParentId);
     UNREFERENCED_PARAMETER(ProcessId);
@@ -777,7 +777,7 @@ _CreateProcessNotifyRoutine(_In_ HANDLE ParentId, _In_ HANDLE ProcessId, _In_ BO
 }
 
 VOID
-_LoadImageNotifyRoutine(_In_opt_ PUNICODE_STRING FullImageName, _In_ HANDLE ProcessId, _In_ PIMAGE_INFO ImageInfo)
+_LoadImageNotifyRoutine(_In_opt_ PUNICODE_STRING FullImageName, IN HANDLE ProcessId, IN PIMAGE_INFO ImageInfo)
 {
     UNREFERENCED_PARAMETER(ImageInfo);
 
@@ -853,7 +853,7 @@ GoodbyeKeServiceDescriptorTable(UINT8* DllBase)
 }
 
 EXTERN_C VOID
-DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
+DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
 
@@ -879,7 +879,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY {
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
 EXTERN_C NTSTATUS
-DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
+DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 

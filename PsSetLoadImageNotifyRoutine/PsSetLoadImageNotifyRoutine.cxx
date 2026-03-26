@@ -13,7 +13,7 @@
 #include "Support.h"
 
 VOID
-LoadImageNotifyCallback(_In_opt_ PUNICODE_STRING FullImageName, _In_ HANDLE ProcessId, _In_ PIMAGE_INFO ImageInfo)
+LoadImageNotifyCallback(_In_opt_ PUNICODE_STRING FullImageName, IN HANDLE ProcessId, IN PIMAGE_INFO ImageInfo)
 {
     UNREFERENCED_PARAMETER(ImageInfo);
 
@@ -25,7 +25,7 @@ LoadImageNotifyCallback(_In_opt_ PUNICODE_STRING FullImageName, _In_ HANDLE Proc
 }
 
 EXTERN_C VOID
-DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
+DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
 
@@ -34,7 +34,7 @@ DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
 }
 
 EXTERN_C NTSTATUS
-DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
+DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 {
     NTSTATUS status;
 

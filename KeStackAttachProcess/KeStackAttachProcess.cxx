@@ -20,7 +20,7 @@
 ULONG_PTR g_OriginalCr4 = 0;
 
 NTSTATUS
-SaveMemoryToFile(_In_ PVOID Buffer, _In_ SIZE_T Size, _In_ PCWSTR FilePath)
+SaveMemoryToFile(IN PVOID Buffer, IN SIZE_T Size, IN PCWSTR FilePath)
 {
     NTSTATUS status;
     HANDLE fileHandle = NULL;
@@ -52,7 +52,7 @@ SaveMemoryToFile(_In_ PVOID Buffer, _In_ SIZE_T Size, _In_ PCWSTR FilePath)
 }
 
 NTSTATUS
-CopyMemoryFromProcess(_In_ PEPROCESS Process, _In_ PVOID SourceAddress, _In_ SIZE_T Size, _In_ PCWSTR OutputFilePath)
+CopyMemoryFromProcess(IN PEPROCESS Process, IN PVOID SourceAddress, IN SIZE_T Size, IN PCWSTR OutputFilePath)
 {
     NTSTATUS status;
     KAPC_STATE apcState;
@@ -92,14 +92,14 @@ CopyMemoryFromProcess(_In_ PEPROCESS Process, _In_ PVOID SourceAddress, _In_ SIZ
 }
 
 EXTERN_C VOID
-DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
+DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
     KdPrint(("Driver unloading\n"));
 }
 
 EXTERN_C NTSTATUS
-DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
+DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 {
     NTSTATUS status;
     PEPROCESS targetProcess = NULL;

@@ -15,7 +15,7 @@
 static LARGE_INTEGER Cookie;
 
 static NTSTATUS
-_ExCallbackFunction(_In_ PVOID CallbackContext, _In_opt_ PVOID Argument1, _In_opt_ PVOID Argument2)
+_ExCallbackFunction(IN PVOID CallbackContext, _In_opt_ PVOID Argument1, _In_opt_ PVOID Argument2)
 {
     UNREFERENCED_PARAMETER(CallbackContext);
 
@@ -206,7 +206,7 @@ _ExCallbackFunction(_In_ PVOID CallbackContext, _In_opt_ PVOID Argument1, _In_op
 }
 
 EXTERN_C VOID
-DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
+DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
 
@@ -214,7 +214,7 @@ DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
 }
 
 EXTERN_C NTSTATUS
-DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
+DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 
