@@ -484,14 +484,6 @@ __asm_int3(void)
     __asm__ __volatile__("int3");
 }
 
-static inline uint32_t
-__asm_lar(uint16_t selector)
-{
-    uint32_t val;
-    __asm__ __volatile__("lar %1, %0" : "=r"(val) : "r"(selector));
-    return val;
-}
-
 typedef struct _IA32_GDT_REGISTER {
     uint16_t Limit;
     void* BaseAddress;
@@ -567,62 +559,52 @@ __asm_str(void)
 static inline uint64_t
 __asm_rdmsr(uint32_t msr)
 {
-    uint32_t low, high;
-    __asm__ __volatile__("rdmsr" : "=a"(low), "=d"(high) : "c"(msr));
-    return (((uint64_t)high << 0x20) | (uint64_t)low);
+    uint64_t val;
+    uint32_t* p = (uint32_t*)&val;
+    __asm__("rdmsr" : "=a"(p[0]), "=d"(p[1]) : "c"(msr));
+    return val;
 }
 
 static inline void
 __asm_wrmsr(uint32_t msr, uint64_t value)
 {
-    uint32_t low = (uint32_t)value;
-    uint32_t high = value >> 0x20;
-    __asm__ __volatile__("wrmsr" ::"a"(low), "d"(high), "c"(msr) : "memory");
+    uint32_t* p = (uint32_t*)&value;
+    __asm__ __volatile__("wrmsr" ::"a"(p[0]), "d"(p[1]), "c"(msr) : "memory");
 }
 
-#if defined(__x86_64__)
-static inline uint64_t
+static inline size_t
 __asm_rdpid(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("rdpid %0" : "=r"(val));
     return val;
 }
-
-#else
-
-static inline uint32_t
-__asm_rdpid(void)
-{
-    uint32_t val;
-    __asm__ __volatile__("rdpid %0" : "=r"(val));
-    return val;
-}
-
-#endif
 
 static inline uint64_t
 __asm_rdpmc(uint32_t counter)
 {
-    uint32_t low, high;
-    __asm__ __volatile__("rdpmc" : "=a"(low), "=d"(high) : "c"(counter));
-    return ((uint64_t)high << 32) | low;
+    uint64_t val;
+    uint32_t* p = (uint32_t*)&val;
+    __asm__ __volatile__("rdpmc" : "=a"(p[0]), "=d"(p[1]) : "c"(counter));
+    return val;
 }
 
 static inline uint64_t
 __asm_rdtsc(void)
 {
-    uint32_t low, high;
-    __asm__ __volatile__("rdtsc" : "=a"(low), "=d"(high));
-    return (((uint64_t)high) << 32) | low;
+    uint64_t val;
+    uint32_t* p = (uint32_t*)&val;
+    __asm__ __volatile__("rdtsc" : "=a"(p[0]), "=d"(p[1]));
+    return val;
 }
 
 static inline uint64_t
 __asm_rdtscp(uint32_t* aux)
 {
-    uint32_t low, high;
-    __asm__ __volatile__("rdtscp" : "=a"(low), "=d"(high), "=c"(*aux));
-    return (((uint64_t)high) << 32) | low;
+    uint64_t val;
+    uint32_t* p = (uint32_t*)&val;
+    __asm__ __volatile__("rdtscp" : "=a"(p[0]), "=d"(p[1]), "=c"(*aux));
+    return val;
 }
 
 static inline void
@@ -744,12 +726,12 @@ static inline size_t
 __asm_vmx_vmread(size_t field, size_t* value)
 {
     size_t eflags;
-    __asm__ __volatile__("\n vmread %2, %1"
-                         "\n pushf"
-                         "\n pop %0"
-                         : "=r"(eflags), "=r"(*value)
-                         : "r"(field)
-                         : "cc");
+    __asm__("\n vmread %2, %1"
+            "\n pushf"
+            "\n pop %0"
+            : "=r"(eflags), "=r"(*value)
+            : "r"(field)
+            : "cc");
     return eflags;
 }
 

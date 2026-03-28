@@ -3306,9 +3306,8 @@ vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
         Status |= __asm_vmx_vmwrite(VMX_VMCS64_GUEST_PDPTE3_FULL, 0);
     }
 
-    if (Status & EFLAGS_ZF_MASK) {
-        return -1;
-    }
+    if (Status & EFLAGS_ZF_MASK)
+        __asm__ __volatile__(".byte 0xEB, 0xFE" ::: "memory");
 
     // 16-Bit Control Fields
     {
@@ -3816,17 +3815,14 @@ vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
                          "\n mov %c13(%%r15), %%r13"
                          "\n mov %c14(%%r15), %%r14"
                          "\n mov %c15(%%r15), %%r15"
+                         "\n vmlaunch"
                          :
                          : "r"(&Context), "i"(offsetof(CONTEXT, Rax)), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R15))
                          : "memory");
 
-    Status = __asm_vmx_vmlaunch();
+    __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &Status);
 
-    if (Status & EFLAGS_ZF_MASK) {
-        size_t e;
-        __asm_vmx_vmread(VMX_VMCS32_RO_VM_INSTR_ERROR, &e);
-        e = 0;
-    }
+    __asm__ __volatile__(".byte 0xEB, 0xFE" ::: "memory");
 
     return -1;
 }
