@@ -1973,11 +1973,27 @@ HandleVmExit(VMContext* ctx)
 static void
 IOPM_STI(void* PermissionsMap, uint16_t Port)
 {
+    uint8_t* Bitmap = (uint8_t*)PermissionsMap;
+    uint32_t Offset = Port / 8;
+    uint32_t Shift = Port % 8;
+
+    uint8_t val = Bitmap[Offset];
+    val |= 1U << Shift;
+
+    Bitmap[Offset] = val;
 }
 
 static void
 IOPM_CLI(void* PermissionsMap, uint16_t Port)
 {
+    uint8_t* Bitmap = (uint8_t*)PermissionsMap;
+    uint32_t Offset = Port / 8;
+    uint32_t Shift = Port % 8;
+
+    uint8_t val = Bitmap[Offset];
+    val &= ~(1U << Shift);
+
+    Bitmap[Offset] = val;
 }
 
 // 15.11 MSR Intercepts
@@ -2017,7 +2033,7 @@ MSRPM_STI(void* PermissionsMap, uint32_t MSR)
         Offset /= 4;
 
         uint8_t val = Bitmap[Offset];
-        val |= 0x3 << (Shift * 2);
+        val |= 3U << (Shift * 2);
 
         Bitmap[Offset] = val;
     }
@@ -2050,7 +2066,7 @@ MSRPM_CLI(void* PermissionsMap, uint32_t MSR)
         Offset /= 4;
 
         uint8_t val = Bitmap[Offset];
-        val &= ~(0x3 << (Shift * 2));
+        val &= ~(3U << (Shift * 2));
 
         Bitmap[Offset] = val;
     }

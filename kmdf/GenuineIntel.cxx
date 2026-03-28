@@ -2067,11 +2067,27 @@ vmx_vmexit(void)
 static void
 IOPM_STI(void* PermissionsMap, uint16_t Port)
 {
+    uint8_t* Bitmap = (uint8_t*)PermissionsMap;
+    uint32_t Offset = Port / 8;
+    uint32_t Shift = Port % 8;
+
+    uint8_t val = Bitmap[Offset];
+    val |= 1U << Shift;
+
+    Bitmap[Offset] = val;
 }
 
 static void
 IOPM_CLI(void* PermissionsMap, uint16_t Port)
 {
+    uint8_t* Bitmap = (uint8_t*)PermissionsMap;
+    uint32_t Offset = Port / 8;
+    uint32_t Shift = Port % 8;
+
+    uint8_t val = Bitmap[Offset];
+    val &= ~(1U << Shift);
+
+    Bitmap[Offset] = val;
 }
 
 // See: MSR-Bitmap Address
@@ -2105,14 +2121,14 @@ MSRPM_STI(void* PermissionsMap, uint32_t MSR)
 
     if (BitmapR) {
         uint8_t val = BitmapR[Offset];
-        val |= 0x1 << Shift;
+        val |= 1U << Shift;
 
         BitmapR[Offset] = val;
     }
 
     if (BitmapW) {
         uint8_t val = BitmapW[Offset];
-        val |= 0x1 << Shift;
+        val |= 1U << Shift;
 
         BitmapW[Offset] = val;
     }
@@ -2143,14 +2159,14 @@ MSRPM_CLI(void* PermissionsMap, uint32_t MSR)
 
     if (BitmapR) {
         uint8_t val = BitmapR[Offset];
-        val &= ~(0x1 << Shift);
+        val &= ~(1U << Shift);
 
         BitmapR[Offset] = val;
     }
 
     if (BitmapW) {
         uint8_t val = BitmapW[Offset];
-        val &= ~(0x1 << Shift);
+        val &= ~(1U << Shift);
 
         BitmapW[Offset] = val;
     }
@@ -2866,13 +2882,21 @@ vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
     CR0 = __asm_cr0();
     CR4 = __asm_cr4();
 
+    PVOID iopm = allocate<0x2000>(); // 文档中不要求两个页在物理上连续.
+    PVOID msrpm = allocateContiguous<0x1000>();
     PVOID vmcsGuest = allocateContiguous<0x1000>();
     PVOID vmxonRegion = allocateContiguous<0x1000>();
-    PVOID msrpm = allocateContiguous<0x1000>();
 
+    ASSERT(iopm);
     ASSERT(vmcsGuest);
     ASSERT(vmxonRegion);
     ASSERT(msrpm);
+
+    if ((SIZE_T)iopm & 0xFFF)
+        return -1;
+
+    if ((SIZE_T)msrpm & 0xFFF)
+        return -1;
 
     if ((SIZE_T)vmcsGuest & 0xFFF)
         return -1;
@@ -2880,12 +2904,10 @@ vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
     if ((SIZE_T)vmxonRegion & 0xFFF)
         return -1;
 
-    if ((SIZE_T)msrpm & 0xFFF)
-        return -1;
-
+    memset(iopm, 0, 0x2000);
+    memset(msrpm, 0, 0x1000);
     memset(vmcsGuest, 0, 0x1000);
     memset(vmxonRegion, 0, 0x1000);
-    memset(msrpm, 0, 0x1000);
 
     /**
      * Bits 30:0: VMCS revision identifier
@@ -2894,6 +2916,7 @@ vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
     *(uint32_t*)vmcsGuest = (uint32_t)ia32_vmx_basic & 0x7FFFFFFF;
     *(uint32_t*)vmxonRegion = (uint32_t)ia32_vmx_basic & 0x7FFFFFFF;
 
+    PHYSICAL_ADDRESS iopmPA[2] = {MmGetPhysicalAddress(iopm), MmGetPhysicalAddress((uint8_t*)iopm + 0x1000)};
     PHYSICAL_ADDRESS vmcsGuestPA = MmGetPhysicalAddress(vmcsGuest);
     PHYSICAL_ADDRESS vmxonRegionPA = MmGetPhysicalAddress(vmxonRegion);
     PHYSICAL_ADDRESS msrpmPA = MmGetPhysicalAddress(msrpm);
@@ -3142,8 +3165,10 @@ vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
 
     // Control Fields
     {
-        if (PrimaryProcessorBasedVmExecutionControls & (1ULL << 0x19)) // Use I/O bitmaps
-            ;
+        if (PrimaryProcessorBasedVmExecutionControls & (1ULL << 0x19)) { // Use I/O bitmaps
+            __asm_vmx_vmwrite(0x00002000, iopmPA[0].QuadPart);           // Address of I/O bitmap A (full)
+            __asm_vmx_vmwrite(0x00002002, iopmPA[1].QuadPart);           // Address of I/O bitmap B (full)
+        }
 
         if (PrimaryProcessorBasedVmExecutionControls & (1ULL << 0x1C)) // Use MSR bitmaps
             Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_MSR_BITMAP_FULL, msrpmPA.QuadPart);
