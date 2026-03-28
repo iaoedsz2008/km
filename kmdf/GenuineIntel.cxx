@@ -2065,6 +2065,98 @@ vmx_vmexit(void)
 }
 
 static void
+IOPM_STI(void* PermissionsMap, uint16_t Port)
+{
+}
+
+static void
+IOPM_CLI(void* PermissionsMap, uint16_t Port)
+{
+}
+
+// See: MSR-Bitmap Address
+// Read bitmap for low MSRs (located at the MSR-bitmap address). This contains one bit for each MSR address in the range 00000000H to 00001FFFH. The bit determines whether an execution of RDMSR applied to that MSR causes a VM exit.
+// Read bitmap for high MSRs (located at the MSR-bitmap address plus 1024). This contains one bit for each MSR address in the range C0000000H toC0001FFFH. The bit determines whether an execution of RDMSR applied to that MSR causes a VM exit.
+// Write bitmap for low MSRs (located at the MSR-bitmap address plus 2048). This contains one bit for each MSR address in the range 00000000H to 00001FFFH. The bit determines whether an execution of WRMSR applied to that MSR causes a VM exit.
+// Write bitmap for high MSRs (located at the MSR-bitmap address plus 3072). This contains one bit for each MSR address in the range C0000000H toC0001FFFH.The bit determines whether an execution of WRMSR applied to that MSR causes a VM  exit.
+
+static void
+MSRPM_STI(void* PermissionsMap, uint32_t MSR)
+{
+    uint8_t* BitmapR = {};
+    uint8_t* BitmapW = {};
+    uint32_t Offset = {};
+    uint32_t Shift = {};
+
+    if (MSR <= 0x00001FFF) {
+        BitmapR = (uint8_t*)PermissionsMap + 0;
+        BitmapW = (uint8_t*)PermissionsMap + 0x800;
+        Offset = MSR - 0x00000000;
+    }
+
+    if (MSR >= 0xC0000000 && MSR <= 0xC0001FFF) {
+        BitmapR = (uint8_t*)PermissionsMap + 0x400;
+        BitmapW = (uint8_t*)PermissionsMap + 0xC00;
+        Offset = MSR - 0xC0000000;
+    }
+
+    Shift = Offset % 8;
+    Offset /= 8;
+
+    if (BitmapR) {
+        uint8_t val = BitmapR[Offset];
+        val |= 0x1 << Shift;
+
+        BitmapR[Offset] = val;
+    }
+
+    if (BitmapW) {
+        uint8_t val = BitmapW[Offset];
+        val |= 0x1 << Shift;
+
+        BitmapW[Offset] = val;
+    }
+}
+
+static void
+MSRPM_CLI(void* PermissionsMap, uint32_t MSR)
+{
+    uint8_t* BitmapR = {};
+    uint8_t* BitmapW = {};
+    uint32_t Offset = {};
+    uint32_t Shift = {};
+
+    if (MSR <= 0x00001FFF) {
+        BitmapR = (uint8_t*)PermissionsMap + 0;
+        BitmapW = (uint8_t*)PermissionsMap + 0x800;
+        Offset = MSR - 0x00000000;
+    }
+
+    if (MSR >= 0xC0000000 && MSR <= 0xC0001FFF) {
+        BitmapR = (uint8_t*)PermissionsMap + 0x400;
+        BitmapW = (uint8_t*)PermissionsMap + 0xC00;
+        Offset = MSR - 0xC0000000;
+    }
+
+    Shift = Offset % 8;
+    Offset /= 8;
+
+    if (BitmapR) {
+        uint8_t val = BitmapR[Offset];
+        val &= ~(0x1 << Shift);
+
+        BitmapR[Offset] = val;
+    }
+
+    if (BitmapW) {
+        uint8_t val = BitmapW[Offset];
+        val &= ~(0x1 << Shift);
+
+        BitmapW[Offset] = val;
+    }
+}
+
+static void
 initializeEPT()
 {
     KdBreakPoint();
