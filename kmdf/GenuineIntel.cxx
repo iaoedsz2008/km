@@ -1205,7 +1205,19 @@ template <>
 int
 procedure<0x000A>(VMContext* ctx)
 {
+    switch ((uint32_t)ctx->RAX) {
+    case 0x1:
         __asm__("cpuid" : "=a"(ctx->RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(ctx->RAX), "c"(ctx->RCX));
+        ctx->RCX &= ~(1ULL << 0x05);
+#if defined(_DEBUG)
+        ctx->RCX &= ~(1ULL << 0x1F); // 常见虚拟机都会在这里设置1
+#endif
+        break;
+    default:
+        __asm__("cpuid" : "=a"(ctx->RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(ctx->RAX), "c"(ctx->RCX));
+        break;
+    }
+
     return 0;
 }
 

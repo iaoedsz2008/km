@@ -1445,7 +1445,21 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
 {
     uint64_t* RAX = (uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8); // RAX
 
+    switch (*(uint32_t*)RAX) {
+    case 0x1:
         __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
+#if defined(_DEBUG)
+        ctx->RCX &= ~(1ULL << 0x1F); // 常见虚拟机都会在这里设置1
+#endif
+        break;
+    case 0x80000001:
+        __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
+        ctx->RCX &= ~(1ULL << 0x02); // SVM - Secure virtual machine
+        break;
+    default:
+        __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
+        break;
+    }
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178) = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8); // *RIP=nRIP
 }
@@ -1534,7 +1548,15 @@ procedure<0x007C>(VMCpu* vcpu, VMContext* ctx)
     if (ExitInfo1) {
         __asm__ __volatile__("wrmsr" ::"a"(*RAX), "d"(ctx->RDX), "c"(ctx->RCX) : "memory");
     } else {
+        switch ((uint32_t)ctx->RCX) {
+        case 0xC0010114:
             __asm__ __volatile__("rdmsr" : "=a"(*RAX), "=d"(ctx->RDX) : "c"(ctx->RCX));
+            *RAX |= (1ULL << 0x04); // SVMDIS
+            break;
+        default:
+            __asm__ __volatile__("rdmsr" : "=a"(*RAX), "=d"(ctx->RDX) : "c"(ctx->RCX));
+            break;
+        }
     }
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178) = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8); // *RIP=nRIP
@@ -3153,6 +3175,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     // MSRPM_STI(vcpu->MsrPermissionsMap, IA32_FS_BASE);
     // MSRPM_STI(vcpu->MsrPermissionsMap, IA32_GS_BASE);
     // MSRPM_STI(vcpu->MsrPermissionsMap, IA32_KERNEL_GS_BASE);
+    MSRPM_STI(vcpu->MsrPermissionsMap, 0xC0010114);
 
     CONTEXT Context;
     RtlCaptureContext(&Context);
