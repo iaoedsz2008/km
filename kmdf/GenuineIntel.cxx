@@ -1076,7 +1076,7 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PML4E = buildPML4E<0x200000>(Pa.QuadPart, MT);
+        uint64_t PML4E = buildPML4E<PageTranslation>(Pa.QuadPart, MT);
         if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
             deallocate<0x1000>(p);
     }
@@ -1088,7 +1088,7 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PDPTE = buildPDPTE<0x200000>(Pa.QuadPart, MT);
+        uint64_t PDPTE = buildPDPTE<PageTranslation>(Pa.QuadPart, MT);
         if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPTE, 0))
             deallocate<0x1000>(p);
     }
@@ -1096,7 +1096,7 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
     Pa.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
     uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PD[III] == 0) {
-        uint64_t PDE = buildPDE<0x200000>(PA & 0xFFFFFFFFFFE00000, MT);
+        uint64_t PDE = buildPDE<PageTranslation>(PA & 0xFFFFFFFFFFE00000, MT);
         InterlockedCompareExchange64((LONG64*)&PD[III], PDE, 0);
     }
 }
@@ -1205,7 +1205,7 @@ template <>
 int
 procedure<0x000A>(VMContext* ctx)
 {
-    __asm__("cpuid" : "=a"(ctx->RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(ctx->RAX), "c"(ctx->RCX));
+        __asm__("cpuid" : "=a"(ctx->RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(ctx->RAX), "c"(ctx->RCX));
     return 0;
 }
 
@@ -2173,7 +2173,7 @@ MSRPM_CLI(void* PermissionsMap, uint32_t MSR)
 }
 
 static void
-initializeEPT()
+initializeEPT(size_t PhysicalSize)
 {
     KdBreakPoint();
 
@@ -2181,7 +2181,7 @@ initializeEPT()
     ASSERT(PML4);
     memset(PML4, 0, 0x1000);
 
-    for (size_t i = 0; i < 0x80000000; i += 0x200000) {
+    for (size_t i = 0; i < PhysicalSize; i += PageTranslation) {
         buildEPT(PML4, i, 6);
     }
 
@@ -2190,7 +2190,7 @@ initializeEPT()
 
 template <>
 void
-initialize<Hash("GenuineIntel")>()
+initialize<Hash("GenuineIntel")>(size_t PhysicalSize)
 {
     Procedures[0x0000] = &procedure<0x0000>;
     Procedures[0x0001] = &procedure<0x0001>;
@@ -2273,7 +2273,7 @@ initialize<Hash("GenuineIntel")>()
     Procedures[0x004E] = &procedure<0x004E>;
     Procedures[0x004F] = &procedure<0x004F>;
 
-    initializeEPT();
+    initializeEPT(PhysicalSize);
 }
 
 template <>

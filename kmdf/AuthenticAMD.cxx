@@ -429,7 +429,7 @@ buildNPT(uint64_t* PML4, uint64_t PA, int PWT, int PCD, int PAT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PML4E = buildPML4E<0x200000>(Pa.QuadPart, PWT, PCD, PAT);
+        uint64_t PML4E = buildPML4E<PageTranslation>(Pa.QuadPart, PWT, PCD, PAT);
         if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
             deallocate<0x1000>(p);
     }
@@ -441,7 +441,7 @@ buildNPT(uint64_t* PML4, uint64_t PA, int PWT, int PCD, int PAT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PDPTE = buildPDPTE<0x200000>(Pa.QuadPart, PWT, PCD, PAT);
+        uint64_t PDPTE = buildPDPTE<PageTranslation>(Pa.QuadPart, PWT, PCD, PAT);
         if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPTE, 0))
             deallocate<0x1000>(p);
     }
@@ -449,7 +449,7 @@ buildNPT(uint64_t* PML4, uint64_t PA, int PWT, int PCD, int PAT)
     Pa.QuadPart = PDPT[II] & 0x0000FFFFFFFFF000;
     uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PD[III] == 0) {
-        uint64_t PDE = buildPDE<0x200000>(PA & 0x0000FFFFFFE00000, PWT, PCD, PAT);
+        uint64_t PDE = buildPDE<PageTranslation>(PA & 0x0000FFFFFFE00000, PWT, PCD, PAT);
         InterlockedCompareExchange64((LONG64*)&PD[III], PDE, 0);
     }
 }
@@ -1445,7 +1445,7 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
 {
     uint64_t* RAX = (uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8); // RAX
 
-    __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
+        __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178) = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8); // *RIP=nRIP
 }
@@ -1534,7 +1534,7 @@ procedure<0x007C>(VMCpu* vcpu, VMContext* ctx)
     if (ExitInfo1) {
         __asm__ __volatile__("wrmsr" ::"a"(*RAX), "d"(ctx->RDX), "c"(ctx->RCX) : "memory");
     } else {
-        __asm__ __volatile__("rdmsr" : "=a"(*RAX), "=d"(ctx->RDX) : "c"(ctx->RCX));
+            __asm__ __volatile__("rdmsr" : "=a"(*RAX), "=d"(ctx->RDX) : "c"(ctx->RCX));
     }
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178) = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8); // *RIP=nRIP
@@ -2093,7 +2093,7 @@ MSRPM_CLI(void* PermissionsMap, uint32_t MSR)
 }
 
 static void
-initializeNPT()
+initializeNPT(size_t PhysicalSize)
 {
     KdBreakPoint();
 
@@ -2101,14 +2101,14 @@ initializeNPT()
     ASSERT(PML4);
     memset(PML4, 0, 0x1000);
 
-    for (size_t i = 0; i < 0x80000000; i += 0x200000) {
+    for (size_t i = 0; i < PhysicalSize; i += PageTranslation) {
         buildNPT(PML4, i, 0, 0, 0);
     }
 }
 
 template <>
 void
-initialize<Hash("AuthenticAMD")>()
+initialize<Hash("AuthenticAMD")>(size_t PhysicalSize)
 {
     Procedures[0x0000] = &procedure<0x0000>;
     Procedures[0x0001] = &procedure<0x0001>;
@@ -2372,7 +2372,7 @@ initialize<Hash("AuthenticAMD")>()
     Procedures[0x0402] = &procedure<0x0402>;
     Procedures[0x0403] = &procedure<0x0403>;
 
-    initializeNPT();
+    initializeNPT(PhysicalSize);
 }
 
 template <>

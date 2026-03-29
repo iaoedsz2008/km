@@ -155,7 +155,7 @@ deallocateContiguous<0x8000>(PVOID Mem)
 }
 
 static void
-initialize()
+initialize(size_t PhysicalSize)
 {
     char vendor[0x10] = {};
 
@@ -171,10 +171,10 @@ initialize()
     ((uint32_t*)vendor)[2] = ecx;
 
     if (memcmp(vendor, "GenuineIntel", 12) == 0)
-        initialize<Hash("GenuineIntel")>();
+        initialize<Hash("GenuineIntel")>(PhysicalSize);
 
     if (memcmp(vendor, "AuthenticAMD", 12) == 0)
-        initialize<Hash("AuthenticAMD")>();
+        initialize<Hash("AuthenticAMD")>(PhysicalSize);
 }
 
 static ULONG_PTR
@@ -299,6 +299,24 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 
     KdBreakPoint();
 
+    PHYSICAL_MEMORY_RANGE* Ranges = MmGetPhysicalMemoryRanges();
+
+    if (Ranges == NULL)
+        return -1;
+
+    LONGLONG PhysicalSize = {};
+    for (size_t i = 0; Ranges[i].BaseAddress.QuadPart || Ranges[i].NumberOfBytes.QuadPart; ++i) {
+        PHYSICAL_ADDRESS BaseAddress = Ranges[i].BaseAddress;
+        LARGE_INTEGER NumberOfBytes = Ranges[i].NumberOfBytes;
+
+        if (BaseAddress.QuadPart > PhysicalSize)
+            PhysicalSize = BaseAddress.QuadPart + NumberOfBytes.QuadPart;
+
+        KdPrint(("0x%016llX: 0x%08llX\n", BaseAddress.QuadPart, NumberOfBytes.QuadPart));
+    }
+
+    ExFreePool(Ranges);
+
     PHYSICAL_ADDRESS HighestAcceptableAddress;
     HighestAcceptableAddress.QuadPart = 0xFFFFFFFFFFFFFFFFLL;
 
@@ -359,39 +377,31 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
         }
     }
 
-    size_t x = CalculatePML4Es<0x200000>(0x800000000ULL);
+    size_t x = CalculatePML4Es<PageTranslation>(PhysicalSize);
     for (size_t i = 0; i < x; ++i) {
         auto m = ExAllocatePool(NonPagedPool, 0x1000);
         deallocate<0x1000>(m);
     }
 
-    x = CalculatePDPTEs<0x200000>(0x800000000ULL);
+    x = CalculatePDPTEs<PageTranslation>(PhysicalSize);
     for (size_t i = 0; i < x; ++i) {
         auto m = ExAllocatePool(NonPagedPool, 0x1000);
         deallocate<0x1000>(m);
     }
 
-    x = CalculatePDEs<0x200000>(0x800000000ULL);
+    x = CalculatePDEs<PageTranslation>(PhysicalSize);
     for (size_t i = 0; i < x; ++i) {
         auto m = ExAllocatePool(NonPagedPool, 0x1000);
         deallocate<0x1000>(m);
     }
 
-    PHYSICAL_MEMORY_RANGE* Ranges = MmGetPhysicalMemoryRanges();
-
-    if (Ranges == NULL)
-        return -1;
-
-    for (size_t i = 0; Ranges[i].BaseAddress.QuadPart || Ranges[i].NumberOfBytes.QuadPart; ++i) {
-        PHYSICAL_ADDRESS BaseAddress = Ranges[i].BaseAddress;
-        LARGE_INTEGER NumberOfBytes = Ranges[i].NumberOfBytes;
-
-        KdPrint(("0x%016llX: 0x%08llX\n", BaseAddress.QuadPart, NumberOfBytes.QuadPart));
+    x = CalculatePTEs<PageTranslation>(PhysicalSize);
+    for (size_t i = 0; i < x; ++i) {
+        auto m = ExAllocatePool(NonPagedPool, 0x1000);
+        deallocate<0x1000>(m);
     }
 
-    ExFreePool(Ranges);
-
-    initialize();
+    initialize(PhysicalSize);
 
     PROCESSOR_NUMBER ProcessorNumber;
     GROUP_AFFINITY GroupAffinity;

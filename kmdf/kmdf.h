@@ -15,6 +15,8 @@
 
 #include "Support.h"
 
+static constexpr size_t PageTranslation = 0x200000;
+
 template <size_t>
 static inline size_t CalculatePTEs(size_t PhysicalSize);
 template <size_t>
@@ -56,6 +58,20 @@ CalculatePML4Es<0x1000>(size_t PhysicalSize)
 
 template <>
 inline size_t
+CalculatePML5Es<0x1000>(size_t PhysicalSize)
+{
+    return (CalculatePML4Es<0x1000>(PhysicalSize) + 0x1FF) >> 9;
+}
+
+template <>
+inline size_t
+CalculatePTEs<0x200000>(size_t)
+{
+    return 0;
+}
+
+template <>
+inline size_t
 CalculatePDEs<0x200000>(size_t PhysicalSize)
 {
     return (PhysicalSize + 0x1FFFFF) >> 21;
@@ -73,6 +89,20 @@ inline size_t
 CalculatePML4Es<0x200000>(size_t PhysicalSize)
 {
     return (CalculatePDPTEs<0x200000>(PhysicalSize) + 0x1FF) >> 9;
+}
+
+template <>
+inline size_t
+CalculatePTEs<0x40000000>(size_t)
+{
+    return 0;
+}
+
+template <>
+inline size_t
+CalculatePDEs<0x40000000>(size_t)
+{
+    return 0;
 }
 
 template <>
@@ -102,7 +132,7 @@ template <size_t>
 void deallocateContiguous(PVOID);
 
 template <size_t T>
-void initialize();
+void initialize(size_t PhysicalSize);
 
 template <size_t T>
 int vmxon(PVOID);
