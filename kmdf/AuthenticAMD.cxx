@@ -149,20 +149,20 @@ svm_format_access_rights(uint32_t access_rights)
 }
 
 template <size_t>
-static uint64_t buildPML4E(uint64_t, uint64_t);
+static uint64_t buildPML4E(uint64_t, int PWT, int PCD, int PAT);
 
 template <size_t>
-static uint64_t buildPDPTE(uint64_t, uint64_t);
+static uint64_t buildPDPTE(uint64_t, int PWT, int PCD, int PAT);
 
 template <size_t>
-static uint64_t buildPDE(uint64_t, uint64_t);
+static uint64_t buildPDE(uint64_t, int PWT, int PCD, int PAT);
 
 template <size_t>
-static uint64_t buildPTE(uint64_t, uint64_t);
+static uint64_t buildPTE(uint64_t, int PWT, int PCD, int PAT);
 
 template <>
 uint64_t
-buildPML4E<0x1000>(uint64_t, uint64_t)
+buildPML4E<0x1000>(uint64_t, int, int, int)
 {
     uint64_t PML4E = {};
 
@@ -188,7 +188,7 @@ buildPML4E<0x1000>(uint64_t, uint64_t)
 
 template <>
 uint64_t
-buildPDPTE<0x1000>(uint64_t, uint64_t)
+buildPDPTE<0x1000>(uint64_t, int, int, int)
 {
     uint64_t PDPTE = {};
 
@@ -214,7 +214,7 @@ buildPDPTE<0x1000>(uint64_t, uint64_t)
 
 template <>
 uint64_t
-buildPDE<0x1000>(uint64_t, uint64_t)
+buildPDE<0x1000>(uint64_t, int, int, int)
 {
     uint64_t PDE = {};
 
@@ -240,7 +240,7 @@ buildPDE<0x1000>(uint64_t, uint64_t)
 
 template <>
 uint64_t
-buildPTE<0x1000>(uint64_t, uint64_t)
+buildPTE<0x1000>(uint64_t, int, int, int)
 {
     uint64_t PTE = {};
 
@@ -266,20 +266,26 @@ buildPTE<0x1000>(uint64_t, uint64_t)
 
 template <>
 uint64_t
-buildPML4E<0x200000>(uint64_t PDPT, uint64_t)
+buildPML4E<0x200000>(uint64_t PDPT, int PWT, int PCD, int)
 {
     uint64_t PML4E = {};
 
-    PML4E |= (1ULL << 0x00);         // P
-    PML4E |= (1ULL << 0x01);         // R/W
-    PML4E |= (1ULL << 0x02);         // U/S
-    PML4E |= (1ULL << 0x03);         // PWT
-    PML4E |= (0ULL << 0x04);         // PCD
-    PML4E |= (0ULL << 0x05);         // A
-    PML4E |= (0ULL << 0x06);         // IGN
-    PML4E |= (0ULL << 0x07);         // MBZ
-    PML4E |= (0ULL << 0x08);         // MBZ
-    PML4E |= ((0ULL & 0x7) << 0x09); // AVL
+    PML4E |= (1ULL << 0x00); // P
+    PML4E |= (1ULL << 0x01); // R/W
+    PML4E |= (1ULL << 0x02); // U/S
+
+    if (PWT)
+        PML4E |= (1ULL << 0x03); // PWT
+
+    if (PCD)
+        PML4E |= (1ULL << 0x04); // PCD
+
+    PML4E |= (0ULL << 0x05); // A
+    PML4E |= (0ULL << 0x06); // IGN
+    PML4E |= (0ULL << 0x07); // MBZ
+    PML4E |= (0ULL << 0x08); // MBZ
+
+    PML4E |= ((0ULL & 0x7) << 0x09); // Available to Software (AVL) Bit. These bits are not interpreted by the processor and are available for use by system software.
 
     PML4E |= ((uint64_t)PDPT & 0x0000FFFFFFFFF000);
 
@@ -288,20 +294,26 @@ buildPML4E<0x200000>(uint64_t PDPT, uint64_t)
 
 template <>
 uint64_t
-buildPDPTE<0x200000>(uint64_t PD, uint64_t)
+buildPDPTE<0x200000>(uint64_t PD, int PWT, int PCD, int)
 {
     uint64_t PDPTE = {};
 
-    PDPTE |= (1ULL << 0x00);         // P
-    PDPTE |= (1ULL << 0x01);         // R/W
-    PDPTE |= (1ULL << 0x02);         // U/S
-    PDPTE |= (1ULL << 0x03);         // PWT
-    PDPTE |= (0ULL << 0x04);         // PCD
-    PDPTE |= (0ULL << 0x05);         // A
-    PDPTE |= (0ULL << 0x06);         // IGN
-    PDPTE |= (0ULL << 0x07);         // 0
-    PDPTE |= (0ULL << 0x08);         // MBZ
-    PDPTE |= ((0ULL & 0x7) << 0x09); // AVL
+    PDPTE |= (1ULL << 0x00); // P
+    PDPTE |= (1ULL << 0x01); // R/W
+    PDPTE |= (1ULL << 0x02); // U/S
+
+    if (PWT)
+        PDPTE |= (1ULL << 0x03); // PWT
+
+    if (PCD)
+        PDPTE |= (1ULL << 0x04); // PCD
+
+    PDPTE |= (0ULL << 0x05); // A
+    PDPTE |= (0ULL << 0x06); // IGN
+    PDPTE |= (0ULL << 0x07); // 0
+    PDPTE |= (0ULL << 0x08); // MBZ
+
+    PDPTE |= ((0ULL & 0x7) << 0x09); // Available to Software (AVL) Bit. These bits are not interpreted by the processor and are available for use by system software.
 
     PDPTE |= ((uint64_t)PD & 0x0000FFFFFFFFF000);
 
@@ -312,21 +324,29 @@ buildPDPTE<0x200000>(uint64_t PD, uint64_t)
 
 template <>
 uint64_t
-buildPDE<0x200000>(uint64_t M, uint64_t)
+buildPDE<0x200000>(uint64_t M, int PWT, int PCD, int PAT)
 {
     uint64_t PDE = {};
 
-    PDE |= (1ULL << 0x00);         // P
-    PDE |= (1ULL << 0x01);         // R/W
-    PDE |= (1ULL << 0x02);         // U/S
-    PDE |= (1ULL << 0x03);         // PWT
-    PDE |= (0ULL << 0x04);         // PCD
-    PDE |= (0ULL << 0x05);         // A
-    PDE |= (0ULL << 0x06);         // D
-    PDE |= (1ULL << 0x07);         // 1
-    PDE |= (1ULL << 0x08);         // G
-    PDE |= ((0ULL & 0x7) << 0x09); // AVL
-    PDE |= (0ULL << 0x0C);         // PAT
+    PDE |= (1ULL << 0x00); // P
+    PDE |= (1ULL << 0x01); // R/W
+    PDE |= (1ULL << 0x02); // U/S
+
+    if (PWT)
+        PDE |= (1ULL << 0x03); // PWT
+
+    if (PCD)
+        PDE |= (1ULL << 0x04); // PCD
+
+    PDE |= (0ULL << 0x05); // A
+    PDE |= (0ULL << 0x06); // D
+    PDE |= (1ULL << 0x07); // 1
+    PDE |= (1ULL << 0x08); // G
+
+    PDE |= ((0ULL & 0x7) << 0x09); // Available to Software (AVL) Bit. These bits are not interpreted by the processor and are available for use by system software.
+
+    if (PAT)
+        PDE |= (1ULL << 0x0C); // PAT
 
     PDE |= ((uint64_t)M & 0x0000FFFFFFE00000);
 
@@ -336,11 +356,11 @@ buildPDE<0x200000>(uint64_t M, uint64_t)
 }
 
 template <>
-uint64_t buildPTE<0x200000>(uint64_t, uint64_t);
+uint64_t buildPTE<0x200000>(uint64_t, int, int, int);
 
 template <>
 uint64_t
-buildPML4E<0x40000000>(uint64_t, uint64_t)
+buildPML4E<0x40000000>(uint64_t, int, int, int)
 {
     uint64_t PML4E = {};
 
@@ -366,7 +386,7 @@ buildPML4E<0x40000000>(uint64_t, uint64_t)
 
 template <>
 uint64_t
-buildPDPTE<0x40000000>(uint64_t, uint64_t)
+buildPDPTE<0x40000000>(uint64_t, int, int, int)
 {
     uint64_t PDPTE = {};
 
@@ -391,13 +411,13 @@ buildPDPTE<0x40000000>(uint64_t, uint64_t)
 }
 
 template <>
-uint64_t buildPDE<0x40000000>(uint64_t, uint64_t);
+uint64_t buildPDE<0x40000000>(uint64_t, int, int, int);
 
 template <>
-uint64_t buildPTE<0x40000000>(uint64_t, uint64_t);
+uint64_t buildPTE<0x40000000>(uint64_t, int, int, int);
 
 static inline void
-buildNPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
+buildNPT(uint64_t* PML4, uint64_t PA, int PWT, int PCD, int PAT)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
     uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
@@ -409,7 +429,7 @@ buildNPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PML4E = buildPML4E<0x200000>(Pa.QuadPart, MT);
+        uint64_t PML4E = buildPML4E<0x200000>(Pa.QuadPart, PWT, PCD, PAT);
         if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
             deallocate<0x1000>(p);
     }
@@ -421,7 +441,7 @@ buildNPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PDPTE = buildPDPTE<0x200000>(Pa.QuadPart, MT);
+        uint64_t PDPTE = buildPDPTE<0x200000>(Pa.QuadPart, PWT, PCD, PAT);
         if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPTE, 0))
             deallocate<0x1000>(p);
     }
@@ -429,7 +449,7 @@ buildNPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
     Pa.QuadPart = PDPT[II] & 0x0000FFFFFFFFF000;
     uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PD[III] == 0) {
-        uint64_t PDE = buildPDE<0x200000>(PA & 0x0000FFFFFFE00000, MT);
+        uint64_t PDE = buildPDE<0x200000>(PA & 0x0000FFFFFFE00000, PWT, PCD, PAT);
         InterlockedCompareExchange64((LONG64*)&PD[III], PDE, 0);
     }
 }
@@ -1914,7 +1934,7 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
     if (ExitInfo1 & (1ULL << 0x25))
         ;
 
-    buildNPT(PML4, ExitInfo2 & 0x0000FFFFFFE00000, 0);
+    buildNPT(PML4, ExitInfo2 & 0x0000FFFFFFE00000, 0, 1, 0);
 
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3; // TLB_CONTROL
 
@@ -2082,7 +2102,7 @@ initializeNPT()
     memset(PML4, 0, 0x1000);
 
     for (size_t i = 0; i < 0x80000000; i += 0x200000) {
-        buildNPT(PML4, i, 6);
+        buildNPT(PML4, i, 0, 0, 0);
     }
 }
 
@@ -2919,6 +2939,15 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     uint64_t ia32_debugctl = __asm_rdmsr(IA32_DEBUGCTL);
 
     uint64_t ia32_pat = __asm_rdmsr(IA32_PAT);
+
+    uint8_t PA0 = (ia32_pat >> 0x00) & 0xFF;
+    uint8_t PA1 = (ia32_pat >> 0x08) & 0xFF;
+    uint8_t PA2 = (ia32_pat >> 0x10) & 0xFF;
+    uint8_t PA3 = (ia32_pat >> 0x18) & 0xFF;
+    uint8_t PA4 = (ia32_pat >> 0x20) & 0xFF;
+    uint8_t PA5 = (ia32_pat >> 0x28) & 0xFF;
+    uint8_t PA6 = (ia32_pat >> 0x30) & 0xFF;
+    uint8_t PA7 = (ia32_pat >> 0x38) & 0xFF;
 
     uint64_t ia32_efer = __asm_rdmsr(IA32_EFER);
     uint64_t ia32_star = __asm_rdmsr(IA32_STAR);
