@@ -138,6 +138,10 @@ DriverUnload(IN PDRIVER_OBJECT DriverObject)
         MmFreeContiguousMemory(m);
     }
 
+    while (auto m = allocate<0x10000>()) {
+        ExFreePool(m);
+    }
+
     while (auto m = allocate<0x8000>()) {
         ExFreePool(m);
     }
