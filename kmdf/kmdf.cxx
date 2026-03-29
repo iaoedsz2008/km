@@ -8,150 +8,22 @@
 #include "AuthenticAMD.h"
 #include "GenuineIntel.h"
 
-#include "lfqueue.h"
+lfqueue* Mem4K = NULL;
+lfqueue* Mem8K = NULL;
+lfqueue* Mem16K = NULL;
+lfqueue* Mem32K = NULL;
+lfqueue* Mem64K = NULL;
 
-static lfqueue* Mem4K = NULL;
-static lfqueue* Mem8K = NULL;
-static lfqueue* Mem16K = NULL;
-static lfqueue* Mem32K = NULL;
-static lfqueue* Mem64K = NULL;
-
-static lfqueue* Contiguous4K = NULL;
-static lfqueue* Contiguous8K = NULL;
-static lfqueue* Contiguous16K = NULL;
-static lfqueue* Contiguous32K = NULL;
+lfqueue* Contiguous4K = NULL;
+lfqueue* Contiguous8K = NULL;
+lfqueue* Contiguous16K = NULL;
+lfqueue* Contiguous32K = NULL;
 
 void*
 operator new(SIZE_T size, void* ptr) noexcept
 {
     UNREFERENCED_PARAMETER(size);
     return ptr;
-}
-
-template <>
-PVOID
-allocate<0x1000>()
-{
-    return Mem4K->pop();
-}
-
-template <>
-void
-deallocate<0x1000>(PVOID Mem)
-{
-    Mem4K->push(Mem);
-}
-
-template <>
-PVOID
-allocate<0x2000>()
-{
-    return Mem8K->pop();
-}
-
-template <>
-void
-deallocate<0x2000>(PVOID Mem)
-{
-    Mem8K->push(Mem);
-}
-
-template <>
-PVOID
-allocate<0x4000>()
-{
-    return Mem16K->pop();
-}
-
-template <>
-void
-deallocate<0x4000>(PVOID Mem)
-{
-    Mem16K->push(Mem);
-}
-
-template <>
-PVOID
-allocate<0x8000>()
-{
-    return Mem32K->pop();
-}
-
-template <>
-void
-deallocate<0x8000>(PVOID Mem)
-{
-    Mem32K->push(Mem);
-}
-
-template <>
-PVOID
-allocate<0x10000>()
-{
-    return Mem64K->pop();
-}
-
-template <>
-void
-deallocate<0x10000>(PVOID Mem)
-{
-    Mem64K->push(Mem);
-}
-
-template <>
-PVOID
-allocateContiguous<0x1000>()
-{
-    return Contiguous4K->pop();
-}
-
-template <>
-void
-deallocateContiguous<0x1000>(PVOID Mem)
-{
-    Contiguous4K->push(Mem);
-}
-
-template <>
-PVOID
-allocateContiguous<0x2000>()
-{
-    return Contiguous8K->pop();
-}
-
-template <>
-void
-deallocateContiguous<0x2000>(PVOID Mem)
-{
-    Contiguous8K->push(Mem);
-}
-
-template <>
-PVOID
-allocateContiguous<0x4000>()
-{
-    return Contiguous16K->pop();
-}
-
-template <>
-void
-deallocateContiguous<0x4000>(PVOID Mem)
-{
-    Contiguous16K->push(Mem);
-}
-
-template <>
-PVOID
-allocateContiguous<0x8000>()
-{
-    return Contiguous32K->pop();
-}
-
-template <>
-void
-deallocateContiguous<0x8000>(PVOID Mem)
-{
-    Contiguous32K->push(Mem);
 }
 
 static void

@@ -149,19 +149,22 @@ svm_format_access_rights(uint32_t access_rights)
 }
 
 template <size_t>
-static uint64_t buildPML4E(uint64_t, int PWT, int PCD, int PAT);
+static FORCEINLINE uint64_t buildPML5E(uint64_t, int PWT, int PCD, int PAT);
 
 template <size_t>
-static uint64_t buildPDPTE(uint64_t, int PWT, int PCD, int PAT);
+static FORCEINLINE uint64_t buildPML4E(uint64_t, int PWT, int PCD, int PAT);
 
 template <size_t>
-static uint64_t buildPDE(uint64_t, int PWT, int PCD, int PAT);
+static FORCEINLINE uint64_t buildPDPTE(uint64_t, int PWT, int PCD, int PAT);
 
 template <size_t>
-static uint64_t buildPTE(uint64_t, int PWT, int PCD, int PAT);
+static FORCEINLINE uint64_t buildPDE(uint64_t, int PWT, int PCD, int PAT);
+
+template <size_t>
+static FORCEINLINE uint64_t buildPTE(uint64_t, int PWT, int PCD, int PAT);
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPML4E<0x1000>(uint64_t, int, int, int)
 {
     uint64_t PML4E = {};
@@ -187,7 +190,7 @@ buildPML4E<0x1000>(uint64_t, int, int, int)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPDPTE<0x1000>(uint64_t, int, int, int)
 {
     uint64_t PDPTE = {};
@@ -213,7 +216,7 @@ buildPDPTE<0x1000>(uint64_t, int, int, int)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPDE<0x1000>(uint64_t, int, int, int)
 {
     uint64_t PDE = {};
@@ -239,7 +242,7 @@ buildPDE<0x1000>(uint64_t, int, int, int)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPTE<0x1000>(uint64_t, int, int, int)
 {
     uint64_t PTE = {};
@@ -265,7 +268,7 @@ buildPTE<0x1000>(uint64_t, int, int, int)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPML4E<0x200000>(uint64_t PDPT, int PWT, int PCD, int)
 {
     uint64_t PML4E = {};
@@ -293,7 +296,7 @@ buildPML4E<0x200000>(uint64_t PDPT, int PWT, int PCD, int)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPDPTE<0x200000>(uint64_t PD, int PWT, int PCD, int)
 {
     uint64_t PDPTE = {};
@@ -323,7 +326,7 @@ buildPDPTE<0x200000>(uint64_t PD, int PWT, int PCD, int)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPDE<0x200000>(uint64_t M, int PWT, int PCD, int PAT)
 {
     uint64_t PDE = {};
@@ -356,10 +359,10 @@ buildPDE<0x200000>(uint64_t M, int PWT, int PCD, int PAT)
 }
 
 template <>
-uint64_t buildPTE<0x200000>(uint64_t, int, int, int);
+FORCEINLINE uint64_t buildPTE<0x200000>(uint64_t, int, int, int);
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPML4E<0x40000000>(uint64_t, int, int, int)
 {
     uint64_t PML4E = {};
@@ -385,7 +388,7 @@ buildPML4E<0x40000000>(uint64_t, int, int, int)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPDPTE<0x40000000>(uint64_t, int, int, int)
 {
     uint64_t PDPTE = {};
@@ -411,12 +414,12 @@ buildPDPTE<0x40000000>(uint64_t, int, int, int)
 }
 
 template <>
-uint64_t buildPDE<0x40000000>(uint64_t, int, int, int);
+FORCEINLINE uint64_t buildPDE<0x40000000>(uint64_t, int, int, int);
 
 template <>
-uint64_t buildPTE<0x40000000>(uint64_t, int, int, int);
+FORCEINLINE uint64_t buildPTE<0x40000000>(uint64_t, int, int, int);
 
-static inline void
+static FORCEINLINE void
 buildNPT(uint64_t* PML4, uint64_t PA, int PWT, int PCD, int PAT)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;

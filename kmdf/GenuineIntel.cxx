@@ -299,7 +299,7 @@ __lar(uint16_t selector)
     return val;
 }
 
-static size_t
+static FORCEINLINE size_t
 __lsb(uint16_t selector)
 {
     IA32_GDT_REGISTER GDTR;
@@ -396,21 +396,21 @@ vmx_format_access_rights(uint32_t access_rights)
 }
 
 template <size_t>
-static uint64_t buildPML5E(uint64_t, uint64_t);
+static FORCEINLINE uint64_t buildPML5E(uint64_t, uint64_t);
 
 template <size_t>
-static uint64_t buildPML4E(uint64_t, uint64_t);
+static FORCEINLINE uint64_t buildPML4E(uint64_t, uint64_t);
 
 template <size_t>
-static uint64_t buildPDPTE(uint64_t, uint64_t);
+static FORCEINLINE uint64_t buildPDPTE(uint64_t, uint64_t);
 
 template <size_t>
-static uint64_t buildPDE(uint64_t, uint64_t);
+static FORCEINLINE uint64_t buildPDE(uint64_t, uint64_t);
 
 template <size_t>
-static uint64_t buildPTE(uint64_t, uint64_t);
+static FORCEINLINE uint64_t buildPTE(uint64_t, uint64_t);
 
-uint64_t
+static FORCEINLINE uint64_t
 buildEPTP(uint64_t EPT)
 {
     /**
@@ -451,7 +451,7 @@ buildEPTP(uint64_t EPT)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPML5E<0x1000>(uint64_t PML4, uint64_t)
 {
     uint64_t PML5E = {};
@@ -502,7 +502,7 @@ buildPML5E<0x1000>(uint64_t PML4, uint64_t)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPML4E<0x1000>(uint64_t PDPT, uint64_t)
 {
     uint64_t PML4E = {};
@@ -562,7 +562,7 @@ buildPML4E<0x1000>(uint64_t PDPT, uint64_t)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPDPTE<0x1000>(uint64_t PD, uint64_t)
 {
     uint64_t PDPTE = {};
@@ -621,7 +621,7 @@ buildPDPTE<0x1000>(uint64_t PD, uint64_t)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPDE<0x1000>(uint64_t PT, uint64_t)
 {
     uint64_t PDE = {};
@@ -683,7 +683,7 @@ buildPDE<0x1000>(uint64_t PT, uint64_t)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPTE<0x1000>(uint64_t M, uint64_t MT)
 {
     uint64_t PTE = {};
@@ -796,28 +796,28 @@ buildPTE<0x1000>(uint64_t M, uint64_t MT)
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPML5E<0x200000>(uint64_t PML4, uint64_t MT)
 {
     return buildPML5E<0x1000>(PML4, MT);
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPML4E<0x200000>(uint64_t PDPT, uint64_t MT)
 {
     return buildPML4E<0x1000>(PDPT, MT);
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPDPTE<0x200000>(uint64_t PD, uint64_t MT)
 {
     return buildPDPTE<0x1000>(PD, MT);
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPDE<0x200000>(uint64_t PT, uint64_t MT)
 {
     uint64_t PDE = {};
@@ -928,24 +928,24 @@ buildPDE<0x200000>(uint64_t PT, uint64_t MT)
 }
 
 template <>
-uint64_t buildPTE<0x200000>(uint64_t, uint64_t);
+FORCEINLINE uint64_t buildPTE<0x200000>(uint64_t, uint64_t);
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPML5E<0x40000000>(uint64_t PML4, uint64_t MT)
 {
     return buildPML5E<0x1000>(PML4, MT);
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPML4E<0x40000000>(uint64_t PDPT, uint64_t MT)
 {
     return buildPML4E<0x1000>(PDPT, MT);
 }
 
 template <>
-uint64_t
+FORCEINLINE uint64_t
 buildPDPTE<0x40000000>(uint64_t PD, uint64_t MT)
 {
     uint64_t PDPTE = {};
@@ -1058,12 +1058,12 @@ buildPDPTE<0x40000000>(uint64_t PD, uint64_t MT)
 }
 
 template <>
-uint64_t buildPDE<0x40000000>(uint64_t, uint64_t);
+FORCEINLINE uint64_t buildPDE<0x40000000>(uint64_t, uint64_t);
 
 template <>
-uint64_t buildPTE<0x40000000>(uint64_t, uint64_t);
+FORCEINLINE uint64_t buildPTE<0x40000000>(uint64_t, uint64_t);
 
-static inline void
+static FORCEINLINE void
 buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
@@ -1395,17 +1395,25 @@ template <>
 int
 procedure<0x001F>(VMContext* ctx)
 {
-    uint64_t val = __asm_rdmsr(ctx->RCX);
-    ctx->RAX = ((uint32_t*)&val)[0];
-    ctx->RDX = ((uint32_t*)&val)[1];
+    switch ((uint32_t)ctx->RCX) {
+    case IA32_FEATURE_CONTROL:
+        __asm__("rdmsr" : "=a"(ctx->RAX), "=d"(ctx->RDX) : "c"(ctx->RCX));
+        ctx->RAX &= ~(1ULL << 0x01); // Enable VMX inside SMX operation (R/WL)
+        ctx->RAX &= ~(1ULL << 0x02); // Enable VMX outside SMX operation (R/WL)
+        break;
+    default:
+        __asm__("rdmsr" : "=a"(ctx->RAX), "=d"(ctx->RDX) : "c"(ctx->RCX));
+        break;
+    }
     return 0;
 }
 
 // 32 WRMSR or WRMSRNS. Guest software attempted to execute either WRMSR or WRMSRNS
 template <>
 int
-procedure<0x0020>(VMContext*)
+procedure<0x0020>(VMContext* ctx)
 {
+    __asm__ __volatile__("wrmsr" ::"a"(ctx->RAX), "d"(ctx->RDX), "c"(ctx->RCX) : "memory");
     return 0;
 }
 
@@ -2015,7 +2023,7 @@ procedure<0x004F>(VMContext*)
 }
 
 static __attribute__((naked)) void
-vmx_vmexit(void)
+HandleVmExit(void)
 {
     __asm__ __volatile__("\n push %%r15"
                          "\n push %%r14"
@@ -2146,7 +2154,7 @@ MSRPM_STI(void* PermissionsMap, uint32_t MSR)
     }
 }
 
-static void
+static FORCEINLINE void
 MSRPM_CLI(void* PermissionsMap, uint32_t MSR)
 {
     uint8_t* BitmapR = {};
@@ -3204,7 +3212,7 @@ vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
         ASSERT(stack);
 
         Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RSP, stack + 0x8000 - 0x20);
-        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RIP, (uint64_t)&vmx_vmexit);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS_HOST_RIP, (uint64_t)&HandleVmExit);
 
         // RPL and TI have to be 0
         Status |= __asm_vmx_vmwrite(VMX_VMCS16_HOST_CS_SEL, CS & 0xFFF8);
