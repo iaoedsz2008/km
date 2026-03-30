@@ -162,6 +162,7 @@ DriverUnload(IN PDRIVER_OBJECT DriverObject)
     ExFreePool(Contiguous16K);
     ExFreePool(Contiguous8K);
     ExFreePool(Contiguous4K);
+    ExFreePool(Mem64K);
     ExFreePool(Mem32K);
     ExFreePool(Mem16K);
     ExFreePool(Mem8K);
