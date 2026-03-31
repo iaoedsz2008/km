@@ -254,25 +254,25 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
         }
     }
 
-    size_t x = CalculatePML4Es<PageTranslation>(PhysicalSize);
+    size_t x = (CalculatePML4Es<PageTranslation>(PhysicalSize) + 0x1FF) >> 9;
     for (size_t i = 0; i < x; ++i) {
         auto m = ExAllocatePool(NonPagedPool, 0x1000);
         deallocate<0x1000>(m);
     }
 
-    x = CalculatePDPTEs<PageTranslation>(PhysicalSize);
+    x = (CalculatePDPTEs<PageTranslation>(PhysicalSize) + 0x1FF) >> 9;
     for (size_t i = 0; i < x; ++i) {
         auto m = ExAllocatePool(NonPagedPool, 0x1000);
         deallocate<0x1000>(m);
     }
 
-    x = CalculatePDEs<PageTranslation>(PhysicalSize);
+    x = (CalculatePDEs<PageTranslation>(PhysicalSize) + 0x1FF) >> 9;
     for (size_t i = 0; i < x; ++i) {
         auto m = ExAllocatePool(NonPagedPool, 0x1000);
         deallocate<0x1000>(m);
     }
 
-    x = CalculatePTEs<PageTranslation>(PhysicalSize);
+    x = (CalculatePTEs<PageTranslation>(PhysicalSize) + 0x1FF) >> 9;
     for (size_t i = 0; i < x; ++i) {
         auto m = ExAllocatePool(NonPagedPool, 0x1000);
         deallocate<0x1000>(m);
