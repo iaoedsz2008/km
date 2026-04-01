@@ -1101,6 +1101,57 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
     }
 }
 
+static FORCEINLINE uint64_t
+buildEvent(uint8_t Vector, uint8_t Type, uint32_t ErrorCode)
+{
+    uint32_t Event = {};
+
+    Event |= (uint32_t)Vector;               // 7:0 Vector of interrupt or exception
+    Event |= ((uint32_t)Type & 0x7) << 0x08; // 10:8 Event type
+    Event |= 1ULL << 0x1F;                   // 31 Valid
+
+    switch (Type) {
+    case 0x0: // 0: External interrupt
+        break;
+    case 0x2: // 2: Non-maskable interrupt (NMI)
+        break;
+    case 0x3: // 3: Hardware exception
+        switch (Vector) {
+        case 0x08:                 // #DF
+        case 0x0A:                 // #TS
+        case 0x0B:                 // #NP
+        case 0x0C:                 // #SS
+        case 0x0D:                 // #GP
+        case 0x0E:                 // #PF
+        case 0x11:                 // #AC
+        case 0x15:                 // #CP
+        case 0x1D:                 // #VC
+        case 0x1E:                 // #SX
+            Event |= 1ULL << 0x0B; // Deliver error code
+
+            __asm_vmx_vmwrite(0x00004016, Event);     // Injected-event identification
+            __asm_vmx_vmwrite(0x00004018, ErrorCode); // Injected-event error code
+            break;
+        default:
+            break;
+        }
+        break;
+    case 0x4: // 4: Software interrupt (INT n)
+        break;
+    case 0x5: // 5: Privileged software exception (INT1)
+        break;
+    case 0x6: // 6: Software exception (INT3 or INTO)
+        break;
+    case 0x7: // 7: Other event
+        break;
+    default:
+        Event = {};
+        break;
+    }
+
+    return Event;
+}
+
 template <int e>
 static int
 procedure(VMContext*)

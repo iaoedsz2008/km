@@ -457,6 +457,51 @@ buildNPT(uint64_t* PML4, uint64_t PA, int PWT, int PCD, int PAT)
     }
 }
 
+static FORCEINLINE uint64_t
+buildEvent(VMCpu* vcpu, uint8_t Vector, uint8_t Type, uint32_t ErrorCode)
+{
+    uint64_t Event = {};
+
+    Event |= (uint64_t)Vector;               // VECTOR—Bits 7:0. The 8-bit IDT vector of the interrupt or exception. If TYPE is 2 (NMI), the VECTOR field is ignored.
+    Event |= ((uint64_t)Type & 0x7) << 0x08; // TYPE—Bits 10:8. Qualifies the guest exception or interrupt to generate.
+    Event |= 1ULL << 0x1F;                   // V (Valid)—Bit 31. Set to 1 if an event is to be injected into the guest; clear to 0 otherwise.
+
+    switch (Type) {
+    case 0x0: // 0 External or virtual interrupt (INTR)
+        break;
+    case 0x2: // 2 NMI
+        break;
+    case 0x3: // 3 Exception (fault or trap)
+        switch (Vector) {
+        case 0x08:                                // #DF
+        case 0x0A:                                // #TS
+        case 0x0B:                                // #NP
+        case 0x0C:                                // #SS
+        case 0x0D:                                // #GP
+        case 0x0E:                                // #PF
+        case 0x11:                                // #AC
+        case 0x15:                                // #CP
+        case 0x1D:                                // #VC
+        case 0x1E:                                // #SX
+            Event |= 1ULL << 0x0B;                // EV (Error Code Valid)—Bit 11. Set to 1 if the exception should push an error code onto the stack; clear to 0 otherwise.
+            Event |= (uint64_t)ErrorCode << 0x20; // ERRORCODE—Bits 63:32. If EV is set to 1, the error code to be pushed onto the stack, ignored otherwise.
+            break;
+        default:
+            break;
+        }
+        break;
+    case 0x4: // 4 Software interrupt (INTn instruction)
+        break;
+    default:
+        Event = {};
+        break;
+    }
+
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A8) = Event;
+
+    return Event;
+}
+
 template <int e>
 static void
 procedure(VMCpu*, VMContext*)
@@ -1257,52 +1302,7 @@ procedure<0x0060>(VMCpu* vcpu, VMContext* ctx)
 
     KdBreakPoint();
 
-    switch (TYPE) {
-    case 0: { // External or virtual interrupt (INTR)
-        uint64_t EventInj = 0;
-        EventInj |= (VECTOR & 0xFF);                     // Vector
-        EventInj |= (0ULL << 8);                         // Type: External interrupt
-        EventInj |= (ErrorCodeValid ? (1ULL << 11) : 0); // Error code valid
-        EventInj |= (1ULL << 31);                        // INJ - Inject event
-
-        *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A8) = EventInj;
-        break;
-    }
-    case 2: { // NMI
-        uint64_t EventInj = 0;
-        EventInj |= (2 & 0xFF);   // Vector for NMI
-        EventInj |= (2ULL << 8);  // Type: NMI
-        EventInj |= (1ULL << 31); // INJ - Inject event
-
-        *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A8) = EventInj;
-        break;
-    }
-    case 3: { // Exception (fault or trap)
-        uint64_t EventInj = 0;
-        EventInj |= (VECTOR & 0xFF);                     // Vector
-        EventInj |= (3ULL << 8);                         // Type: Exception
-        EventInj |= (ErrorCodeValid ? (1ULL << 11) : 0); // Error code valid
-        EventInj |= (1ULL << 31);                        // INJ - Inject event
-
-        *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A8) = EventInj;
-        break;
-    }
-    case 4: { // Software interrupt (caused by INTn instruction)
-        uint64_t EventInj = 0;
-        EventInj |= (VECTOR & 0xFF); // Vector
-        EventInj |= (4ULL << 8);     // Type: Software interrupt
-        EventInj |= (1ULL << 31);    // INJ - Inject event
-
-        *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A8) = EventInj;
-        break;
-    }
-    default:
-        EXITINFO1 = {};
-        EXITINFO2 = {};
-        EXITINTINFO = {};
-        RIP = {};
-        break;
-    }
+    buildEvent(vcpu, VECTOR, TYPE, ErrorCode);
 }
 
 // 61h VMEXIT_NMI Physical NMI.
