@@ -1101,7 +1101,7 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
     }
 }
 
-static FORCEINLINE uint64_t
+static FORCEINLINE uint32_t
 buildEvent(uint8_t Vector, uint8_t Type, uint32_t ErrorCode)
 {
     uint32_t Event = {};
@@ -1129,7 +1129,6 @@ buildEvent(uint8_t Vector, uint8_t Type, uint32_t ErrorCode)
         case 0x1E:                 // #SX
             Event |= 1ULL << 0x0B; // Deliver error code
 
-            __asm_vmx_vmwrite(0x00004016, Event);     // Injected-event identification
             __asm_vmx_vmwrite(0x00004018, ErrorCode); // Injected-event error code
             break;
         default:
@@ -1148,6 +1147,8 @@ buildEvent(uint8_t Vector, uint8_t Type, uint32_t ErrorCode)
         Event = {};
         break;
     }
+
+    __asm_vmx_vmwrite(0x00004016, Event); // Injected-event identification
 
     return Event;
 }
