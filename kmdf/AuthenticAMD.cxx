@@ -155,7 +155,7 @@ template <size_t>
 static FORCEINLINE uint64_t buildPML4E(uint64_t, int PWT, int PCD, int PAT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPDPTE(uint64_t, int PWT, int PCD, int PAT);
+static FORCEINLINE uint64_t buildPDPE(uint64_t, int PWT, int PCD, int PAT);
 
 template <size_t>
 static FORCEINLINE uint64_t buildPDE(uint64_t, int PWT, int PCD, int PAT);
@@ -165,106 +165,183 @@ static FORCEINLINE uint64_t buildPTE(uint64_t, int PWT, int PCD, int PAT);
 
 template <>
 FORCEINLINE uint64_t
-buildPML4E<0x1000>(uint64_t, int, int, int)
+buildPML5E<0x1000>(uint64_t PML4, int PWT, int PCD, int)
+{
+    uint64_t PML5E = {};
+
+    PML5E |= (1ULL << 0x00); // P
+    PML5E |= (1ULL << 0x01); // R/W
+    PML5E |= (1ULL << 0x02); // U/S
+
+    if (PWT)
+        PML5E |= (1ULL << 0x03); // PWT
+
+    if (PCD)
+        PML5E |= (1ULL << 0x04); // PCD
+
+    PML5E |= (0ULL << 0x05); // A
+    PML5E |= (0ULL << 0x06); // IGN
+    PML5E |= (0ULL << 0x07); // MBZ
+    PML5E |= (0ULL << 0x08); // MBZ
+
+    PML5E |= ((0ULL & 0x7) << 0x09); // Available to Software (AVL) Bit. These bits are not interpreted by the processor and are available for use by system software.
+
+    PML5E |= ((uint64_t)PML4 & 0x0000FFFFFFFFF000);
+
+    PML5E |= (0ULL << 0x3F); // NX
+
+    return PML5E;
+}
+
+template <>
+FORCEINLINE uint64_t
+buildPML4E<0x1000>(uint64_t PDPT, int PWT, int PCD, int)
 {
     uint64_t PML4E = {};
 
-    PML4E |= (0ULL << 0x00);
-    PML4E |= (0ULL << 0x01);
-    PML4E |= (0ULL << 0x02);
-    PML4E |= (0ULL << 0x03);
-    PML4E |= (0ULL << 0x04);
-    PML4E |= (0ULL << 0x05);
-    PML4E |= (0ULL << 0x06);
-    PML4E |= (0ULL << 0x07);
-    PML4E |= (0ULL << 0x08);
-    PML4E |= (0ULL << 0x09);
-    PML4E |= (0ULL << 0x0A);
-    PML4E |= (0ULL << 0x0B);
-    PML4E |= (0ULL << 0x0C);
-    PML4E |= (0ULL << 0x0D);
-    PML4E |= (0ULL << 0x0E);
-    PML4E |= (0ULL << 0x0F);
+    PML4E |= (1ULL << 0x00); // P
+    PML4E |= (1ULL << 0x01); // R/W
+    PML4E |= (1ULL << 0x02); // U/S
+
+    if (PWT)
+        PML4E |= (1ULL << 0x03); // PWT
+
+    if (PCD)
+        PML4E |= (1ULL << 0x04); // PCD
+
+    PML4E |= (0ULL << 0x05); // A
+    PML4E |= (0ULL << 0x06); // IGN
+    PML4E |= (0ULL << 0x07); // MBZ
+    PML4E |= (0ULL << 0x08); // MBZ
+
+    PML4E |= ((0ULL & 0x7) << 0x09); // Available to Software (AVL) Bit. These bits are not interpreted by the processor and are available for use by system software.
+
+    PML4E |= ((uint64_t)PDPT & 0x0000FFFFFFFFF000);
+
+    PML4E |= (0ULL << 0x3F); // NX
 
     return PML4E;
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPDPTE<0x1000>(uint64_t, int, int, int)
+buildPDPE<0x1000>(uint64_t PD, int PWT, int PCD, int)
 {
-    uint64_t PDPTE = {};
+    uint64_t PDPE = {};
 
-    PDPTE |= (0ULL << 0x00);
-    PDPTE |= (0ULL << 0x01);
-    PDPTE |= (0ULL << 0x02);
-    PDPTE |= (0ULL << 0x03);
-    PDPTE |= (0ULL << 0x04);
-    PDPTE |= (0ULL << 0x05);
-    PDPTE |= (0ULL << 0x06);
-    PDPTE |= (0ULL << 0x07);
-    PDPTE |= (0ULL << 0x08);
-    PDPTE |= (0ULL << 0x09);
-    PDPTE |= (0ULL << 0x0A);
-    PDPTE |= (0ULL << 0x0B);
-    PDPTE |= (0ULL << 0x0C);
-    PDPTE |= (0ULL << 0x0D);
-    PDPTE |= (0ULL << 0x0E);
-    PDPTE |= (0ULL << 0x0F);
+    PDPE |= (1ULL << 0x00); // P
+    PDPE |= (1ULL << 0x01); // R/W
+    PDPE |= (1ULL << 0x02); // U/S
 
-    return PDPTE;
+    if (PWT)
+        PDPE |= (1ULL << 0x03); // PWT
+
+    if (PCD)
+        PDPE |= (1ULL << 0x04); // PCD
+
+    PDPE |= (0ULL << 0x05); // A
+    PDPE |= (0ULL << 0x06); // IGN
+    PDPE |= (0ULL << 0x07); // 0
+    PDPE |= (0ULL << 0x08); // IGN
+
+    PDPE |= ((0ULL & 0x7) << 0x09); // Available to Software (AVL) Bit. These bits are not interpreted by the processor and are available for use by system software.
+
+    PDPE |= ((uint64_t)PD & 0x0000FFFFFFFFF000);
+
+    PDPE |= (0ULL << 0x3F); // NX
+
+    return PDPE;
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPDE<0x1000>(uint64_t, int, int, int)
+buildPDE<0x1000>(uint64_t PT, int PWT, int PCD, int)
 {
     uint64_t PDE = {};
 
-    PDE |= (0ULL << 0x00);
-    PDE |= (0ULL << 0x01);
-    PDE |= (0ULL << 0x02);
-    PDE |= (0ULL << 0x03);
-    PDE |= (0ULL << 0x04);
-    PDE |= (0ULL << 0x05);
-    PDE |= (0ULL << 0x06);
-    PDE |= (0ULL << 0x07);
-    PDE |= (0ULL << 0x08);
-    PDE |= (0ULL << 0x09);
-    PDE |= (0ULL << 0x0A);
-    PDE |= (0ULL << 0x0B);
-    PDE |= (0ULL << 0x0C);
-    PDE |= (0ULL << 0x0D);
-    PDE |= (0ULL << 0x0E);
-    PDE |= (0ULL << 0x0F);
+    PDE |= (1ULL << 0x00); // P
+    PDE |= (1ULL << 0x01); // R/W
+    PDE |= (1ULL << 0x02); // U/S
+
+    if (PWT)
+        PDE |= (1ULL << 0x03); // PWT
+
+    if (PCD)
+        PDE |= (1ULL << 0x04); // PCD
+
+    PDE |= (0ULL << 0x05); // A
+    PDE |= (0ULL << 0x06); // IGN
+    PDE |= (0ULL << 0x07); // 0
+    PDE |= (0ULL << 0x08); // IGN
+
+    PDE |= ((0ULL & 0x7) << 0x09); // Available to Software (AVL) Bit. These bits are not interpreted by the processor and are available for use by system software.
+
+    PDE |= ((uint64_t)PT & 0x0000FFFFFFFFF000);
+
+    PDE |= (0ULL << 0x3F); // NX
 
     return PDE;
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPTE<0x1000>(uint64_t, int, int, int)
+buildPTE<0x1000>(uint64_t P, int PWT, int PCD, int PAT)
 {
     uint64_t PTE = {};
 
-    PTE |= (0ULL << 0x00);
-    PTE |= (0ULL << 0x01);
-    PTE |= (0ULL << 0x02);
-    PTE |= (0ULL << 0x03);
-    PTE |= (0ULL << 0x04);
-    PTE |= (0ULL << 0x05);
-    PTE |= (0ULL << 0x06);
-    PTE |= (0ULL << 0x07);
-    PTE |= (0ULL << 0x08);
-    PTE |= (0ULL << 0x09);
-    PTE |= (0ULL << 0x0A);
-    PTE |= (0ULL << 0x0B);
-    PTE |= (0ULL << 0x0C);
-    PTE |= (0ULL << 0x0D);
-    PTE |= (0ULL << 0x0E);
-    PTE |= (0ULL << 0x0F);
+    PTE |= (1ULL << 0x00); // P
+    PTE |= (1ULL << 0x01); // R/W
+    PTE |= (1ULL << 0x02); // U/S
+
+    if (PWT)
+        PTE |= (1ULL << 0x03); // PWT
+
+    if (PCD)
+        PTE |= (1ULL << 0x04); // PCD
+
+    PTE |= (0ULL << 0x05); // A
+    PTE |= (0ULL << 0x06); // D
+
+    if (PAT)
+        PTE |= (1ULL << 0x07); // PAT
+
+    PTE |= (1ULL << 0x08); // G
+
+    PTE |= ((0ULL & 0x7) << 0x09); // Available to Software (AVL) Bit. These bits are not interpreted by the processor and are available for use by system software.
+
+    PTE |= ((uint64_t)P & 0x0000FFFFFFFFF000);
+
+    PTE |= (0ULL << 0x3F); // NX
 
     return PTE;
+}
+
+template <>
+FORCEINLINE uint64_t
+buildPML5E<0x200000>(uint64_t PML4, int PWT, int PCD, int)
+{
+    uint64_t PML4E = {};
+
+    PML4E |= (1ULL << 0x00); // P
+    PML4E |= (1ULL << 0x01); // R/W
+    PML4E |= (1ULL << 0x02); // U/S
+
+    if (PWT)
+        PML4E |= (1ULL << 0x03); // PWT
+
+    if (PCD)
+        PML4E |= (1ULL << 0x04); // PCD
+
+    PML4E |= (0ULL << 0x05); // A
+    PML4E |= (0ULL << 0x06); // IGN
+    PML4E |= (0ULL << 0x07); // MBZ
+    PML4E |= (0ULL << 0x08); // MBZ
+
+    PML4E |= ((0ULL & 0x7) << 0x09); // Available to Software (AVL) Bit. These bits are not interpreted by the processor and are available for use by system software.
+
+    PML4E |= ((uint64_t)PML4 & 0x0000FFFFFFFFF000);
+
+    return PML4E;
 }
 
 template <>
@@ -297,37 +374,37 @@ buildPML4E<0x200000>(uint64_t PDPT, int PWT, int PCD, int)
 
 template <>
 FORCEINLINE uint64_t
-buildPDPTE<0x200000>(uint64_t PD, int PWT, int PCD, int)
+buildPDPE<0x200000>(uint64_t PD, int PWT, int PCD, int)
 {
-    uint64_t PDPTE = {};
+    uint64_t PDPE = {};
 
-    PDPTE |= (1ULL << 0x00); // P
-    PDPTE |= (1ULL << 0x01); // R/W
-    PDPTE |= (1ULL << 0x02); // U/S
+    PDPE |= (1ULL << 0x00); // P
+    PDPE |= (1ULL << 0x01); // R/W
+    PDPE |= (1ULL << 0x02); // U/S
 
     if (PWT)
-        PDPTE |= (1ULL << 0x03); // PWT
+        PDPE |= (1ULL << 0x03); // PWT
 
     if (PCD)
-        PDPTE |= (1ULL << 0x04); // PCD
+        PDPE |= (1ULL << 0x04); // PCD
 
-    PDPTE |= (0ULL << 0x05); // A
-    PDPTE |= (0ULL << 0x06); // IGN
-    PDPTE |= (0ULL << 0x07); // 0
-    PDPTE |= (0ULL << 0x08); // MBZ
+    PDPE |= (0ULL << 0x05); // A
+    PDPE |= (0ULL << 0x06); // IGN
+    PDPE |= (0ULL << 0x07); // 0
+    PDPE |= (0ULL << 0x08); // MBZ
 
-    PDPTE |= ((0ULL & 0x7) << 0x09); // Available to Software (AVL) Bit. These bits are not interpreted by the processor and are available for use by system software.
+    PDPE |= ((0ULL & 0x7) << 0x09); // Available to Software (AVL) Bit. These bits are not interpreted by the processor and are available for use by system software.
 
-    PDPTE |= ((uint64_t)PD & 0x0000FFFFFFFFF000);
+    PDPE |= ((uint64_t)PD & 0x0000FFFFFFFFF000);
 
-    PDPTE |= (0ULL << 0x3F); // NX
+    PDPE |= (0ULL << 0x3F); // NX
 
-    return PDPTE;
+    return PDPE;
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPDE<0x200000>(uint64_t M, int PWT, int PCD, int PAT)
+buildPDE<0x200000>(uint64_t P, int PWT, int PCD, int PAT)
 {
     uint64_t PDE = {};
 
@@ -351,7 +428,7 @@ buildPDE<0x200000>(uint64_t M, int PWT, int PCD, int PAT)
     if (PAT)
         PDE |= (1ULL << 0x0C); // PAT
 
-    PDE |= ((uint64_t)M & 0x0000FFFFFFE00000);
+    PDE |= ((uint64_t)P & 0x0000FFFFFFE00000);
 
     PDE |= (0ULL << 0x3F); // NX
 
@@ -363,54 +440,49 @@ FORCEINLINE uint64_t buildPTE<0x200000>(uint64_t, int, int, int);
 
 template <>
 FORCEINLINE uint64_t
-buildPML4E<0x40000000>(uint64_t, int, int, int)
+buildPML5E<0x40000000>(uint64_t PML4, int PWT, int PCD, int PAT)
 {
-    uint64_t PML4E = {};
-
-    PML4E |= (0ULL << 0x00);
-    PML4E |= (0ULL << 0x01);
-    PML4E |= (0ULL << 0x02);
-    PML4E |= (0ULL << 0x03);
-    PML4E |= (0ULL << 0x04);
-    PML4E |= (0ULL << 0x05);
-    PML4E |= (0ULL << 0x06);
-    PML4E |= (0ULL << 0x07);
-    PML4E |= (0ULL << 0x08);
-    PML4E |= (0ULL << 0x09);
-    PML4E |= (0ULL << 0x0A);
-    PML4E |= (0ULL << 0x0B);
-    PML4E |= (0ULL << 0x0C);
-    PML4E |= (0ULL << 0x0D);
-    PML4E |= (0ULL << 0x0E);
-    PML4E |= (0ULL << 0x0F);
-
-    return PML4E;
+    return buildPML5E<0x200000>(PML4, PWT, PCD, PAT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPDPTE<0x40000000>(uint64_t, int, int, int)
+buildPML4E<0x40000000>(uint64_t PDPT, int PWT, int PCD, int PAT)
 {
-    uint64_t PDPTE = {};
+    return buildPML4E<0x200000>(PDPT, PWT, PCD, PAT);
+}
 
-    PDPTE |= (0ULL << 0x00);
-    PDPTE |= (0ULL << 0x01);
-    PDPTE |= (0ULL << 0x02);
-    PDPTE |= (0ULL << 0x03);
-    PDPTE |= (0ULL << 0x04);
-    PDPTE |= (0ULL << 0x05);
-    PDPTE |= (0ULL << 0x06);
-    PDPTE |= (0ULL << 0x07);
-    PDPTE |= (0ULL << 0x08);
-    PDPTE |= (0ULL << 0x09);
-    PDPTE |= (0ULL << 0x0A);
-    PDPTE |= (0ULL << 0x0B);
-    PDPTE |= (0ULL << 0x0C);
-    PDPTE |= (0ULL << 0x0D);
-    PDPTE |= (0ULL << 0x0E);
-    PDPTE |= (0ULL << 0x0F);
+template <>
+FORCEINLINE uint64_t
+buildPDPE<0x40000000>(uint64_t P, int PWT, int PCD, int PAT)
+{
+    uint64_t PDPE = {};
 
-    return PDPTE;
+    PDPE |= (1ULL << 0x00); // P
+    PDPE |= (1ULL << 0x01); // R/W
+    PDPE |= (1ULL << 0x02); // U/S
+
+    if (PWT)
+        PDPE |= (1ULL << 0x03); // PWT
+
+    if (PCD)
+        PDPE |= (1ULL << 0x04); // PCD
+
+    PDPE |= (0ULL << 0x05); // A
+    PDPE |= (0ULL << 0x06); // D
+    PDPE |= (1ULL << 0x07); // 1
+    PDPE |= (1ULL << 0x08); // G
+
+    PDPE |= ((0ULL & 0x7) << 0x09); // Available to Software (AVL) Bit. These bits are not interpreted by the processor and are available for use by system software.
+
+    if (PAT)
+        PDPE |= (1ULL << 0x0C); // PAT
+
+    PDPE |= ((uint64_t)P & 0x0000FFFFC0000000);
+
+    PDPE |= (0ULL << 0x3F); // NX
+
+    return PDPE;
 }
 
 template <>
@@ -444,8 +516,8 @@ buildNPT(uint64_t* PML4, uint64_t PA, int PWT, int PCD, int PAT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PDPTE = buildPDPTE<PageTranslation>(Pa.QuadPart, PWT, PCD, PAT);
-        if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPTE, 0))
+        uint64_t PDPE = buildPDPE<PageTranslation>(Pa.QuadPart, PWT, PCD, PAT);
+        if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPE, 0))
             deallocate<0x1000>(p);
     }
 
