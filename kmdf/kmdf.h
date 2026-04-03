@@ -95,6 +95,13 @@ CalculatePML4Es<0x200000>(size_t PhysicalSize)
 
 template <>
 FORCEINLINE size_t
+CalculatePML5Es<0x200000>(size_t PhysicalSize)
+{
+    return (CalculatePML4Es<0x200000>(PhysicalSize) + 0x1FF) >> 9;
+}
+
+template <>
+FORCEINLINE size_t
 CalculatePTEs<0x40000000>(size_t)
 {
     return 0;
@@ -119,6 +126,13 @@ FORCEINLINE size_t
 CalculatePML4Es<0x40000000>(size_t PhysicalSize)
 {
     return (CalculatePDPTEs<0x40000000>(PhysicalSize) + 0x1FF) >> 9;
+}
+
+template <>
+FORCEINLINE size_t
+CalculatePML5Es<0x40000000>(size_t PhysicalSize)
+{
+    return (CalculatePML4Es<0x40000000>(PhysicalSize) + 0x1FF) >> 9;
 }
 
 extern lfqueue* Mem4K;
