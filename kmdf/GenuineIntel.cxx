@@ -533,19 +533,19 @@ vmx_format_access_rights(uint32_t access_rights)
 }
 
 template <size_t>
-static FORCEINLINE uint64_t buildPML5E(uint64_t, uint64_t);
+static FORCEINLINE uint64_t buildPML5E(uint64_t PA, int R, int W, int X, uint64_t MT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPML4E(uint64_t, uint64_t);
+static FORCEINLINE uint64_t buildPML4E(uint64_t PA, int R, int W, int X, uint64_t MT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPDPTE(uint64_t, uint64_t);
+static FORCEINLINE uint64_t buildPDPTE(uint64_t PA, int R, int W, int X, uint64_t MT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPDE(uint64_t, uint64_t);
+static FORCEINLINE uint64_t buildPDE(uint64_t PA, int R, int W, int X, uint64_t MT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPTE(uint64_t, uint64_t);
+static FORCEINLINE uint64_t buildPTE(uint64_t PA, int R, int W, int X, uint64_t MT);
 
 static FORCEINLINE uint64_t
 buildEPTP(uint64_t EPT)
@@ -589,7 +589,7 @@ buildEPTP(uint64_t EPT)
 
 template <>
 FORCEINLINE uint64_t
-buildPML5E<0x1000>(uint64_t PML4, uint64_t)
+buildPML5E<0x1000>(uint64_t PML4, int R, int W, int X, uint64_t)
 {
     uint64_t PML5E = {};
 
@@ -600,12 +600,14 @@ buildPML5E<0x1000>(uint64_t PML4, uint64_t)
     /**
      * 0 Read access; indicates whether reads are allowed from the 256-TByte region controlled by this entry.
      **/
-    PML5E |= (1ULL << 0x00);
+    if (R)
+        PML5E |= (1ULL << 0x00);
 
     /**
      * 1 Write access; indicates whether writes are allowed to the 256-TByte region controlled by this entry.
      **/
-    PML5E |= (1ULL << 0x01);
+    if (W)
+        PML5E |= (1ULL << 0x01);
 
     /**
      * 2
@@ -640,7 +642,7 @@ buildPML5E<0x1000>(uint64_t PML4, uint64_t)
 
 template <>
 FORCEINLINE uint64_t
-buildPML4E<0x1000>(uint64_t PDPT, uint64_t)
+buildPML4E<0x1000>(uint64_t PDPT, int R, int W, int X, uint64_t)
 {
     uint64_t PML4E = {};
 
@@ -651,12 +653,14 @@ buildPML4E<0x1000>(uint64_t PDPT, uint64_t)
     /**
      * 0 Read access; indicates whether reads are allowed from the 512-GByte region controlled by this entry.
      **/
-    PML4E |= (1ULL << 0x00);
+    if (R)
+        PML4E |= (1ULL << 0x00);
 
     /**
      * 1 Write access; indicates whether writes are allowed to the 512-GByte region controlled by this entry.
      **/
-    PML4E |= (1ULL << 0x01);
+    if (W)
+        PML4E |= (1ULL << 0x01);
 
     /**
      * 2
@@ -700,7 +704,7 @@ buildPML4E<0x1000>(uint64_t PDPT, uint64_t)
 
 template <>
 FORCEINLINE uint64_t
-buildPDPTE<0x1000>(uint64_t PD, uint64_t)
+buildPDPTE<0x1000>(uint64_t PD, int R, int W, int X, uint64_t)
 {
     uint64_t PDPTE = {};
 
@@ -711,12 +715,14 @@ buildPDPTE<0x1000>(uint64_t PD, uint64_t)
     /**
      * 0 Read access; indicates whether reads are allowed from the 1-GByte region controlled by this entry.
      **/
-    PDPTE |= (1ULL << 0x00);
+    if (R)
+        PDPTE |= (1ULL << 0x00);
 
     /**
      * 1 Write access; indicates whether writes are allowed to the 1-GByte region controlled by this entry.
      **/
-    PDPTE |= (1ULL << 0x01);
+    if (W)
+        PDPTE |= (1ULL << 0x01);
 
     /**
      * 2
@@ -759,7 +765,7 @@ buildPDPTE<0x1000>(uint64_t PD, uint64_t)
 
 template <>
 FORCEINLINE uint64_t
-buildPDE<0x1000>(uint64_t PT, uint64_t)
+buildPDE<0x1000>(uint64_t PT, int R, int W, int X, uint64_t)
 {
     uint64_t PDE = {};
 
@@ -770,12 +776,14 @@ buildPDE<0x1000>(uint64_t PT, uint64_t)
     /**
      * 0 Read access; indicates whether reads are allowed from the 2-MByte region controlled by this entry.
      **/
-    PDE |= (1ULL << 0x00);
+    if (R)
+        PDE |= (1ULL << 0x00);
 
     /**
      * 1 Write access; indicates whether writes are allowed to the 2-MByte region controlled by this entry.
      **/
-    PDE |= (1ULL << 0x01);
+    if (W)
+        PDE |= (1ULL << 0x01);
 
     /**
      * 2
@@ -821,7 +829,7 @@ buildPDE<0x1000>(uint64_t PT, uint64_t)
 
 template <>
 FORCEINLINE uint64_t
-buildPTE<0x1000>(uint64_t M, uint64_t MT)
+buildPTE<0x1000>(uint64_t M, int R, int W, int X, uint64_t MT)
 {
     uint64_t PTE = {};
 
@@ -832,12 +840,14 @@ buildPTE<0x1000>(uint64_t M, uint64_t MT)
     /**
      * 0 Read access; indicates whether reads are allowed from the 4-KByte page referenced by this entry.
      **/
-    PTE |= (1ULL << 0x00);
+    if (R)
+        PTE |= (1ULL << 0x00);
 
     /**
      * 1 Write access; indicates whether writes are allowed to the 4-KByte page referenced by this entry.
      **/
-    PTE |= (1ULL << 0x01);
+    if (W)
+        PTE |= (1ULL << 0x01);
 
     /**
      * 2
@@ -934,28 +944,28 @@ buildPTE<0x1000>(uint64_t M, uint64_t MT)
 
 template <>
 FORCEINLINE uint64_t
-buildPML5E<0x200000>(uint64_t PML4, uint64_t MT)
+buildPML5E<0x200000>(uint64_t PML4, int R, int W, int X, uint64_t MT)
 {
-    return buildPML5E<0x1000>(PML4, MT);
+    return buildPML5E<0x1000>(PML4, R, W, X, MT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPML4E<0x200000>(uint64_t PDPT, uint64_t MT)
+buildPML4E<0x200000>(uint64_t PDPT, int R, int W, int X, uint64_t MT)
 {
-    return buildPML4E<0x1000>(PDPT, MT);
+    return buildPML4E<0x1000>(PDPT, R, W, X, MT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPDPTE<0x200000>(uint64_t PD, uint64_t MT)
+buildPDPTE<0x200000>(uint64_t PD, int R, int W, int X, uint64_t MT)
 {
-    return buildPDPTE<0x1000>(PD, MT);
+    return buildPDPTE<0x1000>(PD, R, W, X, MT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPDE<0x200000>(uint64_t PT, uint64_t MT)
+buildPDE<0x200000>(uint64_t PT, int R, int W, int X, uint64_t MT)
 {
     uint64_t PDE = {};
 
@@ -966,12 +976,14 @@ buildPDE<0x200000>(uint64_t PT, uint64_t MT)
     /**
      * 0 Read access; indicates whether reads are allowed from the 2-MByte page referenced by this entry.
      **/
-    PDE |= (1ULL << 0x00);
+    if (R)
+        PDE |= (1ULL << 0x00);
 
     /**
      * 1 Write access; indicates whether writes are allowed to the 2-MByte page referenced by this entry.
      **/
-    PDE |= (1ULL << 0x01);
+    if (W)
+        PDE |= (1ULL << 0x01);
 
     /**
      * 2
@@ -1065,25 +1077,25 @@ buildPDE<0x200000>(uint64_t PT, uint64_t MT)
 }
 
 template <>
-FORCEINLINE uint64_t buildPTE<0x200000>(uint64_t, uint64_t);
+FORCEINLINE uint64_t buildPTE<0x200000>(uint64_t, int, int, int, uint64_t);
 
 template <>
 FORCEINLINE uint64_t
-buildPML5E<0x40000000>(uint64_t PML4, uint64_t MT)
+buildPML5E<0x40000000>(uint64_t PML4, int R, int W, int X, uint64_t MT)
 {
-    return buildPML5E<0x1000>(PML4, MT);
+    return buildPML5E<0x1000>(PML4, R, W, X, MT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPML4E<0x40000000>(uint64_t PDPT, uint64_t MT)
+buildPML4E<0x40000000>(uint64_t PDPT, int R, int W, int X, uint64_t MT)
 {
-    return buildPML4E<0x1000>(PDPT, MT);
+    return buildPML4E<0x1000>(PDPT, R, W, X, MT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPDPTE<0x40000000>(uint64_t PD, uint64_t MT)
+buildPDPTE<0x40000000>(uint64_t PD, int R, int W, int X, uint64_t MT)
 {
     uint64_t PDPTE = {};
 
@@ -1094,12 +1106,14 @@ buildPDPTE<0x40000000>(uint64_t PD, uint64_t MT)
     /**
      * 0 Read access; indicates whether reads are allowed from the 1-GByte page referenced by this entry.
      **/
-    PDPTE |= (1ULL << 0x00);
+    if (R)
+        PDPTE |= (1ULL << 0x00);
 
     /**
      * 1 Write access; indicates whether writes are allowed to the 1-GByte page referenced by this entry.
      **/
-    PDPTE |= (1ULL << 0x01);
+    if (W)
+        PDPTE |= (1ULL << 0x01);
 
     /**
      * 2
@@ -1195,10 +1209,10 @@ buildPDPTE<0x40000000>(uint64_t PD, uint64_t MT)
 }
 
 template <>
-FORCEINLINE uint64_t buildPDE<0x40000000>(uint64_t, uint64_t);
+FORCEINLINE uint64_t buildPDE<0x40000000>(uint64_t, int, int, int, uint64_t);
 
 template <>
-FORCEINLINE uint64_t buildPTE<0x40000000>(uint64_t, uint64_t);
+FORCEINLINE uint64_t buildPTE<0x40000000>(uint64_t, int, int, int, uint64_t);
 
 static FORCEINLINE void
 buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
@@ -1213,7 +1227,7 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PML4E = buildPML4E<PageTranslation>(Pa.QuadPart, MT);
+        uint64_t PML4E = buildPML4E<PageTranslation>(Pa.QuadPart, 1, 1, 1, MT);
         if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
             deallocate<0x1000>(p);
     }
@@ -1225,7 +1239,7 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PDPTE = buildPDPTE<PageTranslation>(Pa.QuadPart, MT);
+        uint64_t PDPTE = buildPDPTE<PageTranslation>(Pa.QuadPart, 1, 1, 1, MT);
         if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPTE, 0))
             deallocate<0x1000>(p);
     }
@@ -1233,7 +1247,7 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
     Pa.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
     uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PD[III] == 0) {
-        uint64_t PDE = buildPDE<PageTranslation>(PA & 0xFFFFFFFFFFE00000, MT);
+        uint64_t PDE = buildPDE<PageTranslation>(PA & 0xFFFFFFFFFFE00000, 1, 1, 1, MT);
         InterlockedCompareExchange64((LONG64*)&PD[III], PDE, 0);
     }
 }
