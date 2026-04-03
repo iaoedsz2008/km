@@ -283,6 +283,143 @@ static uint64_t* PML4 = {};
 static uint64_t EPTP = {};
 static int (*Procedures[0x100])(VMContext* ctx);
 
+static inline size_t
+__asm_vmx_invept(size_t type, const void* descriptor)
+{
+    size_t eflags;
+    __asm__ __volatile__("\n invept %1, %2"
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)
+                         : "m"(*(const uint64_t*)descriptor), "r"(type)
+                         : "cc", "memory");
+    return eflags;
+}
+
+static inline size_t
+__asm_vmx_invvpid(size_t type, const void* descriptor)
+{
+    size_t eflags;
+    __asm__ __volatile__("\n invvpid %1, %2"
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)
+                         : "m"(*(const uint64_t*)descriptor), "r"(type)
+                         : "cc", "memory");
+    return eflags;
+}
+
+static inline void
+__asm_vmx_vmcall(void)
+{
+    __asm__ __volatile__("vmcall" ::: "memory");
+}
+
+static inline uint64_t
+__asm_vmx_vmclear(uint64_t* vmcs_pa)
+{
+    uint64_t eflags;
+    __asm__ __volatile__("\n vmclear %1"
+                         "\n pushfq"
+                         "\n pop %0"
+                         : "=r"(eflags)
+                         : "m"(*vmcs_pa)
+                         : "cc", "memory");
+    return eflags;
+}
+
+static inline void
+__asm_vmx_vmfunc(uint32_t function)
+{
+    __asm__ __volatile__("vmfunc" : : "a"(function) : "memory");
+}
+
+static inline size_t
+__asm_vmx_vmlaunch(void)
+{
+    size_t eflags;
+    __asm__ __volatile__("\n vmlaunch"
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)::"cc", "memory");
+    return eflags;
+}
+
+static inline size_t
+__asm_vmx_vmptrld(uint64_t* vmcs_pa)
+{
+    size_t eflags;
+    __asm__ __volatile__("\n vmptrld %1"
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)
+                         : "m"(*vmcs_pa)
+                         : "cc", "memory");
+    return eflags;
+}
+
+static inline void
+__asm_vmx_vmptrst(uint64_t* vmcs_pa)
+{
+    __asm__ __volatile__("vmptrst %0" : "=m"(*vmcs_pa)::"cc", "memory");
+}
+
+static inline size_t
+__asm_vmx_vmread(size_t field, size_t* value)
+{
+    size_t eflags;
+    __asm__("\n vmread %2, %1"
+            "\n pushf"
+            "\n pop %0"
+            : "=r"(eflags), "=r"(*value)
+            : "r"(field)
+            : "cc");
+    return eflags;
+}
+
+static inline size_t
+__asm_vmx_vmresume(void)
+{
+    size_t eflags;
+    __asm__ __volatile__("\n vmresume"
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)::"cc", "memory");
+    return eflags;
+}
+
+static inline size_t
+__asm_vmx_vmwrite(size_t field, size_t value)
+{
+    size_t eflags;
+    __asm__ __volatile__("\n vmwrite %2, %1"
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)
+                         : "r"(field), "r"(value)
+                         : "cc");
+    return eflags;
+}
+
+static inline void
+__asm_vmx_vmxoff(void)
+{
+    __asm__ __volatile__("vmxoff" ::: "memory");
+}
+
+static inline size_t
+__asm_vmx_vmxon(uint64_t* pa)
+{
+    size_t eflags;
+    __asm__ __volatile__("\n vmxon %1"
+                         "\n pushf"
+                         "\n pop %0"
+                         : "=r"(eflags)
+                         : "m"(*pa)
+                         : "cc", "memory");
+    return eflags;
+}
+
 static FORCEINLINE uint32_t
 __lar(uint16_t selector)
 {

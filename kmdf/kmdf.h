@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "StringHash.h"
 #include "Support.h"
 #include "lfqueue.h"
 

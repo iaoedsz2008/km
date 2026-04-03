@@ -6,8 +6,6 @@
 #if !defined(__d51ea43e6e0790432a424e5b22f82ddd__)
 #define __d51ea43e6e0790432a424e5b22f82ddd__
 
-#include "StringHash.h"
-
 #if defined(__clang__) || defined(__GNUC__)
 
 static inline void
@@ -34,319 +32,173 @@ __asm_cpuid_ex(uint32_t leaf, uint32_t subleaf, uint32_t* eax, uint32_t* ebx, ui
     __asm__ __volatile__("cpuid" : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx) : "a"(leaf), "c"(subleaf));
 }
 
-#if defined(__x86_64__)
-
-static inline uint64_t
+static inline size_t
 __asm_cr0(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("mov %%cr0, %0" : "=r"(val));
     return val;
 }
 
 static inline void
-__asm_cr0(uint64_t val)
+__asm_cr0(size_t val)
 {
     __asm__ __volatile__("mov %0, %%cr0" ::"r"(val) : "memory");
 }
 
-static inline uint64_t
+static inline size_t
 __asm_cr1(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("mov %%cr1, %0" : "=r"(val));
     return val;
 }
 
 static inline void
-__asm_cr1(uint64_t val)
+__asm_cr1(size_t val)
 {
     __asm__ __volatile__("mov %0, %%cr1" ::"r"(val) : "memory");
 }
 
-static inline uint64_t
+static inline size_t
 __asm_cr2(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("mov %%cr2, %0" : "=r"(val));
     return val;
 }
 
 static inline void
-__asm_cr2(uint64_t val)
+__asm_cr2(size_t val)
 {
     __asm__ __volatile__("mov %0, %%cr2" ::"r"(val) : "memory");
 }
 
-static inline uint64_t
+static inline size_t
 __asm_cr3(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("mov %%cr3, %0" : "=r"(val));
     return val;
 }
 
 static inline void
-__asm_cr3(uint64_t val)
+__asm_cr3(size_t val)
 {
     __asm__ __volatile__("mov %0, %%cr3" ::"r"(val) : "memory");
 }
 
-static inline uint64_t
+static inline size_t
 __asm_cr4(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("mov %%cr4, %0" : "=r"(val));
     return val;
 }
 
 static inline void
-__asm_cr4(uint64_t val)
+__asm_cr4(size_t val)
 {
     __asm__ __volatile__("mov %0, %%cr4" ::"r"(val) : "memory");
 }
 
-static inline uint64_t
+static inline size_t
 __asm_cr8(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("mov %%cr8, %0" : "=r"(val));
     return val;
 }
 
 static inline void
-__asm_cr8(uint64_t val)
+__asm_cr8(size_t val)
 {
     __asm__ __volatile__("mov %0, %%cr8" ::"r"(val) : "memory");
 }
 
-static inline uint64_t
+static inline size_t
 __asm_dr0(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("mov %%dr0, %0" : "=r"(val));
     return val;
 }
 
 static inline void
-__asm_dr0(uint64_t val)
+__asm_dr0(size_t val)
 {
     __asm__ __volatile__("mov %0, %%dr0" ::"r"(val) : "memory");
 }
 
-static inline uint64_t
+static inline size_t
 __asm_dr1(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("mov %%dr1, %0" : "=r"(val));
     return val;
 }
 
 static inline void
-__asm_dr1(uint64_t val)
+__asm_dr1(size_t val)
 {
     __asm__ __volatile__("mov %0, %%dr1" ::"r"(val) : "memory");
 }
 
-static inline uint64_t
+static inline size_t
 __asm_dr2(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("mov %%dr2, %0" : "=r"(val));
     return val;
 }
 
 static inline void
-__asm_dr2(uint64_t val)
+__asm_dr2(size_t val)
 {
     __asm__ __volatile__("mov %0, %%dr2" ::"r"(val) : "memory");
 }
 
-static inline uint64_t
+static inline size_t
 __asm_dr3(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("mov %%dr3, %0" : "=r"(val));
     return val;
 }
 
 static inline void
-__asm_dr3(uint64_t val)
+__asm_dr3(size_t val)
 {
     __asm__ __volatile__("mov %0, %%dr3" ::"r"(val) : "memory");
 }
 
-static inline uint64_t
+static inline size_t
 __asm_dr6(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("mov %%dr6, %0" : "=r"(val));
     return val;
 }
 
 static inline void
-__asm_dr6(uint64_t val)
+__asm_dr6(size_t val)
 {
     __asm__ __volatile__("mov %0, %%dr6" ::"r"(val) : "memory");
 }
 
-static inline uint64_t
+static inline size_t
 __asm_dr7(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("mov %%dr7, %0" : "=r"(val));
     return val;
 }
 
 static inline void
-__asm_dr7(uint64_t val)
+__asm_dr7(size_t val)
 {
     __asm__ __volatile__("mov %0, %%dr7" ::"r"(val) : "memory");
 }
-
-#else
-
-static inline uint32_t
-__asm_cr0(void)
-{
-    uint32_t val;
-    __asm__ __volatile__("mov %%cr0, %0" : "=r"(val));
-    return val;
-}
-
-static inline void
-__asm_cr0(uint32_t val)
-{
-    __asm__ __volatile__("mov %0, %%cr0" ::"r"(val) : "memory");
-}
-
-static inline uint32_t
-__asm_cr2(void)
-{
-    uint32_t val;
-    __asm__ __volatile__("mov %%cr2, %0" : "=r"(val));
-    return val;
-}
-
-static inline void
-__asm_cr2(uint32_t val)
-{
-    __asm__ __volatile__("mov %0, %%cr2" ::"r"(val) : "memory");
-}
-
-static inline uint32_t
-__asm_cr3(void)
-{
-    uint32_t val;
-    __asm__ __volatile__("mov %%cr3, %0" : "=r"(val));
-    return val;
-}
-
-static inline void
-__asm_cr3(uint32_t val)
-{
-    __asm__ __volatile__("mov %0, %%cr3" ::"r"(val) : "memory");
-}
-
-static inline uint32_t
-__asm_cr4(void)
-{
-    uint32_t val;
-    __asm__ __volatile__("mov %%cr4, %0" : "=r"(val));
-    return val;
-}
-
-static inline void
-__asm_cr4(uint32_t val)
-{
-    __asm__ __volatile__("mov %0, %%cr4" ::"r"(val) : "memory");
-}
-
-static inline uint32_t
-__asm_dr0(void)
-{
-    uint32_t val;
-    __asm__ __volatile__("mov %%dr0, %0" : "=r"(val));
-    return val;
-}
-
-static inline void
-__asm_dr0(uint32_t val)
-{
-    __asm__ __volatile__("mov %0, %%dr0" ::"r"(val) : "memory");
-}
-
-static inline uint32_t
-__asm_dr1(void)
-{
-    uint32_t val;
-    __asm__ __volatile__("mov %%dr1, %0" : "=r"(val));
-    return val;
-}
-
-static inline void
-__asm_dr1(uint32_t val)
-{
-    __asm__ __volatile__("mov %0, %%dr1" ::"r"(val) : "memory");
-}
-
-static inline uint32_t
-__asm_dr2(void)
-{
-    uint32_t val;
-    __asm__ __volatile__("mov %%dr2, %0" : "=r"(val));
-    return val;
-}
-
-static inline void
-__asm_dr2(uint32_t val)
-{
-    __asm__ __volatile__("mov %0, %%dr2" ::"r"(val) : "memory");
-}
-
-static inline uint32_t
-__asm_dr3(void)
-{
-    uint32_t val;
-    __asm__ __volatile__("mov %%dr3, %0" : "=r"(val));
-    return val;
-}
-
-static inline void
-__asm_dr3(uint32_t val)
-{
-    __asm__ __volatile__("mov %0, %%dr3" ::"r"(val) : "memory");
-}
-
-static inline uint32_t
-__asm_dr6(void)
-{
-    uint32_t val;
-    __asm__ __volatile__("mov %%dr6, %0" : "=r"(val));
-    return val;
-}
-
-static inline void
-__asm_dr6(uint32_t val)
-{
-    __asm__ __volatile__("mov %0, %%dr6" ::"r"(val) : "memory");
-}
-
-static inline uint32_t
-__asm_dr7(void)
-{
-    uint32_t val;
-    __asm__ __volatile__("mov %%dr7, %0" : "=r"(val));
-    return val;
-}
-
-static inline void
-__asm_dr7(uint32_t val)
-{
-    __asm__ __volatile__("mov %0, %%dr7" ::"r"(val) : "memory");
-}
-
-#endif
 
 static inline uint16_t
 __asm_cs(void)
@@ -426,57 +278,21 @@ __asm_ss(uint16_t val)
     __asm__ __volatile__("mov %0, %%ss" ::"r"(val) : "memory");
 }
 
-#if defined(__x86_64__)
-
-static inline uint64_t
+static inline size_t
 __asm_eflags(void)
 {
-    uint64_t val;
+    size_t val;
     __asm__ __volatile__("\n pushfq"
                          "\n pop %0"
                          : "=r"(val));
     return val;
 }
 
-static inline uint64_t
+static inline size_t
 __asm_rflags(void)
 {
-    uint64_t val;
-    __asm__ __volatile__("\n pushfq"
-                         "\n pop %0"
-                         : "=r"(val));
-    return val;
+    return __asm_eflags();
 }
-
-static inline uint64_t
-__asm_rip(void)
-{
-    uint64_t val;
-    __asm__ __volatile__("lea (%%rip), %0" : "=r"(val));
-    return val;
-}
-
-static inline uint64_t
-__asm_rsp(void)
-{
-    uint64_t val;
-    __asm__ __volatile__("mov %%rsp, %0" : "=r"(val));
-    return val;
-}
-
-#else
-
-static inline uint32_t
-__asm_eflags(void)
-{
-    uint32_t val;
-    __asm__ __volatile__("\n pushfl"
-                         "\n pop %0"
-                         : "=r"(val));
-    return val;
-}
-
-#endif
 
 static inline void
 __asm_int3(void)
@@ -605,177 +421,6 @@ __asm_rdtscp(uint32_t* aux)
     uint32_t* p = (uint32_t*)&val;
     __asm__ __volatile__("rdtscp" : "=a"(p[0]), "=d"(p[1]), "=c"(*aux));
     return val;
-}
-
-static inline void
-__asm_svm_clgi(void)
-{
-    __asm__ __volatile__("clgi" ::: "memory");
-}
-
-static inline void
-__asm_svm_stgi(void)
-{
-    __asm__ __volatile__("stgi" ::: "memory");
-}
-
-static inline void
-__asm_svm_vmload(size_t pa)
-{
-    __asm__ __volatile__("vmload" ::"a"(pa) : "memory");
-}
-
-static inline void
-__asm_svm_vmrun(size_t pa)
-{
-    __asm__ __volatile__("vmrun" ::"a"(pa) : "memory");
-}
-
-static inline void
-__asm_svm_vmsave(size_t pa)
-{
-    __asm__ __volatile__("vmsave" ::"a"(pa) : "memory");
-}
-
-#if defined(__x86_64__)
-
-static inline size_t
-__asm_vmx_invept(uint64_t type, const void* descriptor)
-{
-    size_t eflags;
-    __asm__ __volatile__("\n invept %1, %2"
-                         "\n pushf"
-                         "\n pop %0"
-                         : "=r"(eflags)
-                         : "m"(*(const uint64_t*)descriptor), "r"(type)
-                         : "cc", "memory");
-    return eflags;
-}
-
-static inline size_t
-__asm_vmx_invvpid(uint64_t type, const void* descriptor)
-{
-    size_t eflags;
-    __asm__ __volatile__("\n invvpid %1, %2"
-                         "\n pushf"
-                         "\n pop %0"
-                         : "=r"(eflags)
-                         : "m"(*(const uint64_t*)descriptor), "r"(type)
-                         : "cc", "memory");
-    return eflags;
-}
-
-#endif
-
-static inline void
-__asm_vmx_vmcall(void)
-{
-    __asm__ __volatile__("vmcall" ::: "memory");
-}
-
-static inline uint64_t
-__asm_vmx_vmclear(uint64_t* vmcs_pa)
-{
-    uint64_t eflags;
-    __asm__ __volatile__("\n vmclear %1"
-                         "\n pushfq"
-                         "\n pop %0"
-                         : "=r"(eflags)
-                         : "m"(*vmcs_pa)
-                         : "cc", "memory");
-    return eflags;
-}
-
-static inline void
-__asm_vmx_vmfunc(void)
-{
-    __asm__ __volatile__("vmfunc" ::: "memory");
-}
-
-static inline size_t
-__asm_vmx_vmlaunch(void)
-{
-    size_t eflags;
-    __asm__ __volatile__("\n vmlaunch"
-                         "\n pushf"
-                         "\n pop %0"
-                         : "=r"(eflags)::"cc", "memory");
-    return eflags;
-}
-
-static inline size_t
-__asm_vmx_vmptrld(uint64_t* vmcs_pa)
-{
-    size_t eflags;
-    __asm__ __volatile__("\n vmptrld %1"
-                         "\n pushf"
-                         "\n pop %0"
-                         : "=r"(eflags)
-                         : "m"(*vmcs_pa)
-                         : "cc", "memory");
-    return eflags;
-}
-
-static inline void
-__asm_vmx_vmptrst(uint64_t* vmcs_pa)
-{
-    __asm__ __volatile__("vmptrst %0" : "=m"(*vmcs_pa)::"cc", "memory");
-}
-
-static inline size_t
-__asm_vmx_vmread(size_t field, size_t* value)
-{
-    size_t eflags;
-    __asm__("\n vmread %2, %1"
-            "\n pushf"
-            "\n pop %0"
-            : "=r"(eflags), "=r"(*value)
-            : "r"(field)
-            : "cc");
-    return eflags;
-}
-
-static inline size_t
-__asm_vmx_vmresume(void)
-{
-    size_t eflags;
-    __asm__ __volatile__("\n vmresume"
-                         "\n pushf"
-                         "\n pop %0"
-                         : "=r"(eflags)::"cc", "memory");
-    return eflags;
-}
-
-static inline size_t
-__asm_vmx_vmwrite(size_t field, size_t value)
-{
-    size_t eflags;
-    __asm__ __volatile__("\n vmwrite %2, %1"
-                         "\n pushf"
-                         "\n pop %0"
-                         : "=r"(eflags)
-                         : "r"(field), "r"(value)
-                         : "cc");
-    return eflags;
-}
-
-static inline void
-__asm_vmx_vmxoff(void)
-{
-    __asm__ __volatile__("vmxoff" ::: "memory");
-}
-
-static inline size_t
-__asm_vmx_vmxon(uint64_t* pa)
-{
-    size_t eflags;
-    __asm__ __volatile__("\n vmxon %1"
-                         "\n pushf"
-                         "\n pop %0"
-                         : "=r"(eflags)
-                         : "m"(*pa)
-                         : "cc", "memory");
-    return eflags;
 }
 
 #endif

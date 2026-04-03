@@ -52,6 +52,36 @@ static uint64_t* PML4 = {};
 static void (*Procedures[0x800])(VMCpu*, VMContext*);
 static VMCpu* VMCpus[0x800];
 
+static inline void
+__asm_svm_clgi(void)
+{
+    __asm__ __volatile__("clgi" ::: "memory");
+}
+
+static inline void
+__asm_svm_stgi(void)
+{
+    __asm__ __volatile__("stgi" ::: "memory");
+}
+
+static inline void
+__asm_svm_vmload(size_t pa)
+{
+    __asm__ __volatile__("vmload" ::"a"(pa) : "memory");
+}
+
+static inline void
+__asm_svm_vmrun(size_t pa)
+{
+    __asm__ __volatile__("vmrun" ::"a"(pa) : "memory");
+}
+
+static inline void
+__asm_svm_vmsave(size_t pa)
+{
+    __asm__ __volatile__("vmsave" ::"a"(pa) : "memory");
+}
+
 static FORCEINLINE uint32_t
 __lar(uint16_t selector)
 {
