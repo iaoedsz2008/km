@@ -48,7 +48,8 @@ typedef struct VMCpu {
 
 static KSPIN_LOCK kSpinLock;
 
-static uint64_t* PML4[2] = {}; // [0]: RWX, [0] RW
+static uint64_t* PML4[2] = {};  // [0]: RWX, [0] RW
+static uint64_t PML4PA[2] = {}; // [0]: RWX, [0] RW
 static void (*Procedures[0x800])(VMCpu*, VMContext*);
 static VMCpu* VMCpus[0x800];
 
@@ -221,7 +222,8 @@ buildPML5E<0x1000>(uint64_t PML4, int RW, int X, int PWT, int PCD, int)
 
     PML5E |= ((uint64_t)PML4 & 0x0000FFFFFFFFF000);
 
-    PML5E |= (0ULL << 0x3F); // NX
+    if (!X)
+        PML5E |= (1ULL << 0x3F); // NX
 
     return PML5E;
 }
@@ -254,7 +256,8 @@ buildPML4E<0x1000>(uint64_t PDPT, int RW, int X, int PWT, int PCD, int)
 
     PML4E |= ((uint64_t)PDPT & 0x0000FFFFFFFFF000);
 
-    PML4E |= (0ULL << 0x3F); // NX
+    if (!X)
+        PML4E |= (1ULL << 0x3F); // NX
 
     return PML4E;
 }
@@ -287,7 +290,8 @@ buildPDPE<0x1000>(uint64_t PD, int RW, int X, int PWT, int PCD, int)
 
     PDPE |= ((uint64_t)PD & 0x0000FFFFFFFFF000);
 
-    PDPE |= (0ULL << 0x3F); // NX
+    if (!X)
+        PDPE |= (1ULL << 0x3F); // NX
 
     return PDPE;
 }
@@ -320,7 +324,8 @@ buildPDE<0x1000>(uint64_t PT, int RW, int X, int PWT, int PCD, int)
 
     PDE |= ((uint64_t)PT & 0x0000FFFFFFFFF000);
 
-    PDE |= (0ULL << 0x3F); // NX
+    if (!X)
+        PDE |= (1ULL << 0x3F); // NX
 
     return PDE;
 }
@@ -356,7 +361,8 @@ buildPTE<0x1000>(uint64_t P, int RW, int X, int PWT, int PCD, int PAT)
 
     PTE |= ((uint64_t)P & 0x0000FFFFFFFFF000);
 
-    PTE |= (0ULL << 0x3F); // NX
+    if (!X)
+        PTE |= (1ULL << 0x3F); // NX
 
     return PTE;
 }
@@ -389,7 +395,8 @@ buildPML5E<0x200000>(uint64_t PML4, int RW, int X, int PWT, int PCD, int)
 
     PML4E |= ((uint64_t)PML4 & 0x0000FFFFFFFFF000);
 
-    PML4E |= (0ULL << 0x3F); // NX
+    if (!X)
+        PML4E |= (1ULL << 0x3F); // NX
 
     return PML4E;
 }
@@ -422,7 +429,8 @@ buildPML4E<0x200000>(uint64_t PDPT, int RW, int X, int PWT, int PCD, int)
 
     PML4E |= ((uint64_t)PDPT & 0x0000FFFFFFFFF000);
 
-    PML4E |= (0ULL << 0x3F); // NX
+    if (!X)
+        PML4E |= (1ULL << 0x3F); // NX
 
     return PML4E;
 }
@@ -455,7 +463,8 @@ buildPDPE<0x200000>(uint64_t PD, int RW, int X, int PWT, int PCD, int)
 
     PDPE |= ((uint64_t)PD & 0x0000FFFFFFFFF000);
 
-    PDPE |= (0ULL << 0x3F); // NX
+    if (!X)
+        PDPE |= (1ULL << 0x3F); // NX
 
     return PDPE;
 }
@@ -491,7 +500,8 @@ buildPDE<0x200000>(uint64_t P, int RW, int X, int PWT, int PCD, int PAT)
 
     PDE |= ((uint64_t)P & 0x0000FFFFFFE00000);
 
-    PDE |= (0ULL << 0x3F); // NX
+    if (!X)
+        PDE |= (1ULL << 0x3F); // NX
 
     return PDE;
 }
@@ -544,7 +554,8 @@ buildPDPE<0x40000000>(uint64_t P, int RW, int X, int PWT, int PCD, int PAT)
 
     PDPE |= ((uint64_t)P & 0x0000FFFFC0000000);
 
-    PDPE |= (0ULL << 0x3F); // NX
+    if (!X)
+        PDPE |= (1ULL << 0x3F); // NX
 
     return PDPE;
 }
@@ -591,6 +602,38 @@ buildNPT(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
         uint64_t PDE = buildPDE<PageTranslation>(PA & 0x0000FFFFFFE00000, RW, X, PWT, PCD, PAT);
         InterlockedCompareExchange64((LONG64*)&PD[III], PDE, 0);
     }
+}
+
+static FORCEINLINE void
+rebuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X)
+{
+    uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
+    uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
+    uint64_t III = (PA >> 0x15) & 0x00000000000001FF;
+    PHYSICAL_ADDRESS Pa;
+
+    ASSERT(PML4[I]);
+
+    Pa.QuadPart = PML4[I] & 0x0000FFFFFFFFF000;
+    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+
+    ASSERT(PDPT[II]);
+
+    Pa.QuadPart = PDPT[II] & 0x0000FFFFFFFFF000;
+    uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
+
+    ASSERT(PD[III]);
+
+    do {
+        uint64_t PDE = PD[III];
+
+        int PWT = (PDE >> 0x03) & 1;
+        int PCD = (PDE >> 0x04) & 1;
+        int PAT = 0;
+
+        if (InterlockedCompareExchange64((LONG64*)&PD[III], buildPDE<PageTranslation>(PA & 0x0000FFFFFFE00000, RW, X, PWT, PCD, PAT), PDE) == PDE)
+            break;
+    } while (1);
 }
 
 static FORCEINLINE uint64_t
@@ -1587,7 +1630,7 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
     switch (*(uint32_t*)RAX) {
     case 0x1:
         __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
-#if defined(_DEBUG)
+#if defined(DBG)
         ctx->RCX &= ~(1ULL << 0x1F); // 常见虚拟机都会在这里设置1
 #endif
         break;
@@ -1595,6 +1638,31 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
         __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
         ctx->RCX &= ~(1ULL << 0x02); // SVM - Secure virtual machine
         break;
+#if 1 // 构建一个测试环境.
+    case 0x88888888: {
+        uint8_t* p = (uint8_t*)ExAllocatePool(NonPagedPool, 0x400000);
+        ASSERT(p);
+
+        memset(p, 0, 0x400000);
+        for (size_t i = 0; i < 0xCCCCC; ++i) {
+            p[i * 5] = 0xE9; // JMP +0xXXXXXXXX
+        }
+        *(uint32_t*)(p + 1) = 0x1FFFF9;
+        p[0x66667 * 5] = 0xC3;
+
+        auto phis = MmGetPhysicalAddress(p + 0x200000);
+
+        rebuildNPT(PML4[0], phis.QuadPart, 1, 0);
+        rebuildNPT(PML4[1], phis.QuadPart, 1, 1);
+
+        *RAX = (uint64_t)p >> 0x00;
+        ctx->RDX = (uint64_t)p >> 0x20;
+
+        *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3; // TLB_CONTROL
+
+        break;
+    }
+#endif
     default:
         __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
         break;
@@ -2025,12 +2093,8 @@ template <>
 void
 procedure<0x0400>(VMCpu* vcpu, VMContext*)
 {
-    bool ViolationR = {};
-    bool ViolationW = {};
-    bool ViolationX = {};
-    bool EptR = {};
-    bool EptW = {};
-    bool EptX = {};
+    int ViolationRW = {};
+    int ViolationX = {};
 
     uint64_t RIP = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178); // RIP
     uint64_t ExitInfo1 = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0078);   // EXITINFO1
@@ -2047,7 +2111,7 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
      * guest page tables are always treated as data writes.
      **/
     if (ExitInfo1 & (1ULL << 0x01))
-        ;
+        ViolationRW = 1;
 
     /**
      * Bit 2 (US) - set to 1 if the nested page table level access was a user access. Note that nested page
@@ -2068,7 +2132,7 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
      * walks for guest page tables are always treated as data writes, even if the access itself is a code read
      **/
     if (ExitInfo1 & (1ULL << 0x04))
-        ;
+        ViolationX = 1;
 
     /**
      * Bit 6 (SS) - set to 1 if the fault was caused by a shadow stack access.
@@ -2077,7 +2141,7 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
         ;
 
     /**
-     * Bit 32 - set to 1 if nested page fault occurred while translating the guest’s final physical address
+     * Bit 32 - set to 1 if nested page fault occurred while translating the guest's final physical address
      **/
     if (ExitInfo1 & (1ULL << 0x20))
         ;
@@ -2095,8 +2159,19 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
     if (ExitInfo1 & (1ULL << 0x25))
         ;
 
-    buildNPT(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 1, 0, 1, 0);
-    buildNPT(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0);
+    if (ViolationX) {
+        KdBreakPoint();
+
+        if (*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) == PML4PA[0])
+            *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[1]; // N_CR3 - Nested page table CR3 to use for nested paging
+        else
+            *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[0]; // N_CR3 - Nested page table CR3 to use for nested paging
+
+        // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178) = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8); // *RIP=nRIP
+    } else {
+        buildNPT(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 1, 0, 1, 0);
+        buildNPT(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0);
+    }
 
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3; // TLB_CONTROL
 
@@ -2270,6 +2345,9 @@ initializeNPT(size_t PhysicalSize)
         buildNPT(PML4[0], i, 1, 1, 0, 0, 0);
         buildNPT(PML4[1], i, 1, 0, 0, 0, 0);
     }
+
+    PML4PA[0] = MmGetPhysicalAddress(PML4[0]).QuadPart;
+    PML4PA[1] = MmGetPhysicalAddress(PML4[1]).QuadPart;
 }
 
 template <>
@@ -3327,11 +3405,11 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     if (Context.Rip == 0x12345678)
         return 0;
 
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0000) = 0;            // Intercept reads of CR0-15, respectively
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0002) = 0;            // Intercept writes of CR0-15, respectively
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0004) = 0;            // Intercept reads of DR0-15, respectively
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0006) = 0;            // Intercept writes of DR0-15, respectively.
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = 0xFFFFBFFFUL; // Intercept exception vectors 0-31, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0000) = 0; // Intercept reads of CR0-15, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0002) = 0; // Intercept writes of CR0-15, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0004) = 0; // Intercept reads of DR0-15, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0006) = 0; // Intercept writes of DR0-15, respectively.
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = 0; // Intercept exception vectors 0-31, respectively
 
     *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) = 0;
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x00; // Intercept INTR (physical maskable interrupt)
@@ -3416,8 +3494,8 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
      * TLB_CONTROL
      * 00h-Do nothing
      * 01h-Flush entire TLB (all entries, all ASIDs) on VMRUN Should only be used by legacy hypervisors
-     * 03h-Flush this guest’s TLB entries
-     * 07h-Flush this guest’s non-global TLB entries
+     * 03h-Flush this guest's TLB entries
+     * 07h-Flush this guest's non-global TLB entries
      **/
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 0;
 
@@ -3457,10 +3535,10 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     // *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x06; // Enable Read Only Guest Page Tables
     // *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x0090) |= 1U << 0x07; // Enable INVLPGB/TLBSYNC.
 
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0098) = 0;                                      //
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A0) = 0;                                      // Guest physical address of GHCB
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A8) = 0;                                      // EVENTINJ - Event injection
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = MmGetPhysicalAddress(PML4[0]).QuadPart; // N_CR3 - Nested page table CR3 to use for nested paging
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0098) = 0;         //
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A0) = 0;         // Guest physical address of GHCB
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00A8) = 0;         // EVENTINJ - Event injection
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[0]; // N_CR3 - Nested page table CR3 to use for nested paging
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B8) = 0;
     // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B8) |= 1U << 0x00; // LBR Virtualization Enable

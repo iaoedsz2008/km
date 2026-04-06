@@ -313,5 +313,22 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 
     DriverObject->DriverUnload = DriverUnload;
 
+#if 1 // 构建一个测试环境.
+    uint32_t eax;
+    uint32_t ebx;
+    uint32_t ecx;
+    uint32_t edx;
+
+    __asm_cpuid(0x88888888, &eax, &ebx, &ecx, &edx);
+
+    uint64_t val;
+    uint32_t* p = (uint32_t*)&val;
+    p[0] = eax;
+    p[1] = edx;
+
+    KdBreakPoint();
+    ((void (*)(void))val)();
+#endif
+
     return STATUS_SUCCESS;
 }
