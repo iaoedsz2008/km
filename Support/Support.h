@@ -23,20 +23,20 @@ __asm_sti(void)
 static inline void
 __asm_cpuid(uint32_t leaf, uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx)
 {
-    __asm__ __volatile__("cpuid" : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx) : "a"(leaf));
+    __asm__("cpuid" : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx) : "a"(leaf));
 }
 
 static inline void
 __asm_cpuid_ex(uint32_t leaf, uint32_t subleaf, uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx)
 {
-    __asm__ __volatile__("cpuid" : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx) : "a"(leaf), "c"(subleaf));
+    __asm__("cpuid" : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx) : "a"(leaf), "c"(subleaf));
 }
 
 static inline size_t
 __asm_cr0(void)
 {
     size_t val;
-    __asm__ __volatile__("mov %%cr0, %0" : "=r"(val));
+    __asm__("mov %%cr0, %0" : "=r"(val));
     return val;
 }
 
@@ -50,7 +50,7 @@ static inline size_t
 __asm_cr1(void)
 {
     size_t val;
-    __asm__ __volatile__("mov %%cr1, %0" : "=r"(val));
+    __asm__("mov %%cr1, %0" : "=r"(val));
     return val;
 }
 
@@ -64,7 +64,7 @@ static inline size_t
 __asm_cr2(void)
 {
     size_t val;
-    __asm__ __volatile__("mov %%cr2, %0" : "=r"(val));
+    __asm__("mov %%cr2, %0" : "=r"(val));
     return val;
 }
 
@@ -78,7 +78,7 @@ static inline size_t
 __asm_cr3(void)
 {
     size_t val;
-    __asm__ __volatile__("mov %%cr3, %0" : "=r"(val));
+    __asm__("mov %%cr3, %0" : "=r"(val));
     return val;
 }
 
@@ -92,7 +92,7 @@ static inline size_t
 __asm_cr4(void)
 {
     size_t val;
-    __asm__ __volatile__("mov %%cr4, %0" : "=r"(val));
+    __asm__("mov %%cr4, %0" : "=r"(val));
     return val;
 }
 
@@ -106,7 +106,7 @@ static inline size_t
 __asm_cr8(void)
 {
     size_t val;
-    __asm__ __volatile__("mov %%cr8, %0" : "=r"(val));
+    __asm__("mov %%cr8, %0" : "=r"(val));
     return val;
 }
 
@@ -120,7 +120,7 @@ static inline size_t
 __asm_dr0(void)
 {
     size_t val;
-    __asm__ __volatile__("mov %%dr0, %0" : "=r"(val));
+    __asm__("mov %%dr0, %0" : "=r"(val));
     return val;
 }
 
@@ -134,7 +134,7 @@ static inline size_t
 __asm_dr1(void)
 {
     size_t val;
-    __asm__ __volatile__("mov %%dr1, %0" : "=r"(val));
+    __asm__("mov %%dr1, %0" : "=r"(val));
     return val;
 }
 
@@ -148,7 +148,7 @@ static inline size_t
 __asm_dr2(void)
 {
     size_t val;
-    __asm__ __volatile__("mov %%dr2, %0" : "=r"(val));
+    __asm__("mov %%dr2, %0" : "=r"(val));
     return val;
 }
 
@@ -162,7 +162,7 @@ static inline size_t
 __asm_dr3(void)
 {
     size_t val;
-    __asm__ __volatile__("mov %%dr3, %0" : "=r"(val));
+    __asm__("mov %%dr3, %0" : "=r"(val));
     return val;
 }
 
@@ -176,7 +176,7 @@ static inline size_t
 __asm_dr6(void)
 {
     size_t val;
-    __asm__ __volatile__("mov %%dr6, %0" : "=r"(val));
+    __asm__("mov %%dr6, %0" : "=r"(val));
     return val;
 }
 
@@ -190,7 +190,7 @@ static inline size_t
 __asm_dr7(void)
 {
     size_t val;
-    __asm__ __volatile__("mov %%dr7, %0" : "=r"(val));
+    __asm__("mov %%dr7, %0" : "=r"(val));
     return val;
 }
 
@@ -204,7 +204,7 @@ static inline uint16_t
 __asm_cs(void)
 {
     uint16_t val;
-    __asm__ __volatile__("mov %%cs, %0" : "=r"(val));
+    __asm__("mov %%cs, %0" : "=r"(val));
     return val;
 }
 
@@ -212,7 +212,7 @@ static inline uint16_t
 __asm_ds(void)
 {
     uint16_t val;
-    __asm__ __volatile__("mov %%ds, %0" : "=r"(val));
+    __asm__("mov %%ds, %0" : "=r"(val));
     return val;
 }
 
@@ -226,7 +226,7 @@ static inline uint16_t
 __asm_es(void)
 {
     uint16_t val;
-    __asm__ __volatile__("mov %%es, %0" : "=r"(val));
+    __asm__("mov %%es, %0" : "=r"(val));
     return val;
 }
 
@@ -240,7 +240,7 @@ static inline uint16_t
 __asm_fs(void)
 {
     uint16_t val;
-    __asm__ __volatile__("mov %%fs, %0" : "=r"(val));
+    __asm__("mov %%fs, %0" : "=r"(val));
     return val;
 }
 
@@ -254,7 +254,7 @@ static inline uint16_t
 __asm_gs(void)
 {
     uint16_t val;
-    __asm__ __volatile__("mov %%gs, %0" : "=r"(val));
+    __asm__("mov %%gs, %0" : "=r"(val));
     return val;
 }
 
@@ -268,7 +268,7 @@ static inline uint16_t
 __asm_ss(void)
 {
     uint16_t val;
-    __asm__ __volatile__("mov %%ss, %0" : "=r"(val));
+    __asm__("mov %%ss, %0" : "=r"(val));
     return val;
 }
 
@@ -282,9 +282,9 @@ static inline size_t
 __asm_eflags(void)
 {
     size_t val;
-    __asm__ __volatile__("\n pushfq"
-                         "\n pop %0"
-                         : "=r"(val));
+    __asm__("\n pushfq"
+            "\n pop %0"
+            : "=r"(val));
     return val;
 }
 
@@ -346,7 +346,7 @@ static inline uint16_t
 __asm_sldt(void)
 {
     uint16_t val;
-    __asm__ __volatile__("sldt %0" : "=r"(val));
+    __asm__("sldt %0" : "=r"(val));
     return val;
 }
 
@@ -368,7 +368,7 @@ static inline uint16_t
 __asm_str(void)
 {
     uint16_t val;
-    __asm__ __volatile__("str %0" : "=r"(val));
+    __asm__("str %0" : "=r"(val));
     return val;
 }
 
@@ -392,7 +392,7 @@ static inline size_t
 __asm_rdpid(void)
 {
     size_t val;
-    __asm__ __volatile__("rdpid %0" : "=r"(val));
+    __asm__("rdpid %0" : "=r"(val));
     return val;
 }
 
@@ -410,7 +410,7 @@ __asm_rdtsc(void)
 {
     uint64_t val;
     uint32_t* p = (uint32_t*)&val;
-    __asm__ __volatile__("rdtsc" : "=a"(p[0]), "=d"(p[1]));
+    __asm__("rdtsc" : "=a"(p[0]), "=d"(p[1]));
     return val;
 }
 
@@ -419,7 +419,7 @@ __asm_rdtscp(uint32_t* aux)
 {
     uint64_t val;
     uint32_t* p = (uint32_t*)&val;
-    __asm__ __volatile__("rdtscp" : "=a"(p[0]), "=d"(p[1]), "=c"(*aux));
+    __asm__("rdtscp" : "=a"(p[0]), "=d"(p[1]), "=c"(*aux));
     return val;
 }
 
