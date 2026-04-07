@@ -1449,6 +1449,29 @@ procedure<0x000A>(VMCpu*, VMContext* ctx)
         ctx->RCX &= ~(1ULL << 0x1F); // 常见虚拟机都会在这里设置1
 #endif
         break;
+#if 1 // 构建一个测试环境.
+    case 0x88888888: {
+        uint8_t* p = (uint8_t*)ExAllocatePool(NonPagedPool, 0x400000);
+        ASSERT(p);
+
+        memset(p, 0, 0x400000);
+        for (size_t i = 0; i < 0xCCCCC; ++i) {
+            p[i * 5] = 0xE9; // JMP +0xXXXXXXXX
+        }
+        *(uint32_t*)(p + 1) = 0x1FFFF9;
+        p[0x66667 * 5] = 0xC3;
+
+        auto phis = MmGetPhysicalAddress(p + 0x200000);
+
+        // RebuildNPT(PML4[0], phis.QuadPart, 1, 0);
+        // RebuildNPT(PML4[1], phis.QuadPart, 1, 1);
+
+        ctx->RAX = (uint64_t)p >> 0x00;
+        ctx->RDX = (uint64_t)p >> 0x20;
+
+        break;
+    }
+#endif
     default:
         __asm__("cpuid" : "=a"(ctx->RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(ctx->RAX), "c"(ctx->RCX));
         break;

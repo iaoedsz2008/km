@@ -7,8 +7,7 @@
 
 #include <ntddk.h>
 
-typedef struct _BUGCHECK_DEMO_DATA
-{
+typedef struct _BUGCHECK_DEMO_DATA {
     ULONG Magic;
     ULONG Processor;
 } BUGCHECK_DEMO_DATA, *PBUGCHECK_DEMO_DATA;
@@ -21,8 +20,7 @@ static UCHAR g_ComponentName[] = "BugCheckDemo";
 static VOID
 BugCheckCallback(_Inout_ PVOID Buffer, _In_ ULONG Length)
 {
-    if (Length < sizeof(BUGCHECK_DEMO_DATA))
-    {
+    if (Length < sizeof(BUGCHECK_DEMO_DATA)) {
         return;
     }
 
@@ -36,8 +34,7 @@ DriverUnload(_In_ PDRIVER_OBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
 
-    if (g_BugCheckRegistered)
-    {
+    if (g_BugCheckRegistered) {
         KeDeregisterBugCheckCallback(&g_BugCheckRecord);
         g_BugCheckRegistered = FALSE;
     }
@@ -51,22 +48,13 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
     RtlZeroMemory(&g_BugCheckData, sizeof(g_BugCheckData));
     KeInitializeCallbackRecord(&g_BugCheckRecord);
 
-    if (!KeRegisterBugCheckCallback(
-            &g_BugCheckRecord,
-            BugCheckCallback,
-            &g_BugCheckData,
-            sizeof(g_BugCheckData),
-            g_ComponentName))
-    {
+    if (!KeRegisterBugCheckCallback(&g_BugCheckRecord, BugCheckCallback, &g_BugCheckData, sizeof(g_BugCheckData), g_ComponentName)) {
         return STATUS_UNSUCCESSFUL;
     }
 
     g_BugCheckRegistered = TRUE;
 
-    DbgPrintEx(
-        DPFLTR_IHVDRIVER_ID,
-        DPFLTR_INFO_LEVEL,
-        "KeRegisterBugCheckCallback: registered\n");
+    DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, "KeRegisterBugCheckCallback: registered\n");
 
     DriverObject->DriverUnload = DriverUnload;
     return STATUS_SUCCESS;
