@@ -17,7 +17,12 @@
 #include "Support.h"
 #include "lfqueue.h"
 
-static constexpr size_t PageTranslation = 0x200000;
+static constexpr size_t PageTranslation4K = 0x1000;
+static constexpr size_t PageTranslation2M = 0x200000;
+static constexpr size_t PageTranslation1G = 0x40000000;
+static constexpr size_t PageTranslation = PageTranslation2M;
+
+static constexpr size_t KM_FRAME_SIZE = 0x2000;
 
 template <size_t>
 static FORCEINLINE size_t CalculatePTEs(size_t PhysicalSize);

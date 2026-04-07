@@ -681,6 +681,12 @@ BuildEvent(VMCpu* vcpu, uint8_t Vector, uint8_t Type, uint32_t ErrorCode)
     return Event;
 }
 
+static FORCEINLINE void
+SkipEmulatedInstruction(void* vmcb)
+{
+    *(uint64_t*)((uint8_t*)vmcb + 0x400 + 0x0178) = *(uint64_t*)((uint8_t*)vmcb + 0x00C8); // *RIP=nRIP
+}
+
 template <int e>
 static void
 procedure(VMCpu*, VMContext*)
@@ -1288,10 +1294,7 @@ template <>
 void
 procedure<0x0048>(VMCpu* vcpu, VMContext* ctx)
 {
-    uint64_t RIP = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178); // RIP
-    uint64_t RSP = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01D8); // RSP
-    KdBreakPoint();
-    __asm__ __volatile__("" : : "r"(RIP), "r"(RSP) : "memory"); // 防止被优化.
+    return procedure<0x0040>(vcpu, ctx);
 }
 
 // 40h-5Fh VMEXIT_EXCP[0-31] Exception vector 0-31, respectively.
@@ -1686,7 +1689,7 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
         break;
     }
 
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178) = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8); // *RIP=nRIP
+    SkipEmulatedInstruction(vcpu->VmcbGuest);
 }
 
 // 73h VMEXIT_RSM RSM instruction.
@@ -1784,7 +1787,7 @@ procedure<0x007C>(VMCpu* vcpu, VMContext* ctx)
         }
     }
 
-    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178) = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8); // *RIP=nRIP
+    SkipEmulatedInstruction(vcpu->VmcbGuest);
 }
 
 // 7Dh VMEXIT_TASK_SWITCH Task switch.
@@ -2185,17 +2188,13 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
         else
             *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[0]; // N_CR3 - Nested page table CR3 to use for nested paging
 
-        // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178) = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8); // *RIP=nRIP
+        // SkipEmulatedInstruction(vcpu->VmcbGuest);
     } else {
         BuildNPT(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 1, 0, 1, 0);
         BuildNPT(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0);
     }
 
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3; // TLB_CONTROL
-
-    RIP = 0;
-    ExitInfo1 = 0;
-    ExitInfo2 = 0;
 }
 
 // 401h AVIC_INCOMPLETE_IPI AVIC-Virtual IPI delivery not completed. See "AVIC IPI Delivery Not Completed" on page 580 for EXITINFO1-2 definitions.
@@ -2225,7 +2224,7 @@ procedure<0x0403>(VMCpu*, VMContext*)
 static void
 HandleVmExit(VMContext* ctx)
 {
-    VMCpu* vcpu = (VMCpu*)((size_t)ctx - 0x1F00 + sizeof(VMContext));
+    VMCpu* vcpu = (VMCpu*)((size_t)ctx + sizeof(VMContext) - KM_FRAME_SIZE);
 
     __asm_svm_vmload(vcpu->VmcbHostPa.QuadPart);
 
@@ -2641,12 +2640,12 @@ template <>
 int
 vmxon<Hash("AuthenticAMD")>(PVOID)
 {
-    ULONG ProcessorIndex = KeGetCurrentProcessorIndex();
-    VMCpu* vcpu = (VMCpu*)allocate<0x2000>();
+    VMCpu* vcpu = (VMCpu*)allocate<KM_FRAME_SIZE>();
     ASSERT(vcpu);
-    VMCpus[ProcessorIndex] = vcpu;
 
-    memset(vcpu, 0, 0x2000);
+    memset(vcpu, 0, KM_FRAME_SIZE);
+
+    VMCpus[KeGetCurrentProcessorIndex()] = vcpu;
 
     do {
         uint32_t eax;
@@ -3775,7 +3774,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
 
                          "\n jmp labelA"
                          :
-                         : "a"(vcpu->VmcbGuestPa.QuadPart), "b"(&Context), "r"((uint8_t*)vcpu + 0x1F00), "i"(offsetof(CONTEXT, R15)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, Rsp)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rax)), "i"(HandleVmExit)
+                         : "a"(vcpu->VmcbGuestPa.QuadPart), "b"(&Context), "r"((uint8_t*)vcpu + KM_FRAME_SIZE), "i"(offsetof(CONTEXT, R15)), "i"(offsetof(CONTEXT, R14)), "i"(offsetof(CONTEXT, R13)), "i"(offsetof(CONTEXT, R12)), "i"(offsetof(CONTEXT, R11)), "i"(offsetof(CONTEXT, R10)), "i"(offsetof(CONTEXT, R9)), "i"(offsetof(CONTEXT, R8)), "i"(offsetof(CONTEXT, Rsp)), "i"(offsetof(CONTEXT, Rbp)), "i"(offsetof(CONTEXT, Rsi)), "i"(offsetof(CONTEXT, Rdi)), "i"(offsetof(CONTEXT, Rdx)), "i"(offsetof(CONTEXT, Rcx)), "i"(offsetof(CONTEXT, Rbx)), "i"(offsetof(CONTEXT, Rax)), "i"(HandleVmExit)
                          : "memory");
 
     return 0;
