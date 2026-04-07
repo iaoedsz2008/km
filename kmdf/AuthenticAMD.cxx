@@ -641,9 +641,9 @@ BuildEvent(VMCpu* vcpu, uint8_t Vector, uint8_t Type, uint32_t ErrorCode)
 {
     uint64_t Event = {};
 
-    Event |= (uint64_t)Vector;               // VECTOR—Bits 7:0. The 8-bit IDT vector of the interrupt or exception. If TYPE is 2 (NMI), the VECTOR field is ignored.
-    Event |= ((uint64_t)Type & 0x7) << 0x08; // TYPE—Bits 10:8. Qualifies the guest exception or interrupt to generate.
-    Event |= 1ULL << 0x1F;                   // V (Valid)—Bit 31. Set to 1 if an event is to be injected into the guest; clear to 0 otherwise.
+    Event |= (uint64_t)Vector;               // VECTOR-Bits 7:0. The 8-bit IDT vector of the interrupt or exception. If TYPE is 2 (NMI), the VECTOR field is ignored.
+    Event |= ((uint64_t)Type & 0x7) << 0x08; // TYPE-Bits 10:8. Qualifies the guest exception or interrupt to generate.
+    Event |= 1ULL << 0x1F;                   // V (Valid)-Bit 31. Set to 1 if an event is to be injected into the guest; clear to 0 otherwise.
 
     switch (Type) {
     case 0x0: // 0 External or virtual interrupt (INTR)
@@ -662,8 +662,8 @@ BuildEvent(VMCpu* vcpu, uint8_t Vector, uint8_t Type, uint32_t ErrorCode)
         case 0x15:                                // #CP
         case 0x1D:                                // #VC
         case 0x1E:                                // #SX
-            Event |= 1ULL << 0x0B;                // EV (Error Code Valid)—Bit 11. Set to 1 if the exception should push an error code onto the stack; clear to 0 otherwise.
-            Event |= (uint64_t)ErrorCode << 0x20; // ERRORCODE—Bits 63:32. If EV is set to 1, the error code to be pushed onto the stack, ignored otherwise.
+            Event |= 1ULL << 0x0B;                // EV (Error Code Valid)-Bit 11. Set to 1 if the exception should push an error code onto the stack; clear to 0 otherwise.
+            Event |= (uint64_t)ErrorCode << 0x20; // ERRORCODE-Bits 63:32. If EV is set to 1, the error code to be pushed onto the stack, ignored otherwise.
             break;
         default:
             break;
@@ -1215,7 +1215,13 @@ template <>
 void
 procedure<0x0041>(VMCpu* vcpu, VMContext* ctx)
 {
-    return procedure<0x0040>(vcpu, ctx);
+    (void)ctx;
+
+    // #DB 在 SVM 中通过 VMEXIT_EXCP1 退出；
+    // 透传给 guest 时重新构造一个 debug exception 注入回去即可。
+    // #DB 不带 error code。
+    // 是否保存为 fault/trap 对应的 RIP 由硬件在退出时已经处理好，这里不额外改 RIP。
+    BuildEvent(vcpu, 0x01, 0x03, 0);
 }
 
 // 40h-5Fh VMEXIT_EXCP[0-31] Exception vector 0-31, respectively.
@@ -1223,7 +1229,12 @@ template <>
 void
 procedure<0x0042>(VMCpu* vcpu, VMContext* ctx)
 {
-    return procedure<0x0040>(vcpu, ctx);
+    (void)ctx;
+
+    // vector 2 是 NMI；在 SVM 里应以 TYPE=2 重新注入给 guest。
+    // NMI 不带 error code，且 TYPE=2 时 VECTOR 字段会被硬件忽略。
+    // 这里仍写 0x02 只是为了保持语义清晰。
+    BuildEvent(vcpu, 0x02, 0x02, 0);
 }
 
 // 40h-5Fh VMEXIT_EXCP[0-31] Exception vector 0-31, respectively.
@@ -1231,6 +1242,13 @@ template <>
 void
 procedure<0x0043>(VMCpu* vcpu, VMContext* ctx)
 {
+    (void)ctx;
+
+    // #BP / INT3 在 SVM 中通过 VMEXIT_EXCP3 退出；
+    // 透传给 guest 时重新构造一个 breakpoint exception 注入回去即可。
+    // #BP 不带 error code，因此 ErrorCode 固定为 0。
+    // 这里不额外修改 RIP：#BP 是 trap，guest-save-area 中的 RIP 已经是异常返回地址。
+    BuildEvent(vcpu, 0x03, 0x03, 0);
 }
 
 // 40h-5Fh VMEXIT_EXCP[0-31] Exception vector 0-31, respectively.
