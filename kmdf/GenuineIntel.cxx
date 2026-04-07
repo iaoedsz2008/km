@@ -533,22 +533,22 @@ vmx_format_access_rights(uint32_t access_rights)
 }
 
 template <size_t>
-static FORCEINLINE uint64_t buildPML5E(uint64_t PA, int R, int W, int X, uint64_t MT);
+static FORCEINLINE uint64_t BuildPML5E(uint64_t PA, int R, int W, int X, uint64_t MT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPML4E(uint64_t PA, int R, int W, int X, uint64_t MT);
+static FORCEINLINE uint64_t BuildPML4E(uint64_t PA, int R, int W, int X, uint64_t MT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPDPTE(uint64_t PA, int R, int W, int X, uint64_t MT);
+static FORCEINLINE uint64_t BuildPDPTE(uint64_t PA, int R, int W, int X, uint64_t MT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPDE(uint64_t PA, int R, int W, int X, uint64_t MT);
+static FORCEINLINE uint64_t BuildPDE(uint64_t PA, int R, int W, int X, uint64_t MT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPTE(uint64_t PA, int R, int W, int X, uint64_t MT);
+static FORCEINLINE uint64_t BuildPTE(uint64_t PA, int R, int W, int X, uint64_t MT);
 
 static FORCEINLINE uint64_t
-buildEPTP(uint64_t EPT)
+BuildEPTP(uint64_t EPT)
 {
     /**
      * Format of Extended-Page-Table Pointer
@@ -589,7 +589,7 @@ buildEPTP(uint64_t EPT)
 
 template <>
 FORCEINLINE uint64_t
-buildPML5E<0x1000>(uint64_t PML4, int R, int W, int X, uint64_t)
+BuildPML5E<0x1000>(uint64_t PML4, int R, int W, int X, uint64_t)
 {
     uint64_t PML5E = {};
 
@@ -642,7 +642,7 @@ buildPML5E<0x1000>(uint64_t PML4, int R, int W, int X, uint64_t)
 
 template <>
 FORCEINLINE uint64_t
-buildPML4E<0x1000>(uint64_t PDPT, int R, int W, int X, uint64_t)
+BuildPML4E<0x1000>(uint64_t PDPT, int R, int W, int X, uint64_t)
 {
     uint64_t PML4E = {};
 
@@ -704,7 +704,7 @@ buildPML4E<0x1000>(uint64_t PDPT, int R, int W, int X, uint64_t)
 
 template <>
 FORCEINLINE uint64_t
-buildPDPTE<0x1000>(uint64_t PD, int R, int W, int X, uint64_t)
+BuildPDPTE<0x1000>(uint64_t PD, int R, int W, int X, uint64_t)
 {
     uint64_t PDPTE = {};
 
@@ -765,7 +765,7 @@ buildPDPTE<0x1000>(uint64_t PD, int R, int W, int X, uint64_t)
 
 template <>
 FORCEINLINE uint64_t
-buildPDE<0x1000>(uint64_t PT, int R, int W, int X, uint64_t)
+BuildPDE<0x1000>(uint64_t PT, int R, int W, int X, uint64_t)
 {
     uint64_t PDE = {};
 
@@ -829,7 +829,7 @@ buildPDE<0x1000>(uint64_t PT, int R, int W, int X, uint64_t)
 
 template <>
 FORCEINLINE uint64_t
-buildPTE<0x1000>(uint64_t M, int R, int W, int X, uint64_t MT)
+BuildPTE<0x1000>(uint64_t M, int R, int W, int X, uint64_t MT)
 {
     uint64_t PTE = {};
 
@@ -944,28 +944,28 @@ buildPTE<0x1000>(uint64_t M, int R, int W, int X, uint64_t MT)
 
 template <>
 FORCEINLINE uint64_t
-buildPML5E<0x200000>(uint64_t PML4, int R, int W, int X, uint64_t MT)
+BuildPML5E<0x200000>(uint64_t PML4, int R, int W, int X, uint64_t MT)
 {
-    return buildPML5E<0x1000>(PML4, R, W, X, MT);
+    return BuildPML5E<0x1000>(PML4, R, W, X, MT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPML4E<0x200000>(uint64_t PDPT, int R, int W, int X, uint64_t MT)
+BuildPML4E<0x200000>(uint64_t PDPT, int R, int W, int X, uint64_t MT)
 {
-    return buildPML4E<0x1000>(PDPT, R, W, X, MT);
+    return BuildPML4E<0x1000>(PDPT, R, W, X, MT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPDPTE<0x200000>(uint64_t PD, int R, int W, int X, uint64_t MT)
+BuildPDPTE<0x200000>(uint64_t PD, int R, int W, int X, uint64_t MT)
 {
-    return buildPDPTE<0x1000>(PD, R, W, X, MT);
+    return BuildPDPTE<0x1000>(PD, R, W, X, MT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPDE<0x200000>(uint64_t PT, int R, int W, int X, uint64_t MT)
+BuildPDE<0x200000>(uint64_t PT, int R, int W, int X, uint64_t MT)
 {
     uint64_t PDE = {};
 
@@ -1077,25 +1077,25 @@ buildPDE<0x200000>(uint64_t PT, int R, int W, int X, uint64_t MT)
 }
 
 template <>
-FORCEINLINE uint64_t buildPTE<0x200000>(uint64_t, int, int, int, uint64_t);
+FORCEINLINE uint64_t BuildPTE<0x200000>(uint64_t, int, int, int, uint64_t);
 
 template <>
 FORCEINLINE uint64_t
-buildPML5E<0x40000000>(uint64_t PML4, int R, int W, int X, uint64_t MT)
+BuildPML5E<0x40000000>(uint64_t PML4, int R, int W, int X, uint64_t MT)
 {
-    return buildPML5E<0x1000>(PML4, R, W, X, MT);
+    return BuildPML5E<0x1000>(PML4, R, W, X, MT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPML4E<0x40000000>(uint64_t PDPT, int R, int W, int X, uint64_t MT)
+BuildPML4E<0x40000000>(uint64_t PDPT, int R, int W, int X, uint64_t MT)
 {
-    return buildPML4E<0x1000>(PDPT, R, W, X, MT);
+    return BuildPML4E<0x1000>(PDPT, R, W, X, MT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPDPTE<0x40000000>(uint64_t PD, int R, int W, int X, uint64_t MT)
+BuildPDPTE<0x40000000>(uint64_t PD, int R, int W, int X, uint64_t MT)
 {
     uint64_t PDPTE = {};
 
@@ -1209,13 +1209,13 @@ buildPDPTE<0x40000000>(uint64_t PD, int R, int W, int X, uint64_t MT)
 }
 
 template <>
-FORCEINLINE uint64_t buildPDE<0x40000000>(uint64_t, int, int, int, uint64_t);
+FORCEINLINE uint64_t BuildPDE<0x40000000>(uint64_t, int, int, int, uint64_t);
 
 template <>
-FORCEINLINE uint64_t buildPTE<0x40000000>(uint64_t, int, int, int, uint64_t);
+FORCEINLINE uint64_t BuildPTE<0x40000000>(uint64_t, int, int, int, uint64_t);
 
 static FORCEINLINE void
-buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
+BuildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
     uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
@@ -1227,7 +1227,7 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PML4E = buildPML4E<PageTranslation>(Pa.QuadPart, 1, 1, 1, MT);
+        uint64_t PML4E = BuildPML4E<PageTranslation>(Pa.QuadPart, 1, 1, 1, MT);
         if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
             deallocate<0x1000>(p);
     }
@@ -1239,7 +1239,7 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PDPTE = buildPDPTE<PageTranslation>(Pa.QuadPart, 1, 1, 1, MT);
+        uint64_t PDPTE = BuildPDPTE<PageTranslation>(Pa.QuadPart, 1, 1, 1, MT);
         if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPTE, 0))
             deallocate<0x1000>(p);
     }
@@ -1247,13 +1247,13 @@ buildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
     Pa.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
     uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PD[III] == 0) {
-        uint64_t PDE = buildPDE<PageTranslation>(PA & 0xFFFFFFFFFFE00000, 1, 1, 1, MT);
+        uint64_t PDE = BuildPDE<PageTranslation>(PA & 0xFFFFFFFFFFE00000, 1, 1, 1, MT);
         InterlockedCompareExchange64((LONG64*)&PD[III], PDE, 0);
     }
 }
 
 static FORCEINLINE uint32_t
-buildEvent(uint8_t Vector, uint8_t Type, uint32_t ErrorCode)
+BuildEvent(uint8_t Vector, uint8_t Type, uint32_t ErrorCode)
 {
     uint32_t Event = {};
 
@@ -1923,7 +1923,7 @@ procedure<0x0030>(VMContext*)
     if (ExitQualification & (1ULL << 0x10))
         ;
 
-    buildEPT(PML4, GuestPhysicalAddress & 0xFFFFFFFFFFE00000, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+    BuildEPT(PML4, GuestPhysicalAddress & 0xFFFFFFFFFFE00000, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
 
     // The INVEPT descriptor comprises 128 bits and contains a 64-bit EPTP value in bits 63:0
     struct {
@@ -2405,10 +2405,10 @@ initializeEPT(size_t PhysicalSize)
     memset(PML4, 0, 0x1000);
 
     for (size_t i = 0; i < PhysicalSize; i += PageTranslation) {
-        buildEPT(PML4, i, 6);
+        BuildEPT(PML4, i, 6);
     }
 
-    EPTP = buildEPTP(MmGetPhysicalAddress(PML4).QuadPart);
+    EPTP = BuildEPTP(MmGetPhysicalAddress(PML4).QuadPart);
 }
 
 template <>

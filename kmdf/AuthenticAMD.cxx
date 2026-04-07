@@ -180,23 +180,23 @@ svm_format_access_rights(uint32_t access_rights)
 }
 
 template <size_t>
-static FORCEINLINE uint64_t buildPML5E(uint64_t PA, int RW, int X, int PWT, int PCD, int PAT);
+static FORCEINLINE uint64_t BuildPML5E(uint64_t PA, int RW, int X, int PWT, int PCD, int PAT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPML4E(uint64_t PA, int RW, int X, int PWT, int PCD, int PAT);
+static FORCEINLINE uint64_t BuildPML4E(uint64_t PA, int RW, int X, int PWT, int PCD, int PAT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPDPE(uint64_t PA, int RW, int X, int PWT, int PCD, int PAT);
+static FORCEINLINE uint64_t BuildPDPE(uint64_t PA, int RW, int X, int PWT, int PCD, int PAT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPDE(uint64_t PA, int RW, int X, int PWT, int PCD, int PAT);
+static FORCEINLINE uint64_t BuildPDE(uint64_t PA, int RW, int X, int PWT, int PCD, int PAT);
 
 template <size_t>
-static FORCEINLINE uint64_t buildPTE(uint64_t PA, int RW, int X, int PWT, int PCD, int PAT);
+static FORCEINLINE uint64_t BuildPTE(uint64_t PA, int RW, int X, int PWT, int PCD, int PAT);
 
 template <>
 FORCEINLINE uint64_t
-buildPML5E<0x1000>(uint64_t PML4, int RW, int X, int PWT, int PCD, int)
+BuildPML5E<0x1000>(uint64_t PML4, int RW, int X, int PWT, int PCD, int)
 {
     uint64_t PML5E = {};
 
@@ -230,7 +230,7 @@ buildPML5E<0x1000>(uint64_t PML4, int RW, int X, int PWT, int PCD, int)
 
 template <>
 FORCEINLINE uint64_t
-buildPML4E<0x1000>(uint64_t PDPT, int RW, int X, int PWT, int PCD, int)
+BuildPML4E<0x1000>(uint64_t PDPT, int RW, int X, int PWT, int PCD, int)
 {
     uint64_t PML4E = {};
 
@@ -264,7 +264,7 @@ buildPML4E<0x1000>(uint64_t PDPT, int RW, int X, int PWT, int PCD, int)
 
 template <>
 FORCEINLINE uint64_t
-buildPDPE<0x1000>(uint64_t PD, int RW, int X, int PWT, int PCD, int)
+BuildPDPE<0x1000>(uint64_t PD, int RW, int X, int PWT, int PCD, int)
 {
     uint64_t PDPE = {};
 
@@ -298,7 +298,7 @@ buildPDPE<0x1000>(uint64_t PD, int RW, int X, int PWT, int PCD, int)
 
 template <>
 FORCEINLINE uint64_t
-buildPDE<0x1000>(uint64_t PT, int RW, int X, int PWT, int PCD, int)
+BuildPDE<0x1000>(uint64_t PT, int RW, int X, int PWT, int PCD, int)
 {
     uint64_t PDE = {};
 
@@ -332,7 +332,7 @@ buildPDE<0x1000>(uint64_t PT, int RW, int X, int PWT, int PCD, int)
 
 template <>
 FORCEINLINE uint64_t
-buildPTE<0x1000>(uint64_t P, int RW, int X, int PWT, int PCD, int PAT)
+BuildPTE<0x1000>(uint64_t P, int RW, int X, int PWT, int PCD, int PAT)
 {
     uint64_t PTE = {};
 
@@ -369,7 +369,7 @@ buildPTE<0x1000>(uint64_t P, int RW, int X, int PWT, int PCD, int PAT)
 
 template <>
 FORCEINLINE uint64_t
-buildPML5E<0x200000>(uint64_t PML4, int RW, int X, int PWT, int PCD, int)
+BuildPML5E<0x200000>(uint64_t PML4, int RW, int X, int PWT, int PCD, int)
 {
     uint64_t PML4E = {};
 
@@ -403,7 +403,7 @@ buildPML5E<0x200000>(uint64_t PML4, int RW, int X, int PWT, int PCD, int)
 
 template <>
 FORCEINLINE uint64_t
-buildPML4E<0x200000>(uint64_t PDPT, int RW, int X, int PWT, int PCD, int)
+BuildPML4E<0x200000>(uint64_t PDPT, int RW, int X, int PWT, int PCD, int)
 {
     uint64_t PML4E = {};
 
@@ -437,7 +437,7 @@ buildPML4E<0x200000>(uint64_t PDPT, int RW, int X, int PWT, int PCD, int)
 
 template <>
 FORCEINLINE uint64_t
-buildPDPE<0x200000>(uint64_t PD, int RW, int X, int PWT, int PCD, int)
+BuildPDPE<0x200000>(uint64_t PD, int RW, int X, int PWT, int PCD, int)
 {
     uint64_t PDPE = {};
 
@@ -471,7 +471,7 @@ buildPDPE<0x200000>(uint64_t PD, int RW, int X, int PWT, int PCD, int)
 
 template <>
 FORCEINLINE uint64_t
-buildPDE<0x200000>(uint64_t P, int RW, int X, int PWT, int PCD, int PAT)
+BuildPDE<0x200000>(uint64_t P, int RW, int X, int PWT, int PCD, int PAT)
 {
     uint64_t PDE = {};
 
@@ -507,25 +507,25 @@ buildPDE<0x200000>(uint64_t P, int RW, int X, int PWT, int PCD, int PAT)
 }
 
 template <>
-FORCEINLINE uint64_t buildPTE<0x200000>(uint64_t, int, int, int, int, int);
+FORCEINLINE uint64_t BuildPTE<0x200000>(uint64_t, int, int, int, int, int);
 
 template <>
 FORCEINLINE uint64_t
-buildPML5E<0x40000000>(uint64_t PML4, int RW, int X, int PWT, int PCD, int PAT)
+BuildPML5E<0x40000000>(uint64_t PML4, int RW, int X, int PWT, int PCD, int PAT)
 {
-    return buildPML5E<0x200000>(PML4, RW, X, PWT, PCD, PAT);
+    return BuildPML5E<0x200000>(PML4, RW, X, PWT, PCD, PAT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPML4E<0x40000000>(uint64_t PDPT, int RW, int X, int PWT, int PCD, int PAT)
+BuildPML4E<0x40000000>(uint64_t PDPT, int RW, int X, int PWT, int PCD, int PAT)
 {
-    return buildPML4E<0x200000>(PDPT, RW, X, PWT, PCD, PAT);
+    return BuildPML4E<0x200000>(PDPT, RW, X, PWT, PCD, PAT);
 }
 
 template <>
 FORCEINLINE uint64_t
-buildPDPE<0x40000000>(uint64_t P, int RW, int X, int PWT, int PCD, int PAT)
+BuildPDPE<0x40000000>(uint64_t P, int RW, int X, int PWT, int PCD, int PAT)
 {
     uint64_t PDPE = {};
 
@@ -561,13 +561,13 @@ buildPDPE<0x40000000>(uint64_t P, int RW, int X, int PWT, int PCD, int PAT)
 }
 
 template <>
-FORCEINLINE uint64_t buildPDE<0x40000000>(uint64_t, int, int, int, int, int);
+FORCEINLINE uint64_t BuildPDE<0x40000000>(uint64_t, int, int, int, int, int);
 
 template <>
-FORCEINLINE uint64_t buildPTE<0x40000000>(uint64_t, int, int, int, int, int);
+FORCEINLINE uint64_t BuildPTE<0x40000000>(uint64_t, int, int, int, int, int);
 
 static FORCEINLINE void
-buildNPT(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
+BuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
     uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
@@ -579,7 +579,7 @@ buildNPT(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PML4E = buildPML4E<PageTranslation>(Pa.QuadPart, RW, X, PWT, PCD, PAT);
+        uint64_t PML4E = BuildPML4E<PageTranslation>(Pa.QuadPart, RW, X, PWT, PCD, PAT);
         if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
             deallocate<0x1000>(p);
     }
@@ -591,7 +591,7 @@ buildNPT(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PDPE = buildPDPE<PageTranslation>(Pa.QuadPart, RW, X, PWT, PCD, PAT);
+        uint64_t PDPE = BuildPDPE<PageTranslation>(Pa.QuadPart, RW, X, PWT, PCD, PAT);
         if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPE, 0))
             deallocate<0x1000>(p);
     }
@@ -599,13 +599,13 @@ buildNPT(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
     Pa.QuadPart = PDPT[II] & 0x0000FFFFFFFFF000;
     uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PD[III] == 0) {
-        uint64_t PDE = buildPDE<PageTranslation>(PA & 0x0000FFFFFFE00000, RW, X, PWT, PCD, PAT);
+        uint64_t PDE = BuildPDE<PageTranslation>(PA & 0x0000FFFFFFE00000, RW, X, PWT, PCD, PAT);
         InterlockedCompareExchange64((LONG64*)&PD[III], PDE, 0);
     }
 }
 
 static FORCEINLINE void
-rebuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X)
+RebuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
     uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
@@ -631,13 +631,13 @@ rebuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X)
         int PCD = (PDE >> 0x04) & 1;
         int PAT = 0;
 
-        if (InterlockedCompareExchange64((LONG64*)&PD[III], buildPDE<PageTranslation>(PA & 0x0000FFFFFFE00000, RW, X, PWT, PCD, PAT), PDE) == PDE)
+        if (InterlockedCompareExchange64((LONG64*)&PD[III], BuildPDE<PageTranslation>(PA & 0x0000FFFFFFE00000, RW, X, PWT, PCD, PAT), PDE) == PDE)
             break;
     } while (1);
 }
 
 static FORCEINLINE uint64_t
-buildEvent(VMCpu* vcpu, uint8_t Vector, uint8_t Type, uint32_t ErrorCode)
+BuildEvent(VMCpu* vcpu, uint8_t Vector, uint8_t Type, uint32_t ErrorCode)
 {
     uint64_t Event = {};
 
@@ -1481,7 +1481,7 @@ procedure<0x0060>(VMCpu* vcpu, VMContext* ctx)
 
     KdBreakPoint();
 
-    buildEvent(vcpu, VECTOR, TYPE, ErrorCode);
+    BuildEvent(vcpu, VECTOR, TYPE, ErrorCode);
 }
 
 // 61h VMEXIT_NMI Physical NMI.
@@ -1652,8 +1652,8 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
 
         auto phis = MmGetPhysicalAddress(p + 0x200000);
 
-        rebuildNPT(PML4[0], phis.QuadPart, 1, 0);
-        rebuildNPT(PML4[1], phis.QuadPart, 1, 1);
+        RebuildNPT(PML4[0], phis.QuadPart, 1, 0);
+        RebuildNPT(PML4[1], phis.QuadPart, 1, 1);
 
         *RAX = (uint64_t)p >> 0x00;
         ctx->RDX = (uint64_t)p >> 0x20;
@@ -2169,8 +2169,8 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
 
         // *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178) = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8); // *RIP=nRIP
     } else {
-        buildNPT(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 1, 0, 1, 0);
-        buildNPT(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0);
+        BuildNPT(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 1, 0, 1, 0);
+        BuildNPT(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0);
     }
 
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3; // TLB_CONTROL
@@ -2342,8 +2342,8 @@ initializeNPT(size_t PhysicalSize)
     memset(PML4[1], 0, 0x1000);
 
     for (size_t i = 0; i < PhysicalSize; i += PageTranslation) {
-        buildNPT(PML4[0], i, 1, 1, 0, 0, 0);
-        buildNPT(PML4[1], i, 1, 0, 0, 0, 0);
+        BuildNPT(PML4[0], i, 1, 1, 0, 0, 0);
+        BuildNPT(PML4[1], i, 1, 0, 0, 0, 0);
     }
 
     PML4PA[0] = MmGetPhysicalAddress(PML4[0]).QuadPart;
