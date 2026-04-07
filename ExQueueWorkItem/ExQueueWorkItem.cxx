@@ -12,6 +12,8 @@
 
 #include "Support.h"
 
+static WORK_QUEUE_ITEM WorkItem = {};
+
 EXTERN_C VOID
 DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
@@ -22,6 +24,8 @@ EXTERN_C NTSTATUS
 DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
+
+    ExQueueWorkItem(&WorkItem, NormalWorkQueue);
 
     DriverObject->DriverUnload = DriverUnload;
 

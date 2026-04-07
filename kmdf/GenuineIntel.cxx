@@ -3375,7 +3375,7 @@ vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
         if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x05)) // Enable VPID
             Status |= __asm_vmx_vmwrite(VMX_VMCS16_VPID, __asm_rdpid() + 1);
 
-        Status |= __asm_vmx_vmwrite(VMX_VMCS32_CTRL_EXCEPTION_BITMAP, 0x0000000E);
+        Status |= __asm_vmx_vmwrite(VMX_VMCS32_CTRL_EXCEPTION_BITMAP, 0);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR0_MASK, 0);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR4_MASK, 0);
         Status |= __asm_vmx_vmwrite(VMX_VMCS_CTRL_CR0_READ_SHADOW, CR0);
