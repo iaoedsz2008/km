@@ -48,8 +48,8 @@ typedef struct VMCpu {
 
 static KSPIN_LOCK kSpinLock;
 
-static uint64_t* PML4[2] = {};  // [0]: RWX, [0] RW
-static uint64_t PML4PA[2] = {}; // [0]: RWX, [0] RW
+static uint64_t* PML4[3] = {};  // [0]: RWX, [1] RW, [2] RWX(1G)
+static uint64_t PML4PA[3] = {}; // [0]: RWX, [1] RW, [2] RWX(1G)
 static void (*Procedures[0x800])(VMCpu*, VMContext*);
 static VMCpu* VMCpus[0x800];
 
@@ -566,8 +566,15 @@ FORCEINLINE uint64_t BuildPDE<0x40000000>(uint64_t, int, int, int, int, int);
 template <>
 FORCEINLINE uint64_t BuildPTE<0x40000000>(uint64_t, int, int, int, int, int);
 
-static FORCEINLINE void
-BuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
+template <size_t>
+static FORCEINLINE void BuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT);
+
+template <size_t>
+static FORCEINLINE void RebuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X);
+
+template <>
+FORCEINLINE void
+BuildNPT<0x200000>(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
     uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
@@ -579,7 +586,7 @@ BuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PML4E = BuildPML4E<PageTranslation>(Pa.QuadPart, RW, X, PWT, PCD, PAT);
+        uint64_t PML4E = BuildPML4E<0x200000>(Pa.QuadPart, RW, X, PWT, PCD, PAT);
         if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
             deallocate<0x1000>(p);
     }
@@ -591,7 +598,7 @@ BuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PDPE = BuildPDPE<PageTranslation>(Pa.QuadPart, RW, X, PWT, PCD, PAT);
+        uint64_t PDPE = BuildPDPE<0x200000>(Pa.QuadPart, RW, X, PWT, PCD, PAT);
         if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPE, 0))
             deallocate<0x1000>(p);
     }
@@ -599,13 +606,40 @@ BuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
     Pa.QuadPart = PDPT[II] & 0x0000FFFFFFFFF000;
     uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PD[III] == 0) {
-        uint64_t PDE = BuildPDE<PageTranslation>(PA & 0x0000FFFFFFE00000, RW, X, PWT, PCD, PAT);
+        uint64_t PDE = BuildPDE<0x200000>(PA & 0x0000FFFFFFE00000, RW, X, PWT, PCD, PAT);
         InterlockedCompareExchange64((LONG64*)&PD[III], PDE, 0);
     }
 }
 
-static FORCEINLINE void
-RebuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X)
+template <>
+FORCEINLINE void
+BuildNPT<0x40000000>(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
+{
+    uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
+    uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
+    PHYSICAL_ADDRESS Pa;
+
+    if (PML4[I] == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        ASSERT(p);
+        memset(p, 0, 0x1000);
+        Pa = MmGetPhysicalAddress(p);
+        uint64_t PML4E = BuildPML4E<0x40000000>(Pa.QuadPart, RW, X, PWT, PCD, PAT);
+        if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
+            deallocate<0x1000>(p);
+    }
+
+    Pa.QuadPart = PML4[I] & 0x0000FFFFFFFFF000;
+    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+    if (PDPT[II] == 0) {
+        uint64_t PDPE = BuildPDPE<0x40000000>(PA & 0x0000FFFFC0000000, RW, X, PWT, PCD, PAT);
+        InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPE, 0);
+    }
+}
+
+template <>
+FORCEINLINE void
+RebuildNPT<0x200000>(uint64_t* PML4, uint64_t PA, int RW, int X)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
     uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
@@ -631,7 +665,7 @@ RebuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X)
         int PCD = (PDE >> 0x04) & 1;
         int PAT = 0;
 
-        if (InterlockedCompareExchange64((LONG64*)&PD[III], BuildPDE<PageTranslation>(PA & 0x0000FFFFFFE00000, RW, X, PWT, PCD, PAT), PDE) == PDE)
+        if (InterlockedCompareExchange64((LONG64*)&PD[III], BuildPDE<0x200000>(PA & 0x0000FFFFFFE00000, RW, X, PWT, PCD, PAT), PDE) == PDE)
             break;
     } while (1);
 }
@@ -1209,7 +1243,7 @@ procedure<0x003F>(VMCpu* vcpu, VMContext* ctx)
 // 40h-5Fh VMEXIT_EXCP[0-31] Exception vector 0-31, respectively.
 template <>
 void
-procedure<0x0040>(VMCpu* vcpu, VMContext* ctx)
+procedure<0x0040>(VMCpu* vcpu, VMContext*)
 {
     uint64_t RIP = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178); // RIP
     __asm__ __volatile__(".byte 0xEB, 0xFE" ::: "memory");
@@ -1219,41 +1253,30 @@ procedure<0x0040>(VMCpu* vcpu, VMContext* ctx)
 // 40h-5Fh VMEXIT_EXCP[0-31] Exception vector 0-31, respectively.
 template <>
 void
-procedure<0x0041>(VMCpu* vcpu, VMContext* ctx)
+procedure<0x0041>(VMCpu* vcpu, VMContext*)
 {
-    (void)ctx;
+    KdBreakPoint();
 
-    // #DB 在 SVM 中通过 VMEXIT_EXCP1 退出；
-    // 透传给 guest 时重新构造一个 debug exception 注入回去即可。
-    // #DB 不带 error code。
-    // 是否保存为 fault/trap 对应的 RIP 由硬件在退出时已经处理好，这里不额外改 RIP。
     BuildEvent(vcpu, 0x01, 0x03, 0);
 }
 
 // 40h-5Fh VMEXIT_EXCP[0-31] Exception vector 0-31, respectively.
 template <>
 void
-procedure<0x0042>(VMCpu* vcpu, VMContext* ctx)
+procedure<0x0042>(VMCpu* vcpu, VMContext*)
 {
-    (void)ctx;
+    KdBreakPoint();
 
-    // vector 2 是 NMI；在 SVM 里应以 TYPE=2 重新注入给 guest。
-    // NMI 不带 error code，且 TYPE=2 时 VECTOR 字段会被硬件忽略。
-    // 这里仍写 0x02 只是为了保持语义清晰。
     BuildEvent(vcpu, 0x02, 0x02, 0);
 }
 
 // 40h-5Fh VMEXIT_EXCP[0-31] Exception vector 0-31, respectively.
 template <>
 void
-procedure<0x0043>(VMCpu* vcpu, VMContext* ctx)
+procedure<0x0043>(VMCpu* vcpu, VMContext*)
 {
-    (void)ctx;
+    KdBreakPoint();
 
-    // #BP / INT3 在 SVM 中通过 VMEXIT_EXCP3 退出；
-    // 透传给 guest 时重新构造一个 breakpoint exception 注入回去即可。
-    // #BP 不带 error code，因此 ErrorCode 固定为 0。
-    // 这里不额外修改 RIP：#BP 是 trap，guest-save-area 中的 RIP 已经是异常返回地址。
     BuildEvent(vcpu, 0x03, 0x03, 0);
 }
 
@@ -1673,8 +1696,8 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
 
         auto phis = MmGetPhysicalAddress(p + 0x200000);
 
-        RebuildNPT(PML4[0], phis.QuadPart, 1, 0);
-        RebuildNPT(PML4[1], phis.QuadPart, 1, 1);
+        RebuildNPT<PageTranslation>(PML4[0], phis.QuadPart, 1, 0);
+        RebuildNPT<PageTranslation>(PML4[1], phis.QuadPart, 1, 1);
 
         *RAX = (uint64_t)p >> 0x00;
         ctx->RDX = (uint64_t)p >> 0x20;
@@ -2190,8 +2213,9 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
 
         // SkipEmulatedInstruction(vcpu->VmcbGuest);
     } else {
-        BuildNPT(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 1, 0, 1, 0);
-        BuildNPT(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0);
+        BuildNPT<PageTranslation>(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 1, 0, 1, 0);
+        BuildNPT<PageTranslation>(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0);
+        BuildNPT<0x40000000>(PML4[2], ExitInfo2 & 0x0000FFFFC0000000, 1, 1, 0, 1, 0);
     }
 
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3; // TLB_CONTROL
@@ -2353,18 +2377,25 @@ initializeNPT(size_t PhysicalSize)
 
     PML4[0] = (uint64_t*)allocate<0x1000>();
     PML4[1] = (uint64_t*)allocate<0x1000>();
+    PML4[2] = (uint64_t*)allocate<0x1000>();
     ASSERT(PML4[0]);
     ASSERT(PML4[1]);
+    ASSERT(PML4[2]);
     memset(PML4[0], 0, 0x1000);
     memset(PML4[1], 0, 0x1000);
+    memset(PML4[2], 0, 0x1000);
 
     for (size_t i = 0; i < PhysicalSize; i += PageTranslation) {
-        BuildNPT(PML4[0], i, 1, 1, 0, 0, 0);
-        BuildNPT(PML4[1], i, 1, 0, 0, 0, 0);
+        BuildNPT<PageTranslation>(PML4[0], i, 1, 1, 0, 0, 0);
+        BuildNPT<PageTranslation>(PML4[1], i, 1, 0, 0, 0, 0);
     }
 
     PML4PA[0] = MmGetPhysicalAddress(PML4[0]).QuadPart;
     PML4PA[1] = MmGetPhysicalAddress(PML4[1]).QuadPart;
+
+    for (size_t i = 0; i < PhysicalSize; i += 0x40000000) {
+        BuildNPT<0x40000000>(PML4[2], i, 1, 1, 0, 1, 0);
+    }
 }
 
 template <>
@@ -3422,11 +3453,11 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     if (Context.Rip == 0x12345678)
         return 0;
 
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0000) = 0; // Intercept reads of CR0-15, respectively
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0002) = 0; // Intercept writes of CR0-15, respectively
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0004) = 0; // Intercept reads of DR0-15, respectively
-    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0006) = 0; // Intercept writes of DR0-15, respectively.
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = 0; // Intercept exception vectors 0-31, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0000) = 0;          // Intercept reads of CR0-15, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0002) = 0;          // Intercept writes of CR0-15, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0004) = 0;          // Intercept reads of DR0-15, respectively
+    *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0006) = 0;          // Intercept writes of DR0-15, respectively.
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = 0x0000000E; // Intercept exception vectors 0-31, respectively
 
     *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) = 0;
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x00; // Intercept INTR (physical maskable interrupt)
