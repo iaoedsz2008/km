@@ -273,26 +273,35 @@ typedef struct VMCpu {
     void* VmcbHost;
     void* VmcbGuest;
 
+    int Tmp;
+
     PHYSICAL_ADDRESS IoBitmapPa;
     PHYSICAL_ADDRESS MsrBitmapPa;
     PHYSICAL_ADDRESS VmcsHostPa;
     PHYSICAL_ADDRESS VmcsGuestPa;
 } VMCpu;
 
-static uint64_t* PML4 = {};
-static uint64_t EPTP = {};
+static uint64_t* PML4[3] = {};  // [0]: RWX, [1] RW, [2] RWX(Always)
+static uint64_t PML4PA[3] = {}; // [0]: RWX, [1] RW, [2] RWX(Always)
+static uint64_t EPTP[3] = {};   // [0]: RWX, [1] RW, [2] RWX(Always)
 static void (*Procedures[0x100])(VMCpu*, VMContext*);
 static VMCpu* VMCpus[0x800];
 
 static inline size_t
-__asm_vmx_invept(size_t type, const void* descriptor)
+__asm_vmx_invept(size_t type, uint64_t eptp)
 {
+    // The INVEPT descriptor comprises 128 bits and contains a 64-bit EPTP value in bits 63:0
+    struct {
+        uint64_t eptp;
+        uint64_t reserved;
+    } descriptor = {eptp, 0};
+
     size_t eflags;
     __asm__ __volatile__("\n invept %1, %2"
                          "\n pushf"
                          "\n pop %0"
                          : "=r"(eflags)
-                         : "m"(*(const uint64_t*)descriptor), "r"(type)
+                         : "m"(descriptor), "r"(type)
                          : "cc", "memory");
     return eflags;
 }
@@ -615,7 +624,8 @@ BuildPML5E<0x1000>(uint64_t PML4, int R, int W, int X, uint64_t)
      * If the "mode-based execute control for EPT" VM-execution control is 0, execute access; indicates whether instruction fetches are allowed from the 256-TByte region controlled by this entry.
      * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are allowed from supervisor-mode linear addresses in the 256-TByte region controlled by this entry.
      **/
-    PML5E |= (1ULL << 0x02);
+    if (X)
+        PML5E |= (1ULL << 0x02);
 
     /**
      * 8 If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 256-TByte region controlled by this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
@@ -632,7 +642,7 @@ BuildPML5E<0x1000>(uint64_t PML4, int R, int W, int X, uint64_t)
     /**
      * M–1:12 Physical address of 4-KByte aligned EPT PML4 table referenced by this entry.
      **/
-    PML5E |= ((uint64_t)PML4 & 0xFFFFFFFFFFFFF000);
+    PML5E |= ((uint64_t)PML4 & 0x0000FFFFFFFFF000);
 
     /**
      * 51:M Reserved (must be 0).
@@ -670,7 +680,8 @@ BuildPML4E<0x1000>(uint64_t PDPT, int R, int W, int X, uint64_t)
      * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
      * allowed from supervisor-mode linear addresses in the 512-GByte region controlled by this entry.
      **/
-    PML4E |= (1ULL << 0x02);
+    if (X)
+        PML4E |= (1ULL << 0x02);
 
     /**
      * 7:3 Reserved (must be 0).
@@ -732,7 +743,8 @@ BuildPDPTE<0x1000>(uint64_t PD, int R, int W, int X, uint64_t)
      * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
      * allowed from supervisor-mode linear addresses in the 1-GByte region controlled by this entry.
      **/
-    PDPTE |= (1ULL << 0x02);
+    if (X)
+        PDPTE |= (1ULL << 0x02);
 
     /**
      * 7:3 Reserved (must be 0).
@@ -793,7 +805,8 @@ BuildPDE<0x1000>(uint64_t PT, int R, int W, int X, uint64_t)
      * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
      * allowed from supervisor-mode linear addresses in the 2-MByte region controlled by this entry.
      **/
-    PDE |= (1ULL << 0x02);
+    if (X)
+        PDE |= (1ULL << 0x02);
 
     /**
      * 6:3 Reserved (must be 0).
@@ -857,7 +870,8 @@ BuildPTE<0x1000>(uint64_t M, int R, int W, int X, uint64_t MT)
      * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
      * allowed from supervisor-mode linear addresses in the 4-KByte page controlled by this entry.
      **/
-    PTE |= (1ULL << 0x02);
+    if (X)
+        PTE |= (1ULL << 0x02);
 
     /**
      * 5:3 EPT memory type for this 4-KByte page (see Section 31.3.7).
@@ -991,7 +1005,8 @@ BuildPDE<0x200000>(uint64_t PT, int R, int W, int X, uint64_t MT)
      * If the "mode-based execute control for EPT" VM-execution control is 0, execute access; indicates whether instruction fetches are allowed from the 2-MByte page controlled by this entry.
      * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are allowed from supervisor-mode linear addresses in the 2-MByte page controlled by this entry.
      **/
-    PDE |= (1ULL << 0x02);
+    if (X)
+        PDE |= (1ULL << 0x02);
 
     /**
      * 5:3 EPT memory type for this 2-MByte page (see Section 31.3.7).
@@ -1123,7 +1138,8 @@ BuildPDPTE<0x40000000>(uint64_t PD, int R, int W, int X, uint64_t MT)
      * If that control is 1, execute access for supervisor-mode linear addresses; indicates whether instruction fetches are
      * allowed from supervisor-mode linear addresses in the 1-GByte page controlled by this entry.
      **/
-    PDPTE |= (1ULL << 0x02);
+    if (X)
+        PDPTE |= (1ULL << 0x02);
 
     /**
      * 5:3 EPT memory type for this 1-GByte page (see Section 31.3.7).
@@ -1169,7 +1185,7 @@ BuildPDPTE<0x40000000>(uint64_t PD, int R, int W, int X, uint64_t MT)
     /**
      * M–1:30 Physical address of the 1-GByte page referenced by this entry.
      **/
-    PDPTE |= ((uint64_t)PD & 0xFFFFFFFFC0000000);
+    PDPTE |= ((uint64_t)PD & 0x0000FFFFC0000000);
 
     /**
      * 51:M Reserved (must be 0).
@@ -1215,8 +1231,15 @@ FORCEINLINE uint64_t BuildPDE<0x40000000>(uint64_t, int, int, int, uint64_t);
 template <>
 FORCEINLINE uint64_t BuildPTE<0x40000000>(uint64_t, int, int, int, uint64_t);
 
-static FORCEINLINE void
-BuildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
+template <size_t>
+static FORCEINLINE void BuildEPT(uint64_t* PML4, uint64_t PA, int R, int W, int X, uint64_t MT);
+
+template <size_t>
+static FORCEINLINE void RebuildEPT(uint64_t* PML4, uint64_t PA, int R, int W, int X);
+
+template <>
+FORCEINLINE void
+BuildEPT<0x200000>(uint64_t* PML4, uint64_t PA, int R, int W, int X, uint64_t MT)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
     uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
@@ -1228,29 +1251,84 @@ BuildEPT(uint64_t* PML4, uint64_t PA, uint64_t MT)
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PML4E = BuildPML4E<PageTranslation>(Pa.QuadPart, 1, 1, 1, MT);
+        uint64_t PML4E = BuildPML4E<0x200000>(Pa.QuadPart, 1, 1, 1, MT);
         if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
             deallocate<0x1000>(p);
     }
 
-    Pa.QuadPart = PML4[I] & 0xFFFFFFFFFFFFF000;
+    Pa.QuadPart = PML4[I] & 0x0000FFFFFFFFF000;
     uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PDPT[II] == 0) {
         uint64_t* p = (uint64_t*)allocate<0x1000>();
         ASSERT(p);
         memset(p, 0, 0x1000);
         Pa = MmGetPhysicalAddress(p);
-        uint64_t PDPTE = BuildPDPTE<PageTranslation>(Pa.QuadPart, 1, 1, 1, MT);
+        uint64_t PDPTE = BuildPDPTE<0x200000>(Pa.QuadPart, 1, 1, 1, MT);
         if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPTE, 0))
             deallocate<0x1000>(p);
     }
 
-    Pa.QuadPart = PDPT[II] & 0xFFFFFFFFFFFFF000;
+    Pa.QuadPart = PDPT[II] & 0x0000FFFFFFFFF000;
     uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
     if (PD[III] == 0) {
-        uint64_t PDE = BuildPDE<PageTranslation>(PA & 0xFFFFFFFFFFE00000, 1, 1, 1, MT);
+        uint64_t PDE = BuildPDE<0x200000>(PA & 0x0000FFFFFFE00000, R, W, X, MT);
         InterlockedCompareExchange64((LONG64*)&PD[III], PDE, 0);
     }
+}
+
+template <>
+FORCEINLINE void
+BuildEPT<0x40000000>(uint64_t* PML4, uint64_t PA, int R, int W, int X, uint64_t MT)
+{
+    uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
+    uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
+    PHYSICAL_ADDRESS Pa;
+
+    if (PML4[I] == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        ASSERT(p);
+        memset(p, 0, 0x1000);
+        Pa = MmGetPhysicalAddress(p);
+        uint64_t PML4E = BuildPML4E<0x40000000>(Pa.QuadPart, 1, 1, 1, MT);
+        if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
+            deallocate<0x1000>(p);
+    }
+
+    Pa.QuadPart = PML4[I] & 0x0000FFFFFFFFF000;
+    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+    if (PDPT[II] == 0) {
+        uint64_t PDPTE = BuildPDPTE<0x40000000>(Pa.QuadPart & 0x0000FFFFC0000000, R, W, X, MT);
+        InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPTE, 0);
+    }
+}
+
+template <>
+FORCEINLINE void
+RebuildEPT<0x200000>(uint64_t* PML4, uint64_t PA, int R, int W, int X)
+{
+    uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
+    uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
+    uint64_t III = (PA >> 0x15) & 0x00000000000001FF;
+    PHYSICAL_ADDRESS Pa;
+
+    ASSERT(PML4[I]);
+
+    Pa.QuadPart = PML4[I] & 0x0000FFFFFFFFF000;
+    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+    ASSERT(PDPT[II]);
+
+    Pa.QuadPart = PDPT[II] & 0x0000FFFFFFFFF000;
+    uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
+    ASSERT(PD[III]);
+
+    do {
+        uint64_t PDE = PD[III];
+
+        int MT = (PDE >> 0x03) & 0x7;
+
+        if (InterlockedCompareExchange64((LONG64*)&PD[III], BuildPDE<0x200000>(PA & 0x0000FFFFFFE00000, R, W, X, MT), PDE) == PDE)
+            break;
+    } while (1);
 }
 
 static FORCEINLINE uint32_t
@@ -1463,11 +1541,15 @@ procedure<0x000A>(VMCpu*, VMContext* ctx)
 
         auto phis = MmGetPhysicalAddress(p + 0x200000);
 
-        // RebuildNPT(PML4[0], phis.QuadPart, 1, 0);
-        // RebuildNPT(PML4[1], phis.QuadPart, 1, 1);
+        RebuildEPT<PageTranslation>(PML4[0], phis.QuadPart, 1, 1, 0);
+        RebuildEPT<PageTranslation>(PML4[1], phis.QuadPart, 1, 1, 1);
 
         ctx->RAX = (uint64_t)p >> 0x00;
         ctx->RDX = (uint64_t)p >> 0x20;
+
+        size_t eptp = {};
+        __asm_vmx_vmread(VMX_VMCS64_CTRL_EPTP_FULL, &eptp);
+        __asm_vmx_invept(1, eptp);
 
         break;
     }
@@ -1782,7 +1864,7 @@ procedure<0x002F>(VMCpu*, VMContext*)
 // 48 EPT violation. An attempt to access memory with a guest-physical address was disallowed by the configuration of the EPT paging structures.
 template <>
 void
-procedure<0x0030>(VMCpu*, VMContext*)
+procedure<0x0030>(VMCpu* vcpu, VMContext*)
 {
     size_t ExitQualification = {};
     size_t GuestPhysicalAddress = {};
@@ -1946,16 +2028,28 @@ procedure<0x0030>(VMCpu*, VMContext*)
     if (ExitQualification & (1ULL << 0x10))
         ;
 
-    BuildEPT(PML4, GuestPhysicalAddress & 0xFFFFFFFFFFE00000, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+    size_t eptp = {};
 
-    // The INVEPT descriptor comprises 128 bits and contains a 64-bit EPTP value in bits 63:0
-    struct {
-        uint64_t eptp;
-        uint64_t reserved;
-    } descriptor;
-    descriptor.eptp = EPTP;
-    descriptor.reserved = 0;
-    __asm_vmx_invept(1, &descriptor);
+    __asm_vmx_vmread(VMX_VMCS64_CTRL_EPTP_FULL, &eptp);
+
+    if (ViolationX) {
+        KdBreakPoint();
+
+        if (eptp == EPTP[2]) {
+            eptp = EPTP[vcpu->Tmp];
+        } else {
+            eptp = EPTP[2];
+            vcpu->Tmp = (vcpu->Tmp + 1) % 2;
+        }
+
+        __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, eptp);
+    } else {
+        BuildEPT<PageTranslation>(PML4[0], GuestPhysicalAddress & 0x0000FFFFFFE00000, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+        BuildEPT<PageTranslation>(PML4[1], GuestPhysicalAddress & 0x0000FFFFFFE00000, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+        BuildEPT<PageTranslation>(PML4[2], GuestPhysicalAddress & 0x0000FFFFFFE00000, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+    }
+
+    __asm_vmx_invept(1, eptp);
 }
 
 // 49 EPT misconfiguration. An attempt to access memory with a guest-physical address encountered a misconfigured EPT paging-structure entry.
@@ -2389,15 +2483,29 @@ initializeEPT(size_t PhysicalSize)
 {
     KdBreakPoint();
 
-    PML4 = (uint64_t*)allocate<0x1000>();
-    ASSERT(PML4);
-    memset(PML4, 0, 0x1000);
+    PML4[0] = (uint64_t*)allocate<0x1000>();
+    PML4[1] = (uint64_t*)allocate<0x1000>();
+    PML4[2] = (uint64_t*)allocate<0x1000>();
+    ASSERT(PML4[0]);
+    ASSERT(PML4[1]);
+    ASSERT(PML4[2]);
+    memset(PML4[0], 0, 0x1000);
+    memset(PML4[1], 0, 0x1000);
+    memset(PML4[2], 0, 0x1000);
+
+    PML4PA[0] = MmGetPhysicalAddress(PML4[0]).QuadPart;
+    PML4PA[1] = MmGetPhysicalAddress(PML4[1]).QuadPart;
+    PML4PA[2] = MmGetPhysicalAddress(PML4[2]).QuadPart;
 
     for (size_t i = 0; i < PhysicalSize; i += PageTranslation) {
-        BuildEPT(PML4, i, 6);
+        BuildEPT<PageTranslation>(PML4[0], i, 1, 1, 1, 6);
+        BuildEPT<PageTranslation>(PML4[1], i, 1, 1, 0, 6);
+        BuildEPT<PageTranslation>(PML4[2], i, 1, 1, 1, 0);
     }
 
-    EPTP = BuildEPTP(MmGetPhysicalAddress(PML4).QuadPart);
+    EPTP[0] = BuildEPTP(PML4PA[0]);
+    EPTP[1] = BuildEPTP(PML4PA[1]);
+    EPTP[2] = BuildEPTP(PML4PA[2]);
 }
 
 template <>
@@ -3005,10 +3113,10 @@ vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
         ;
     if ((ia32_vmx_ept_vpid_cap & (1ULL << 14)) == 0) // If bit 14 is read as 1, the logical processor allows software to configure the EPT paging-structure memory type to be write-back (WB)
         return -1;
-    if (ia32_vmx_ept_vpid_cap & (1ULL << 16)) // If bit 16 is read as 1, the logical processor allows software to configure a EPT PDE to map a 2-Mbyte page (by setting bit 7 in the EPT PDE)
-        ;
-    if (ia32_vmx_ept_vpid_cap & (1ULL << 17)) // If bit 17 is read as 1, the logical processor allows software to configure a EPT PDPTE to map a 1-Gbyte page (by setting bit 7 in the EPT PDPTE)
-        ;
+    if ((ia32_vmx_ept_vpid_cap & (1ULL << 16)) == 0) // If bit 16 is read as 1, the logical processor allows software to configure a EPT PDE to map a 2-Mbyte page (by setting bit 7 in the EPT PDE)
+        return -1;
+    if ((ia32_vmx_ept_vpid_cap & (1ULL << 17)) == 0) // If bit 17 is read as 1, the logical processor allows software to configure a EPT PDPTE to map a 1-Gbyte page (by setting bit 7 in the EPT PDPTE)
+        KdBreakPoint();
     if ((ia32_vmx_ept_vpid_cap & (1ULL << 20)) == 0) // If bit 20 is read as 1, the INVEPT instruction is supported
         return -1;
     if (ia32_vmx_ept_vpid_cap & (1ULL << 21)) // If bit 21 is read as 1, accessed and dirty flags for EPT are supported
@@ -3393,7 +3501,7 @@ vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
             Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_MSR_BITMAP_FULL, msrpmPA.QuadPart);
 
         if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x01)) // Enable EPT
-            Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, EPTP);
+            Status |= __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, EPTP[0]);
 
         if (SecondaryProcessorBasedVmExecutionControls & (1ULL << 0x05)) // Enable VPID
             Status |= __asm_vmx_vmwrite(VMX_VMCS16_VPID, __asm_rdpid() + 1);

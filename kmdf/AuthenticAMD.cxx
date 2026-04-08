@@ -2209,15 +2209,15 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
         KdBreakPoint();
 
         if (*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) == PML4PA[2]) {
-            vcpu->Test = (vcpu->Test) % 2;
             *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[vcpu->Test]; // N_CR3 - Nested page table CR3 to use for nested paging
         } else {
+            vcpu->Test = (vcpu->Test + 1) % 2;
             *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[2]; // N_CR3 - Nested page table CR3 to use for nested paging
         }
     } else {
-        BuildNPT<PageTranslation>(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 1, 0, 1, 0);
-        BuildNPT<PageTranslation>(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0);
-        BuildNPT<0x40000000>(PML4[2], ExitInfo2 & 0x0000FFFFC0000000, 1, 1, 0, 1, 0);
+        BuildNPT<PageTranslation>(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+        BuildNPT<PageTranslation>(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+        BuildNPT<0x40000000>(PML4[2], ExitInfo2 & 0x0000FFFFC0000000, 1, 0, 0, 1, 0);      // 动态补充的物理页一律视为MMIO内存,不允许缓存.
     }
 
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3; // TLB_CONTROL
@@ -2387,13 +2387,14 @@ initializeNPT(size_t PhysicalSize)
     memset(PML4[1], 0, 0x1000);
     memset(PML4[2], 0, 0x1000);
 
+    PML4PA[0] = MmGetPhysicalAddress(PML4[0]).QuadPart;
+    PML4PA[1] = MmGetPhysicalAddress(PML4[1]).QuadPart;
+    PML4PA[2] = MmGetPhysicalAddress(PML4[2]).QuadPart;
+
     for (size_t i = 0; i < PhysicalSize; i += PageTranslation) {
         BuildNPT<PageTranslation>(PML4[0], i, 1, 1, 0, 0, 0);
         BuildNPT<PageTranslation>(PML4[1], i, 1, 0, 0, 0, 0);
     }
-
-    PML4PA[0] = MmGetPhysicalAddress(PML4[0]).QuadPart;
-    PML4PA[1] = MmGetPhysicalAddress(PML4[1]).QuadPart;
 
     for (size_t i = 0; i < PhysicalSize; i += 0x40000000) {
         BuildNPT<0x40000000>(PML4[2], i, 1, 1, 0, 1, 0);
