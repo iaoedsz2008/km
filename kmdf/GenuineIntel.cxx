@@ -1547,9 +1547,8 @@ procedure<0x000A>(VMCpu*, VMContext* ctx)
         ctx->RAX = (uint64_t)p >> 0x00;
         ctx->RDX = (uint64_t)p >> 0x20;
 
-        size_t eptp = {};
-        __asm_vmx_vmread(VMX_VMCS64_CTRL_EPTP_FULL, &eptp);
-        __asm_vmx_invept(1, eptp);
+        __asm_vmx_invept(1, EPTP[0]);
+        __asm_vmx_invept(1, EPTP[1]);
 
         break;
     }
@@ -1778,8 +1777,29 @@ procedure<0x0024>(VMCpu*, VMContext*)
 // 37 Monitor trap flag. A VM exit occurred due to the 1-setting of the "monitor trap flag" VM-execution control (see Section 28.5.2) or VM entry injected a pending MTF VM exit as part of VM entry (see Section 29.6.2).
 template <>
 void
-procedure<0x0025>(VMCpu*, VMContext*)
+procedure<0x0025>(VMCpu* vcpu, VMContext*)
 {
+    KdBreakPoint();
+
+    size_t RIP = {};
+    size_t Length = {};
+
+    __asm_vmx_vmread(0x0000440C, &Length); // VM-exit instruction length
+    __asm_vmx_vmread(0x0000681E, &RIP);    // Guest RIP
+
+    size_t Eptp = {};
+
+    Eptp = EPTP[vcpu->Tmp];
+    __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, Eptp);
+
+    size_t PrimaryProcessorBasedVmExecutionControls = {};
+
+    __asm_vmx_vmread(VMX_VMCS32_CTRL_PROC_EXEC, &PrimaryProcessorBasedVmExecutionControls);
+    PrimaryProcessorBasedVmExecutionControls &= ~(1ULL << 0x1B); // Monitor trap flag
+    __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC, PrimaryProcessorBasedVmExecutionControls);
+
+    RIP = {};
+    Length = {};
 }
 
 template <>
@@ -2028,28 +2048,32 @@ procedure<0x0030>(VMCpu* vcpu, VMContext*)
     if (ExitQualification & (1ULL << 0x10))
         ;
 
-    size_t eptp = {};
+    size_t Eptp = {};
 
-    __asm_vmx_vmread(VMX_VMCS64_CTRL_EPTP_FULL, &eptp);
+    __asm_vmx_vmread(VMX_VMCS64_CTRL_EPTP_FULL, &Eptp);
 
     if (ViolationX) {
         KdBreakPoint();
 
-        if (eptp == EPTP[2]) {
-            eptp = EPTP[vcpu->Tmp];
-        } else {
-            eptp = EPTP[2];
-            vcpu->Tmp = (vcpu->Tmp + 1) % 2;
-        }
+        size_t PrimaryProcessorBasedVmExecutionControls = {};
 
-        __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, eptp);
+        __asm_vmx_vmread(VMX_VMCS32_CTRL_PROC_EXEC, &PrimaryProcessorBasedVmExecutionControls);
+        PrimaryProcessorBasedVmExecutionControls |= (1ULL << 0x1B); // Monitor trap flag
+        __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC, PrimaryProcessorBasedVmExecutionControls);
+
+        Eptp = EPTP[2];
+        vcpu->Tmp = (vcpu->Tmp + 1) % 2;
+
+        __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, Eptp);
     } else {
         BuildEPT<PageTranslation>(PML4[0], GuestPhysicalAddress & 0x0000FFFFFFE00000, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
         BuildEPT<PageTranslation>(PML4[1], GuestPhysicalAddress & 0x0000FFFFFFE00000, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
         BuildEPT<PageTranslation>(PML4[2], GuestPhysicalAddress & 0x0000FFFFFFE00000, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
-    }
 
-    __asm_vmx_invept(1, eptp);
+        __asm_vmx_invept(1, EPTP[0]);
+        __asm_vmx_invept(1, EPTP[1]);
+        __asm_vmx_invept(1, EPTP[2]);
+    }
 }
 
 // 49 EPT misconfiguration. An attempt to access memory with a guest-physical address encountered a misconfigured EPT paging-structure entry.
