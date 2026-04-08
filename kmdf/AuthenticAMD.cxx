@@ -40,6 +40,8 @@ typedef struct VMCpu {
     void* VmcbHost;
     void* VmcbGuest;
 
+    int Test;
+
     PHYSICAL_ADDRESS IoPermissionsMapPa;
     PHYSICAL_ADDRESS MsrPermissionsMapPa;
     PHYSICAL_ADDRESS VmcbHostPa;
@@ -2206,12 +2208,12 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
     if (ViolationX) {
         KdBreakPoint();
 
-        if (*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) == PML4PA[0])
-            *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[1]; // N_CR3 - Nested page table CR3 to use for nested paging
-        else
-            *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[0]; // N_CR3 - Nested page table CR3 to use for nested paging
-
-        // SkipEmulatedInstruction(vcpu->VmcbGuest);
+        if (*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) == PML4PA[2]) {
+            vcpu->Test = (vcpu->Test) % 2;
+            *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[vcpu->Test]; // N_CR3 - Nested page table CR3 to use for nested paging
+        } else {
+            *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[2]; // N_CR3 - Nested page table CR3 to use for nested paging
+        }
     } else {
         BuildNPT<PageTranslation>(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 1, 0, 1, 0);
         BuildNPT<PageTranslation>(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0);
