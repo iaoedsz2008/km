@@ -328,6 +328,7 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 
     KdBreakPoint();
     ((void (*)(void))val)();
+    KdBreakPoint();
 #endif
 
     return STATUS_SUCCESS;

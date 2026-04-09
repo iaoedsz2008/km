@@ -32,6 +32,8 @@ typedef struct VMContext {
     uint64_t R15;
 } VMContext;
 
+#define VMCpu VMCpuAMD
+
 typedef struct VMCpu {
     VM* VM;
 
@@ -41,6 +43,8 @@ typedef struct VMCpu {
     void* VmcbGuest;
 
     int Test;
+    int N;
+    uint64_t RFLAGS;
 
     PHYSICAL_ADDRESS IoPermissionsMapPa;
     PHYSICAL_ADDRESS MsrPermissionsMapPa;
@@ -1259,7 +1263,28 @@ procedure<0x0041>(VMCpu* vcpu, VMContext*)
 {
     KdBreakPoint();
 
-    BuildEvent(vcpu, 0x01, 0x03, 0);
+    if (vcpu->N == 0) {
+        BuildEvent(vcpu, 0x01, 0x03, 0);
+        return;
+    }
+
+    --vcpu->N;
+
+    if (vcpu->N == 0) {
+        uint32_t ExceptionBitmap = *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008);
+
+        ExceptionBitmap &= ~(1U << 1); // Debug Exception
+
+        *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = ExceptionBitmap; // Intercept exception vectors 0-31, respectively
+
+        uint64_t TF = vcpu->RFLAGS & (1ULL << 8);
+
+        if (!TF)
+            *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) &= ~(1ULL << 8); // RFLAGS
+    }
+
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[vcpu->Test]; // N_CR3 - Nested page table CR3 to use for nested paging
+    *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3;                   // TLB_CONTROL
 }
 
 // 40h-5Fh VMEXIT_EXCP[0-31] Exception vector 0-31, respectively.
@@ -2208,12 +2233,22 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
     if (ViolationX) {
         KdBreakPoint();
 
-        if (*(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) == PML4PA[2]) {
-            *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[vcpu->Test]; // N_CR3 - Nested page table CR3 to use for nested paging
-        } else {
-            vcpu->Test = (vcpu->Test + 1) % 2;
-            *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[2]; // N_CR3 - Nested page table CR3 to use for nested paging
-        }
+        uint64_t RFLAGS = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170); // RFLAGS
+        uint32_t ExceptionBitmap = *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008);
+
+        vcpu->RFLAGS = RFLAGS;
+        ++vcpu->N;
+
+        ExceptionBitmap |= 1U << 1; // Debug Exception
+        RFLAGS |= 1ULL << 8;        // TF
+
+        *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = ExceptionBitmap; // Intercept exception vectors 0-31, respectively
+
+        *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[2]; // N_CR3 - Nested page table CR3 to use for nested paging
+        vcpu->Test = (vcpu->Test + 1) % 2;
+
+        *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) = RFLAGS;
+
     } else {
         BuildNPT<PageTranslation>(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
         BuildNPT<PageTranslation>(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
@@ -3460,7 +3495,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0002) = 0;          // Intercept writes of CR0-15, respectively
     *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0004) = 0;          // Intercept reads of DR0-15, respectively
     *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0006) = 0;          // Intercept writes of DR0-15, respectively.
-    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = 0x0000000E; // Intercept exception vectors 0-31, respectively
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = 0x0000000C; // Intercept exception vectors 0-31, respectively
 
     *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) = 0;
     // *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x000C) |= 1U << 0x00; // Intercept INTR (physical maskable interrupt)
