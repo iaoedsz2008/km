@@ -1711,7 +1711,9 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
         break;
 #if 1 // 构建一个测试环境.
     case 0x88888888: {
-        uint8_t* p = (uint8_t*)ExAllocatePool(NonPagedPool, 0x400000);
+        PHYSICAL_ADDRESS HighestAcceptableAddress;
+        HighestAcceptableAddress.QuadPart = 0xFFFFFFFFFFFFFFFFLL;
+        uint8_t* p = (uint8_t*)MmAllocateContiguousMemory(0x400000, HighestAcceptableAddress);
         ASSERT(p);
 
         memset(p, 0, 0x400000);
