@@ -189,7 +189,7 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
         if (BaseAddress.QuadPart > PhysicalSize)
             PhysicalSize = BaseAddress.QuadPart + NumberOfBytes.QuadPart;
 
-        KdPrint(("0x%016llX: 0x%08llX\n", BaseAddress.QuadPart, NumberOfBytes.QuadPart));
+        KdPrint(("[PHYSICAL_MEMORY_RANGE] 0x%016llX: 0x%08llX\n", BaseAddress.QuadPart, NumberOfBytes.QuadPart));
     }
 
     ExFreePool(Ranges);

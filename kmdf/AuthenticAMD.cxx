@@ -1261,7 +1261,9 @@ template <>
 void
 procedure<0x0041>(VMCpu* vcpu, VMContext*)
 {
-    KdBreakPoint();
+    // KdBreakPoint();
+
+    uint64_t RIP = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178); // RIP
 
     if (vcpu->N == 0) {
         BuildEvent(vcpu, 0x01, 0x03, 0);
@@ -1281,6 +1283,8 @@ procedure<0x0041>(VMCpu* vcpu, VMContext*)
 
         if (!TF)
             *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) &= ~(1ULL << 8); // RFLAGS
+
+        KdPrint(("procedure<0x0041>: RIP=0x%016llX\n", RIP));
     }
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[vcpu->Test]; // N_CR3 - Nested page table CR3 to use for nested paging
@@ -2233,7 +2237,7 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
         ;
 
     if (ViolationX) {
-        KdBreakPoint();
+        // KdBreakPoint();
 
         uint64_t RFLAGS = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170); // RFLAGS
         uint32_t ExceptionBitmap = *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008);
@@ -2251,10 +2255,13 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
 
         *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) = RFLAGS;
 
+        KdPrint(("procedure<0x0400>: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
     } else {
         BuildNPT<PageTranslation>(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
         BuildNPT<PageTranslation>(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
         BuildNPT<0x40000000>(PML4[2], ExitInfo2 & 0x0000FFFFC0000000, 1, 0, 0, 1, 0);      // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+
+        KdPrint(("BuildNPT MMIO: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
     }
 
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3; // TLB_CONTROL

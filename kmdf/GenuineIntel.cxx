@@ -1800,6 +1800,8 @@ procedure<0x0025>(VMCpu* vcpu, VMContext*)
     PrimaryProcessorBasedVmExecutionControls &= ~(1ULL << 0x1B); // Monitor trap flag
     __asm_vmx_vmwrite(VMX_VMCS32_CTRL_PROC_EXEC, PrimaryProcessorBasedVmExecutionControls);
 
+    KdPrint(("procedure<0x0025>: RIP=0x%016llX\n", RIP));
+
     RIP = {};
     Length = {};
 }
@@ -1891,6 +1893,7 @@ procedure<0x0030>(VMCpu* vcpu, VMContext*)
     size_t ExitQualification = {};
     size_t GuestPhysicalAddress = {};
     size_t GuestLinearAddress = {};
+    size_t RIP = {};
 
     bool ViolationR = {};
     bool ViolationW = {};
@@ -1902,6 +1905,7 @@ procedure<0x0030>(VMCpu* vcpu, VMContext*)
     __asm_vmx_vmread(VMX_VMCS_RO_EXIT_QUALIFICATION, &ExitQualification);
     __asm_vmx_vmread(VMX_VMCS64_RO_GUEST_PHYS_ADDR_FULL, &GuestPhysicalAddress);
     __asm_vmx_vmread(VMX_VMCS_RO_GUEST_LINEAR_ADDR, &GuestLinearAddress);
+    __asm_vmx_vmread(VMX_VMCS_GUEST_RIP, &RIP);
 
     /**
      * Exit Qualification for EPT Violations
@@ -2067,7 +2071,10 @@ procedure<0x0030>(VMCpu* vcpu, VMContext*)
         vcpu->Tmp = (vcpu->Tmp + 1) % 2;
 
         __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, Eptp);
+
+        KdPrint(("procedure<0x0030>: RIP=0x%016llX, LA=0x%016llX, PA=0x%016llX\n", RIP, GuestLinearAddress, GuestPhysicalAddress));
     } else {
+
         BuildEPT<PageTranslation>(PML4[0], GuestPhysicalAddress & 0x0000FFFFFFE00000, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
         BuildEPT<PageTranslation>(PML4[1], GuestPhysicalAddress & 0x0000FFFFFFE00000, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
         BuildEPT<PageTranslation>(PML4[2], GuestPhysicalAddress & 0x0000FFFFFFE00000, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
@@ -2075,6 +2082,8 @@ procedure<0x0030>(VMCpu* vcpu, VMContext*)
         __asm_vmx_invept(1, EPTP[0]);
         __asm_vmx_invept(1, EPTP[1]);
         __asm_vmx_invept(1, EPTP[2]);
+
+        KdPrint(("BuildEPT MMIO: RIP=0x%016llX, LA=0x%016llX, PA=0x%016llX\n", RIP, GuestLinearAddress, GuestPhysicalAddress));
     }
 }
 
