@@ -580,6 +580,58 @@ static FORCEINLINE void RebuildNPT(uint64_t* PML4, uint64_t PA, int RW, int X);
 
 template <>
 FORCEINLINE void
+BuildNPT<0x1000>(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
+{
+    uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
+    uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
+    uint64_t III = (PA >> 0x15) & 0x00000000000001FF;
+    uint64_t IIII = (PA >> 0x0C) & 0x00000000000001FF;
+    PHYSICAL_ADDRESS Pa;
+
+    if (PML4[I] == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        ASSERT(p);
+        memset(p, 0, 0x1000);
+        Pa = MmGetPhysicalAddress(p);
+        uint64_t PML4E = BuildPML4E<0x1000>(Pa.QuadPart, 1, 1, PWT, PCD, PAT);
+        if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
+            deallocate<0x1000>(p);
+    }
+
+    Pa.QuadPart = PML4[I] & 0x0000FFFFFFFFF000;
+    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+    if (PDPT[II] == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        ASSERT(p);
+        memset(p, 0, 0x1000);
+        Pa = MmGetPhysicalAddress(p);
+        uint64_t PDPE = BuildPDPE<0x1000>(Pa.QuadPart, 1, 1, PWT, PCD, PAT);
+        if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPE, 0))
+            deallocate<0x1000>(p);
+    }
+
+    Pa.QuadPart = PDPT[II] & 0x0000FFFFFFFFF000;
+    uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
+    if (PD[III] == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        ASSERT(p);
+        memset(p, 0, 0x1000);
+        Pa = MmGetPhysicalAddress(p);
+        uint64_t PDPE = BuildPDPE<0x1000>(Pa.QuadPart, 1, 1, PWT, PCD, PAT);
+        if (InterlockedCompareExchange64((LONG64*)&PD[III], PDPE, 0))
+            deallocate<0x1000>(p);
+    }
+
+    Pa.QuadPart = PD[III] & 0x0000FFFFFFFFF000;
+    uint64_t* PT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+    if (PT[IIII] == 0) {
+        uint64_t PTE = BuildPTE<0x1000>(PA & 0x0000FFFFFFFFF000, RW, X, PWT, PCD, PAT);
+        InterlockedCompareExchange64((LONG64*)&PT[IIII], PTE, 0);
+    }
+}
+
+template <>
+FORCEINLINE void
 BuildNPT<0x200000>(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PCD, int PAT)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
@@ -645,6 +697,45 @@ BuildNPT<0x40000000>(uint64_t* PML4, uint64_t PA, int RW, int X, int PWT, int PC
 
 template <>
 FORCEINLINE void
+RebuildNPT<0x1000>(uint64_t* PML4, uint64_t PA, int RW, int X)
+{
+    uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
+    uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
+    uint64_t III = (PA >> 0x15) & 0x00000000000001FF;
+    uint64_t IIII = (PA >> 0x0C) & 0x00000000000001FF;
+    PHYSICAL_ADDRESS Pa;
+
+    ASSERT(PML4[I]);
+
+    Pa.QuadPart = PML4[I] & 0x0000FFFFFFFFF000;
+    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+
+    ASSERT(PDPT[II]);
+
+    Pa.QuadPart = PDPT[II] & 0x0000FFFFFFFFF000;
+    uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
+
+    ASSERT(PD[III]);
+
+    Pa.QuadPart = PD[III] & 0x0000FFFFFFFFF000;
+    uint64_t* PT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+
+    ASSERT(PT[IIII]);
+
+    do {
+        uint64_t PTE = PT[IIII];
+
+        int PWT = (PTE >> 0x03) & 1;
+        int PCD = (PTE >> 0x04) & 1;
+        int PAT = (PTE >> 0x07) & 1;
+
+        if (InterlockedCompareExchange64((LONG64*)&PT[IIII], BuildPTE<0x1000>(PA & 0x0000FFFFFFFFF000, RW, X, PWT, PCD, PAT), PTE) == PTE)
+            break;
+    } while (1);
+}
+
+template <>
+FORCEINLINE void
 RebuildNPT<0x200000>(uint64_t* PML4, uint64_t PA, int RW, int X)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
@@ -669,7 +760,7 @@ RebuildNPT<0x200000>(uint64_t* PML4, uint64_t PA, int RW, int X)
 
         int PWT = (PDE >> 0x03) & 1;
         int PCD = (PDE >> 0x04) & 1;
-        int PAT = 0;
+        int PAT = (PDE >> 0x0C) & 1;
 
         if (InterlockedCompareExchange64((LONG64*)&PD[III], BuildPDE<0x200000>(PA & 0x0000FFFFFFE00000, RW, X, PWT, PCD, PAT), PDE) == PDE)
             break;
@@ -1702,15 +1793,17 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
 {
     uint64_t* RAX = (uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8); // RAX
 
-    switch (*(uint32_t*)RAX) {
+    uint32_t leaf = *(uint32_t*)RAX;
+
+    __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
+
+    switch (leaf) {
     case 0x1:
-        __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
 #if defined(DBG)
         ctx->RCX &= ~(1ULL << 0x1F); // 常见虚拟机都会在这里设置1
 #endif
         break;
     case 0x80000001:
-        __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
         ctx->RCX &= ~(1ULL << 0x02); // SVM - Secure virtual machine
         break;
 #if 1 // 构建一个测试环境.
@@ -1740,9 +1833,6 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
         break;
     }
 #endif
-    default:
-        __asm__("cpuid" : "=a"(*RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(*RAX), "c"(ctx->RCX));
-        break;
     }
 
     SkipEmulatedInstruction(vcpu->VmcbGuest);
@@ -2257,9 +2347,9 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
 
         KdPrint(("procedure<0x0400>: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
     } else {
-        BuildNPT<PageTranslation>(PML4[0], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
-        BuildNPT<PageTranslation>(PML4[1], ExitInfo2 & 0x0000FFFFFFE00000, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
-        BuildNPT<0x40000000>(PML4[2], ExitInfo2 & 0x0000FFFFC0000000, 1, 0, 0, 1, 0);      // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+        BuildNPT<PageTranslation>(PML4[0], ExitInfo2, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+        BuildNPT<PageTranslation>(PML4[1], ExitInfo2, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+        BuildNPT<0x40000000>(PML4[2], ExitInfo2, 1, 0, 0, 1, 0);      // 动态补充的物理页一律视为MMIO内存,不允许缓存.
 
         KdPrint(("BuildNPT MMIO: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
     }

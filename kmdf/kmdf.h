@@ -20,7 +20,7 @@
 static constexpr size_t PageTranslation4K = 0x1000;
 static constexpr size_t PageTranslation2M = 0x200000;
 static constexpr size_t PageTranslation1G = 0x40000000;
-static constexpr size_t PageTranslation = PageTranslation2M;
+static constexpr size_t PageTranslation = PageTranslation4K;
 
 static constexpr size_t KM_FRAME_SIZE = 0x2000;
 

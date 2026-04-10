@@ -881,21 +881,21 @@ BuildPTE<0x1000>(uint64_t M, int R, int W, int X, uint64_t MT)
     /**
      * 6 Ignore PAT memory type for this 4-KByte page (see Section 31.3.7).
      **/
-    PTE |= (1ULL << 0x06);
+    PTE |= (0ULL << 0x06);
 
     /**
      * 8
      * If bit 6 of EPTP is 1, accessed flag for EPT; indicates whether software has accessed the 4-KByte page referenced
      * by this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
      **/
-    PTE |= (1ULL << 0x08);
+    PTE |= (0ULL << 0x08);
 
     /**
      * 9
      * If bit 6 of EPTP is 1, dirty flag for EPT; indicates whether software has written to the 4-KByte page referenced by
      * this entry (see Section 31.3.5). Ignored if bit 6 of EPTP is 0.
      **/
-    PTE |= (1ULL << 0x09);
+    PTE |= (0ULL << 0x09);
 
     /**
      * 10
@@ -920,14 +920,14 @@ BuildPTE<0x1000>(uint64_t M, int R, int W, int X, uint64_t MT)
      * structures used to access the 4-KByte page controlled by this entry (see Section 31.3.3.2). If that control is 0, this
      * bit is ignored.
      **/
-    PTE |= (1ULL << 0x39);
+    PTE |= (0ULL << 0x39);
 
     /**
      * 58
      * Paging-write access. If the "EPT paging-write control" VM-execution control is 1, indicates that guest paging may
      * update the 4-KByte page controlled by this entry (see Section 31.3.3.2). If that control is 0, this bit is ignored.
      **/
-    PTE |= (1ULL << 0x3A);
+    PTE |= (0ULL << 0x3A);
 
     /**
      * 60
@@ -935,7 +935,7 @@ BuildPTE<0x1000>(uint64_t M, int R, int W, int X, uint64_t MT)
      * guest-physical addresses in the 4-KByte page mapped by this entry (see Section 31.3.3.2).
      * Ignored if bit 7 of EPTP is 0.
      **/
-    PTE |= (1ULL << 0x3C);
+    PTE |= (0ULL << 0x3C);
 
     /**
      * 61
@@ -944,7 +944,7 @@ BuildPTE<0x1000>(uint64_t M, int R, int W, int X, uint64_t MT)
      * normally not be writable (see Section 31.3.4). If "sub-page write permissions for EPT" VM-execution control is 0, this
      * bit is ignored.
      **/
-    PTE |= (1ULL << 0x3D);
+    PTE |= (0ULL << 0x3D);
 
     /**
      * 63
@@ -952,7 +952,7 @@ BuildPTE<0x1000>(uint64_t M, int R, int W, int X, uint64_t MT)
      * are convertible to virtualization exceptions only if this bit is 0 (see Section 28.5.7.1). If "EPT-violation #VE" VM-
      * execution control is 0, this bit is ignored.
      **/
-    PTE |= (1ULL << 0x3F);
+    PTE |= (0ULL << 0x3F);
 
     return PTE;
 }
@@ -1239,6 +1239,58 @@ static FORCEINLINE void RebuildEPT(uint64_t* PML4, uint64_t PA, int R, int W, in
 
 template <>
 FORCEINLINE void
+BuildEPT<0x1000>(uint64_t* PML4, uint64_t PA, int R, int W, int X, uint64_t MT)
+{
+    uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
+    uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
+    uint64_t III = (PA >> 0x15) & 0x00000000000001FF;
+    uint64_t IIII = (PA >> 0x0C) & 0x00000000000001FF;
+    PHYSICAL_ADDRESS Pa;
+
+    if (PML4[I] == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        ASSERT(p);
+        memset(p, 0, 0x1000);
+        Pa = MmGetPhysicalAddress(p);
+        uint64_t PML4E = BuildPML4E<0x1000>(Pa.QuadPart, 1, 1, 1, MT);
+        if (InterlockedCompareExchange64((LONG64*)&PML4[I], PML4E, 0))
+            deallocate<0x1000>(p);
+    }
+
+    Pa.QuadPart = PML4[I] & 0x0000FFFFFFFFF000;
+    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+    if (PDPT[II] == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        ASSERT(p);
+        memset(p, 0, 0x1000);
+        Pa = MmGetPhysicalAddress(p);
+        uint64_t PDPTE = BuildPDPTE<0x1000>(Pa.QuadPart, 1, 1, 1, MT);
+        if (InterlockedCompareExchange64((LONG64*)&PDPT[II], PDPTE, 0))
+            deallocate<0x1000>(p);
+    }
+
+    Pa.QuadPart = PDPT[II] & 0x0000FFFFFFFFF000;
+    uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
+    if (PD[III] == 0) {
+        uint64_t* p = (uint64_t*)allocate<0x1000>();
+        ASSERT(p);
+        memset(p, 0, 0x1000);
+        Pa = MmGetPhysicalAddress(p);
+        uint64_t PDE = BuildPDE<0x1000>(Pa.QuadPart, 1, 1, 1, MT);
+        if (InterlockedCompareExchange64((LONG64*)&PD[III], PDE, 0))
+            deallocate<0x1000>(p);
+    }
+
+    Pa.QuadPart = PD[III] & 0x0000FFFFFFFFF000;
+    uint64_t* PT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+    if (PT[IIII] == 0) {
+        uint64_t PTE = BuildPTE<0x1000>(PA & 0x0000FFFFFFFFF000, R, W, X, MT);
+        InterlockedCompareExchange64((LONG64*)&PT[IIII], PTE, 0);
+    }
+}
+
+template <>
+FORCEINLINE void
 BuildEPT<0x200000>(uint64_t* PML4, uint64_t PA, int R, int W, int X, uint64_t MT)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
@@ -1304,6 +1356,43 @@ BuildEPT<0x40000000>(uint64_t* PML4, uint64_t PA, int R, int W, int X, uint64_t 
 
 template <>
 FORCEINLINE void
+RebuildEPT<0x1000>(uint64_t* PML4, uint64_t PA, int R, int W, int X)
+{
+    uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
+    uint64_t II = (PA >> 0x1E) & 0x00000000000001FF;
+    uint64_t III = (PA >> 0x15) & 0x00000000000001FF;
+    uint64_t IIII = (PA >> 0x0C) & 0x00000000000001FF;
+    PHYSICAL_ADDRESS Pa;
+
+    ASSERT(PML4[I]);
+
+    Pa.QuadPart = PML4[I] & 0x0000FFFFFFFFF000;
+    uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+
+    ASSERT(PDPT[II]);
+
+    Pa.QuadPart = PDPT[II] & 0x0000FFFFFFFFF000;
+    uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
+
+    ASSERT(PD[III]);
+
+    Pa.QuadPart = PD[III] & 0x0000FFFFFFFFF000;
+    uint64_t* PT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+
+    ASSERT(PT[IIII]);
+
+    do {
+        uint64_t PTE = PT[IIII];
+
+        int MT = (PTE >> 0x03) & 0x7;
+
+        if (InterlockedCompareExchange64((LONG64*)&PT[IIII], BuildPTE<0x1000>(PA & 0x0000FFFFFFFFF000, R, W, X, MT), PTE) == PTE)
+            break;
+    } while (1);
+}
+
+template <>
+FORCEINLINE void
 RebuildEPT<0x200000>(uint64_t* PML4, uint64_t PA, int R, int W, int X)
 {
     uint64_t I = (PA >> 0x27) & 0x00000000000001FF;
@@ -1315,10 +1404,12 @@ RebuildEPT<0x200000>(uint64_t* PML4, uint64_t PA, int R, int W, int X)
 
     Pa.QuadPart = PML4[I] & 0x0000FFFFFFFFF000;
     uint64_t* PDPT = (uint64_t*)MmGetVirtualForPhysical(Pa);
+
     ASSERT(PDPT[II]);
 
     Pa.QuadPart = PDPT[II] & 0x0000FFFFFFFFF000;
     uint64_t* PD = (uint64_t*)MmGetVirtualForPhysical(Pa);
+
     ASSERT(PD[III]);
 
     do {
@@ -1519,29 +1610,37 @@ template <>
 void
 procedure<0x000A>(VMCpu*, VMContext* ctx)
 {
-    switch ((uint32_t)ctx->RAX) {
+    uint32_t leaf = (uint32_t)ctx->RAX;
+
+    __asm__("cpuid" : "=a"(ctx->RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(ctx->RAX), "c"(ctx->RCX));
+
+    switch (leaf) {
     case 0x1:
-        __asm__("cpuid" : "=a"(ctx->RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(ctx->RAX), "c"(ctx->RCX));
-        ctx->RCX &= ~(1ULL << 0x05);
+        ctx->RCX &= ~(1ULL << 0x05); // Virtual Machine Extensions
 #if defined(DBG)
         ctx->RCX &= ~(1ULL << 0x1F); // 常见虚拟机都会在这里设置1
 #endif
         break;
 #if 1 // 构建一个测试环境.
     case 0x88888888: {
+        KdBreakPoint();
+
         PHYSICAL_ADDRESS HighestAcceptableAddress;
         HighestAcceptableAddress.QuadPart = 0xFFFFFFFFFFFFFFFFLL;
-        uint8_t* p = (uint8_t*)MmAllocateContiguousMemory(0x400000, HighestAcceptableAddress);
+        uint8_t* p = (uint8_t*)MmAllocateContiguousMemory(0x4000, HighestAcceptableAddress); // 连续 16K
         ASSERT(p);
 
-        memset(p, 0, 0x400000);
-        for (size_t i = 0; i < 0xCCCCC; ++i) {
-            p[i * 5] = 0xE9; // JMP +0xXXXXXXXX
-        }
-        *(uint32_t*)(p + 1) = 0x1FFFF9;
-        p[0x66667 * 5] = 0xC3;
+        memset(p, 0xCC, 0x4000);
 
-        auto phis = MmGetPhysicalAddress(p + 0x200000);
+        *(uint8_t*)(p + 0x0000) = 0xE9; // JMP +0x00000FF9 -> p + 0x0FFE
+        *(uint32_t*)(p + 0x0001) = 0x00000FF9;
+
+        *(uint8_t*)(p + 0x0FFE) = 0xE9; // 跨 4K 页边界的 JMP +0x00000000 -> p + 0x1003
+        *(uint32_t*)(p + 0x0FFF) = 0x00000000;
+
+        *(uint8_t*)(p + 0x1003) = 0xC3; // RET
+
+        auto phis = MmGetPhysicalAddress(p + 0x1000);
 
         RebuildEPT<PageTranslation>(PML4[0], phis.QuadPart, 1, 1, 0);
         RebuildEPT<PageTranslation>(PML4[1], phis.QuadPart, 1, 1, 1);
@@ -1555,9 +1654,6 @@ procedure<0x000A>(VMCpu*, VMContext* ctx)
         break;
     }
 #endif
-    default:
-        __asm__("cpuid" : "=a"(ctx->RAX), "=b"(ctx->RBX), "=c"(ctx->RCX), "=d"(ctx->RDX) : "a"(ctx->RAX), "c"(ctx->RCX));
-        break;
     }
 
     SkipEmulatedInstruction();
@@ -1791,6 +1887,7 @@ procedure<0x0025>(VMCpu* vcpu, VMContext*)
 
     size_t Eptp = {};
 
+    __asm_vmx_vmread(VMX_VMCS64_CTRL_EPTP_FULL, &Eptp);
     Eptp = EPTP[vcpu->Tmp];
     __asm_vmx_vmwrite(VMX_VMCS64_CTRL_EPTP_FULL, Eptp);
 
@@ -2075,9 +2172,9 @@ procedure<0x0030>(VMCpu* vcpu, VMContext*)
         KdPrint(("procedure<0x0030>: RIP=0x%016llX, LA=0x%016llX, PA=0x%016llX\n", RIP, GuestLinearAddress, GuestPhysicalAddress));
     } else {
 
-        BuildEPT<PageTranslation>(PML4[0], GuestPhysicalAddress & 0x0000FFFFFFE00000, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
-        BuildEPT<PageTranslation>(PML4[1], GuestPhysicalAddress & 0x0000FFFFFFE00000, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
-        BuildEPT<PageTranslation>(PML4[2], GuestPhysicalAddress & 0x0000FFFFFFE00000, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+        BuildEPT<PageTranslation>(PML4[0], GuestPhysicalAddress, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+        BuildEPT<PageTranslation>(PML4[1], GuestPhysicalAddress, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+        BuildEPT<PageTranslation>(PML4[2], GuestPhysicalAddress, 1, 1, 0, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
 
         __asm_vmx_invept(1, EPTP[0]);
         __asm_vmx_invept(1, EPTP[1]);
@@ -2095,11 +2192,14 @@ procedure<0x0031>(VMCpu*, VMContext*)
     size_t ExitQualification = {};
     size_t GuestPhysicalAddress = {};
     size_t GuestLinearAddress = {};
+    size_t RIP = {};
 
     __asm_vmx_vmread(VMX_VMCS_RO_EXIT_QUALIFICATION, &ExitQualification);
     __asm_vmx_vmread(VMX_VMCS64_RO_GUEST_PHYS_ADDR_FULL, &GuestPhysicalAddress);
     __asm_vmx_vmread(VMX_VMCS_RO_GUEST_LINEAR_ADDR, &GuestLinearAddress);
+    __asm_vmx_vmread(VMX_VMCS_GUEST_RIP, &RIP);
 
+    KdPrint(("procedure<0x0031>: RIP=0x%016llX, LA=0x%016llX, PA=0x%016llX, Q=0x%016llX\n", RIP, GuestLinearAddress, GuestPhysicalAddress, ExitQualification));
     __asm_int3();
 }
 
