@@ -15,23 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Support.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="lfqueue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="lfstack.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SecureSeed.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="StringHash.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="Support.cxx">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -41,5 +24,22 @@
     <ClCompile Include="lfstack.cxx">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="lfqueue.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lfstack.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SecureSeed.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StringHash.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Support.hxx">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -5,4 +5,4 @@
 
 #include <ntddk.h>
 
-#include "lfqueue.h"
+#include "lfqueue.hxx"

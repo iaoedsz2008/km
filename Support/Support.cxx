@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "Support.h"
+#include "Support.hxx"
 
-#include "lfqueue.h"
-#include "lfstack.h"
+#include "lfqueue.hxx"
+#include "lfstack.hxx"

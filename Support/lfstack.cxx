@@ -5,4 +5,4 @@
 
 #include <ntddk.h>
 
-#include "lfstack.h"
+#include "lfstack.hxx"
