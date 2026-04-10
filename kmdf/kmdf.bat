@@ -1,9 +1,11 @@
 @echo off
 
-sc create kmdf binPath= "%~dp0\kmdf.sys" type= kernel
-sc start kmdf
+set "svc=%~n0"
+
+sc create "%svc%" binPath= "%~dpn0.sys" type= kernel
+sc start "%svc%"
 pause
 
-sc stop kmdf
-sc delete kmdf
+sc stop "%svc%"
+sc delete "%svc%"
 pause
