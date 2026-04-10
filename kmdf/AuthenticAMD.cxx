@@ -1296,7 +1296,7 @@ template <>
 void
 procedure<0x0042>(VMCpu* vcpu, VMContext*)
 {
-    KdBreakPoint();
+    // KdBreakPoint();
 
     BuildEvent(vcpu, 0x02, 0x02, 0);
 }
@@ -1306,7 +1306,7 @@ template <>
 void
 procedure<0x0043>(VMCpu* vcpu, VMContext*)
 {
-    KdBreakPoint();
+    // KdBreakPoint();
 
     BuildEvent(vcpu, 0x03, 0x03, 0);
 }
@@ -2419,8 +2419,6 @@ MSRPM_CLI(void* PermissionsMap, uint32_t MSR)
 static void
 initializeNPT(size_t PhysicalSize)
 {
-    KdBreakPoint();
-
     PML4[0] = (uint64_t*)allocate<0x1000>();
     PML4[1] = (uint64_t*)allocate<0x1000>();
     PML4[2] = (uint64_t*)allocate<0x1000>();
@@ -3497,7 +3495,7 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     CONTEXT Context;
     RtlCaptureContext(&Context);
 
-    if (Context.Rip == 0x12345678)
+    if (Context.Rip == SecureSeed64)
         return 0;
 
     *(uint16_t*)((uint8_t*)vcpu->VmcbGuest + 0x0000) = 0;          // Intercept reads of CR0-15, respectively
@@ -3776,9 +3774,9 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
 
     __asm_wrmsr(0xC0010117, vcpu->VmcbHostPa.QuadPart);
 
-    Context.Rip = 0x12345678;
+    Context.Rip = SecureSeed64;
 
-    KdBreakPoint();
+    // KdBreakPoint();
 
     __asm_svm_vmsave(vcpu->VmcbGuestPa.QuadPart);
     __asm_svm_vmsave(vcpu->VmcbHostPa.QuadPart);

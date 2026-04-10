@@ -1781,7 +1781,7 @@ template <>
 void
 procedure<0x0025>(VMCpu* vcpu, VMContext*)
 {
-    KdBreakPoint();
+    // KdBreakPoint();
 
     size_t RIP = {};
     size_t Length = {};
@@ -2059,7 +2059,7 @@ procedure<0x0030>(VMCpu* vcpu, VMContext*)
     __asm_vmx_vmread(VMX_VMCS64_CTRL_EPTP_FULL, &Eptp);
 
     if (ViolationX) {
-        KdBreakPoint();
+        // KdBreakPoint();
 
         size_t PrimaryProcessorBasedVmExecutionControls = {};
 
@@ -2516,8 +2516,6 @@ MSRPM_CLI(void* PermissionsMap, uint32_t MSR)
 static void
 initializeEPT(size_t PhysicalSize)
 {
-    KdBreakPoint();
-
     PML4[0] = (uint64_t*)allocate<0x1000>();
     PML4[1] = (uint64_t*)allocate<0x1000>();
     PML4[2] = (uint64_t*)allocate<0x1000>();
@@ -3235,7 +3233,7 @@ vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
     CONTEXT Context;
     RtlCaptureContext(&Context);
 
-    if (Context.Rip == 0x12345678)
+    if (Context.Rip == SecureSeed64)
         return 0;
 
     __asm_cr0((CR0 & ia32_vmx_cr0_fixed1) | ia32_vmx_cr0_fixed0);
@@ -4154,9 +4152,9 @@ vmxon<Hash("GenuineIntel")>(PVOID DirectoryTableBase)
         __asm_vmx_vmread(0x00006C1D, &eee); //
     }
 
-    Context.Rip = 0x12345678;
+    Context.Rip = SecureSeed64;
 
-    KdBreakPoint();
+    // KdBreakPoint();
 
     __asm__ __volatile__("\n mov %0, %%r15"
                          "\n mov %c1(%%r15), %%rax"
