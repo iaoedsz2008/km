@@ -1,9 +1,11 @@
 @echo off
 
-sc create ZwCreateSection binPath= "%~dp0\ZwCreateSection.sys" type= kernel
-sc start ZwCreateSection
+set "svc=%~n0"
+
+sc create "%svc%" binPath= "%~dpn0.sys" type= kernel
+sc start "%svc%"
 pause
 
-sc stop ZwCreateSection
-sc delete ZwCreateSection
+sc stop "%svc%"
+sc delete "%svc%"
 pause
