@@ -189,7 +189,7 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
         if (BaseAddress.QuadPart > PhysicalSize)
             PhysicalSize = BaseAddress.QuadPart + NumberOfBytes.QuadPart;
 
-        KdPrint(("[PHYSICAL_MEMORY_RANGE] 0x%016llX: 0x%08llX\n", BaseAddress.QuadPart, NumberOfBytes.QuadPart));
+        KdPrint(("PHYSICAL_MEMORY_RANGE [0x%016llX - 0x%016llX]\n", BaseAddress.QuadPart, BaseAddress.QuadPart + NumberOfBytes.QuadPart));
     }
 
     ExFreePool(Ranges);
@@ -314,6 +314,11 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
     DriverObject->DriverUnload = DriverUnload;
 
 #if 1 // 构建一个测试环境.
+    LARGE_INTEGER SystemTimeA;
+    LARGE_INTEGER SystemTimeB;
+    LARGE_INTEGER SystemTimeC;
+    LARGE_INTEGER SystemTimeD;
+
     uint32_t eax;
     uint32_t ebx;
     uint32_t ecx;
@@ -326,9 +331,27 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
     p[0] = eax;
     p[1] = edx;
 
-    KdBreakPoint();
-    ((void (*)(void))val)();
-    KdBreakPoint();
+    KeQuerySystemTimePrecise(&SystemTimeA);
+    for (size_t i = 0; i < 0x100000; i++) {
+        ((void (*)(void))val)();
+    }
+    KeQuerySystemTimePrecise(&SystemTimeB);
+
+    DbgPrint("Test 1 elapsed: %lld ns\n", (SystemTimeB.QuadPart - SystemTimeA.QuadPart) * 100);
+
+    __asm_cpuid(0x99999999, &eax, &ebx, &ecx, &edx);
+
+    p[0] = eax;
+    p[1] = edx;
+
+    KeQuerySystemTimePrecise(&SystemTimeC);
+    for (size_t i = 0; i < 0x100000; i++) {
+        ((void (*)(void))val)();
+    }
+    KeQuerySystemTimePrecise(&SystemTimeD);
+
+    DbgPrint("Test 2 elapsed: %lld ns\n", (SystemTimeD.QuadPart - SystemTimeC.QuadPart) * 100);
+
 #endif
 
     return STATUS_SUCCESS;

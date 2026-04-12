@@ -42,6 +42,8 @@ typedef struct VMCpu {
     void* VmcbHost;
     void* VmcbGuest;
 
+    size_t DRx[8];
+
     int Test;
     int N;
     uint64_t RFLAGS;
@@ -1350,7 +1352,7 @@ procedure<0x0040>(VMCpu* vcpu, VMContext*)
 // 40h-5Fh VMEXIT_EXCP[0-31] Exception vector 0-31, respectively.
 template <>
 void
-procedure<0x0041>(VMCpu* vcpu, VMContext*)
+procedure<0x0041>(VMCpu* vcpu, VMContext* ctx)
 {
     // KdBreakPoint();
 
@@ -1375,7 +1377,9 @@ procedure<0x0041>(VMCpu* vcpu, VMContext*)
         if (!TF)
             *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) &= ~(1ULL << 8); // RFLAGS
 
-        KdPrint(("procedure<0x0041>: RIP=0x%016llX\n", RIP));
+        *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8) = 0x348984539; // RAX
+
+        // KdPrint(("procedure<0x0041>: RIP=0x%016llX\n", RIP));
     }
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[vcpu->Test]; // N_CR3 - Nested page table CR3 to use for nested paging
@@ -1808,19 +1812,54 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
         break;
 #if 1 // 构建一个测试环境.
     case 0x88888888: {
+        KdBreakPoint();
+
         PHYSICAL_ADDRESS HighestAcceptableAddress;
         HighestAcceptableAddress.QuadPart = 0xFFFFFFFFFFFFFFFFLL;
-        uint8_t* p = (uint8_t*)MmAllocateContiguousMemory(0x400000, HighestAcceptableAddress);
+        uint8_t* p = (uint8_t*)MmAllocateContiguousMemory(0x4000, HighestAcceptableAddress); // 连续 16K
         ASSERT(p);
 
-        memset(p, 0, 0x400000);
-        for (size_t i = 0; i < 0xCCCCC; ++i) {
-            p[i * 5] = 0xE9; // JMP +0xXXXXXXXX
-        }
-        *(uint32_t*)(p + 1) = 0x1FFFF9;
-        p[0x66667 * 5] = 0xC3;
+        memset(p, 0xCC, 0x4000);
 
-        auto phis = MmGetPhysicalAddress(p + 0x200000);
+        *(uint8_t*)(p + 0x0000) = 0xE9; // JMP +0x00000FF9 -> p + 0x0FFE
+        *(uint32_t*)(p + 0x0001) = 0x00000FF9;
+
+        *(uint8_t*)(p + 0x0FFE) = 0xE9; // 跨 4K 页边界的 JMP +0x00000000 -> p + 0x1003
+        *(uint32_t*)(p + 0x0FFF) = 0x00000000;
+
+        *(uint8_t*)(p + 0x1003) = 0xC3; // RET
+
+        auto phis = MmGetPhysicalAddress(p + 0x1000);
+
+        // RebuildNPT<PageTranslation>(PML4[0], phis.QuadPart, 1, 0);
+        // RebuildNPT<PageTranslation>(PML4[1], phis.QuadPart, 1, 1);
+
+        *RAX = (uint64_t)p >> 0x00;
+        ctx->RDX = (uint64_t)p >> 0x20;
+
+        *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3; // TLB_CONTROL
+
+        break;
+    }
+    case 0x99999999: {
+        KdBreakPoint();
+
+        PHYSICAL_ADDRESS HighestAcceptableAddress;
+        HighestAcceptableAddress.QuadPart = 0xFFFFFFFFFFFFFFFFLL;
+        uint8_t* p = (uint8_t*)MmAllocateContiguousMemory(0x4000, HighestAcceptableAddress); // 连续 16K
+        ASSERT(p);
+
+        memset(p, 0xCC, 0x4000);
+
+        *(uint8_t*)(p + 0x0000) = 0xE9; // JMP +0x00000FF9 -> p + 0x0FFE
+        *(uint32_t*)(p + 0x0001) = 0x00000FF9;
+
+        *(uint8_t*)(p + 0x0FFE) = 0xE9; // 跨 4K 页边界的 JMP +0x00000000 -> p + 0x1003
+        *(uint32_t*)(p + 0x0FFF) = 0x00000000;
+
+        *(uint8_t*)(p + 0x1003) = 0xC3; // RET
+
+        auto phis = MmGetPhysicalAddress(p + 0x1000);
 
         RebuildNPT<PageTranslation>(PML4[0], phis.QuadPart, 1, 0);
         RebuildNPT<PageTranslation>(PML4[1], phis.QuadPart, 1, 1);
@@ -2345,13 +2384,13 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
 
         *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) = RFLAGS;
 
-        KdPrint(("procedure<0x0400>: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
+        // KdPrint(("procedure<0x0400>: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
     } else {
         BuildNPT<PageTranslation>(PML4[0], ExitInfo2, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
         BuildNPT<PageTranslation>(PML4[1], ExitInfo2, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
         BuildNPT<0x40000000>(PML4[2], ExitInfo2, 1, 0, 0, 1, 0);      // 动态补充的物理页一律视为MMIO内存,不允许缓存.
 
-        KdPrint(("BuildNPT MMIO: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
+        // KdPrint(("BuildNPT MMIO: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
     }
 
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3; // TLB_CONTROL
