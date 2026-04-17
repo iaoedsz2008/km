@@ -324,29 +324,31 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
     uint32_t ecx;
     uint32_t edx;
 
-    __asm_cpuid(0x88888888, &eax, &ebx, &ecx, &edx);
+    __asm_cpuid(0x99999999, &eax, &ebx, &ecx, &edx);
 
     uint64_t val;
     uint32_t* p = (uint32_t*)&val;
     p[0] = eax;
     p[1] = edx;
 
+    DbgPrint("Test 1 return: %lld ns\n", ((size_t (*)(void))val)());
     KeQuerySystemTimePrecise(&SystemTimeA);
-    for (size_t i = 0; i < 0x100000; i++) {
-        ((void (*)(void))val)();
+    for (size_t i = 0; i < 0x10000; i++) {
+        ((size_t (*)(void))val)();
     }
     KeQuerySystemTimePrecise(&SystemTimeB);
 
     DbgPrint("Test 1 elapsed: %lld ns\n", (SystemTimeB.QuadPart - SystemTimeA.QuadPart) * 100);
 
-    __asm_cpuid(0x99999999, &eax, &ebx, &ecx, &edx);
+    __asm_cpuid(0x88888888, &eax, &ebx, &ecx, &edx);
 
     p[0] = eax;
     p[1] = edx;
 
+    DbgPrint("Test 2 return: %lld ns\n", ((size_t (*)(void))val)());
     KeQuerySystemTimePrecise(&SystemTimeC);
-    for (size_t i = 0; i < 0x100000; i++) {
-        ((void (*)(void))val)();
+    for (size_t i = 0; i < 0x10000; i++) {
+        ((size_t (*)(void))val)();
     }
     KeQuerySystemTimePrecise(&SystemTimeD);
 

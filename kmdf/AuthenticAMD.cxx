@@ -45,7 +45,7 @@ typedef struct VMCpu {
     size_t DRx[8];
 
     int Test;
-    int N;
+    int MTF;
     uint64_t RFLAGS;
 
     PHYSICAL_ADDRESS IoPermissionsMapPa;
@@ -56,8 +56,8 @@ typedef struct VMCpu {
 
 static KSPIN_LOCK kSpinLock;
 
-static uint64_t* PML4[3] = {};  // [0]: RWX, [1] RW, [2] RWX(1G)
-static uint64_t PML4PA[3] = {}; // [0]: RWX, [1] RW, [2] RWX(1G)
+static uint64_t* PML4[3] = {};  // [0]: RWX, [1] RW, [2] RWX(Always)
+static uint64_t PML4PA[3] = {}; // [0]: RWX, [1] RW, [2] RWX(Always)
 static void (*Procedures[0x800])(VMCpu*, VMContext*);
 static VMCpu* VMCpus[0x800];
 
@@ -1358,14 +1358,14 @@ procedure<0x0041>(VMCpu* vcpu, VMContext* ctx)
 
     uint64_t RIP = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178); // RIP
 
-    if (vcpu->N == 0) {
+    if (vcpu->MTF == 0) {
         BuildEvent(vcpu, 0x01, 0x03, 0);
         return;
     }
 
-    --vcpu->N;
+    --vcpu->MTF;
 
-    if (vcpu->N == 0) {
+    if (vcpu->MTF == 0) {
         uint32_t ExceptionBitmap = *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008);
 
         ExceptionBitmap &= ~(1U << 1); // Debug Exception
@@ -1379,7 +1379,7 @@ procedure<0x0041>(VMCpu* vcpu, VMContext* ctx)
 
         *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8) = 0x348984539; // RAX
 
-        // KdPrint(("procedure<0x0041>: RIP=0x%016llX\n", RIP));
+        KdPrint(("procedure<0x0041>: RIP=0x%016llX\n", RIP));
     }
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[vcpu->Test]; // N_CR3 - Nested page table CR3 to use for nested paging
@@ -1812,7 +1812,7 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
         break;
 #if 1 // 构建一个测试环境.
     case 0x88888888: {
-        KdBreakPoint();
+        // KdBreakPoint();
 
         PHYSICAL_ADDRESS HighestAcceptableAddress;
         HighestAcceptableAddress.QuadPart = 0xFFFFFFFFFFFFFFFFLL;
@@ -1842,7 +1842,7 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
         break;
     }
     case 0x99999999: {
-        KdBreakPoint();
+        // KdBreakPoint();
 
         PHYSICAL_ADDRESS HighestAcceptableAddress;
         HighestAcceptableAddress.QuadPart = 0xFFFFFFFFFFFFFFFFLL;
@@ -2372,7 +2372,7 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
         uint32_t ExceptionBitmap = *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008);
 
         vcpu->RFLAGS = RFLAGS;
-        ++vcpu->N;
+        ++vcpu->MTF;
 
         ExceptionBitmap |= 1U << 1; // Debug Exception
         RFLAGS |= 1ULL << 8;        // TF
@@ -2384,13 +2384,17 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
 
         *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) = RFLAGS;
 
-        // KdPrint(("procedure<0x0400>: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
+        __asm__ __volatile__(".byte 0xEB, 0xFE" ::: "memory");
+
+        KdPrint(("procedure<0x0400>: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
     } else {
         BuildNPT<PageTranslation>(PML4[0], ExitInfo2, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
         BuildNPT<PageTranslation>(PML4[1], ExitInfo2, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
-        BuildNPT<0x40000000>(PML4[2], ExitInfo2, 1, 0, 0, 1, 0);      // 动态补充的物理页一律视为MMIO内存,不允许缓存.
+        BuildNPT<PageTranslation>(PML4[2], ExitInfo2, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
 
-        // KdPrint(("BuildNPT MMIO: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
+        __asm__ __volatile__(".byte 0xEB, 0xFE" ::: "memory");
+
+        KdPrint(("BuildNPT MMIO: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
     }
 
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3; // TLB_CONTROL
