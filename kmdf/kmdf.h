@@ -22,7 +22,7 @@ static constexpr size_t PageTranslation2M = 0x200000;
 static constexpr size_t PageTranslation1G = 0x40000000;
 static constexpr size_t PageTranslation = PageTranslation4K;
 
-static constexpr size_t KM_FRAME_SIZE = 0x2000;
+static constexpr size_t KM_FRAME_SIZE = 0x10000;
 
 template <size_t>
 static FORCEINLINE size_t CalculatePTEs(size_t PhysicalSize);

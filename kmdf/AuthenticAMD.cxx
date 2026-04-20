@@ -10,6 +10,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <Zydis/Zydis.h>
+
 typedef struct VM {
 } VM;
 
@@ -42,10 +44,13 @@ typedef struct VMCpu {
     void* VmcbHost;
     void* VmcbGuest;
 
+    ZydisDecoder Decoder32;
+    ZydisDecoder Decoder64;
+
     size_t DRx[8];
 
     int Test;
-    int MTF;
+    size_t MTF;
     uint64_t RFLAGS;
 
     PHYSICAL_ADDRESS IoPermissionsMapPa;
@@ -1357,30 +1362,30 @@ procedure<0x0041>(VMCpu* vcpu, VMContext* ctx)
     // KdBreakPoint();
 
     uint64_t RIP = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178); // RIP
+    uint64_t NRIP = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8);        // nRIP - Next sequential instruction pointer
 
-    if (vcpu->MTF == 0) {
+    if (vcpu->MTF != RIP) {
         BuildEvent(vcpu, 0x01, 0x03, 0);
         return;
     }
+    vcpu->MTF = {};
 
-    --vcpu->MTF;
+    uint32_t ExceptionBitmap = *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008);
 
-    if (vcpu->MTF == 0) {
-        uint32_t ExceptionBitmap = *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008);
+    ExceptionBitmap &= ~(1U << 1); // Debug Exception
 
-        ExceptionBitmap &= ~(1U << 1); // Debug Exception
+    *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = ExceptionBitmap; // Intercept exception vectors 0-31, respectively
 
-        *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = ExceptionBitmap; // Intercept exception vectors 0-31, respectively
+    uint64_t TF = vcpu->RFLAGS & (1ULL << 8);
 
-        uint64_t TF = vcpu->RFLAGS & (1ULL << 8);
+    if (!TF)
+        *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) &= ~(1ULL << 8); // RFLAGS
 
-        if (!TF)
-            *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) &= ~(1ULL << 8); // RFLAGS
+    *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8) = 0x348984539; // RAX
 
-        *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8) = 0x348984539; // RAX
+    KdPrint(("procedure<0x0041>: RIP=0x%016llX, nRIP=0x%016llX\n", RIP, NRIP));
 
-        KdPrint(("procedure<0x0041>: RIP=0x%016llX\n", RIP));
-    }
+    ASSERT(vcpu->Test != 2);
 
     *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[vcpu->Test]; // N_CR3 - Nested page table CR3 to use for nested paging
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3;                   // TLB_CONTROL
@@ -1816,10 +1821,10 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
 
         PHYSICAL_ADDRESS HighestAcceptableAddress;
         HighestAcceptableAddress.QuadPart = 0xFFFFFFFFFFFFFFFFLL;
-        uint8_t* p = (uint8_t*)MmAllocateContiguousMemory(0x4000, HighestAcceptableAddress); // 连续 16K
+        uint8_t* p = (uint8_t*)MmAllocateContiguousMemory(0x2000, HighestAcceptableAddress); // 连续8K
         ASSERT(p);
 
-        memset(p, 0xCC, 0x4000);
+        memset(p, 0xCC, 0x2000);
 
         *(uint8_t*)(p + 0x0000) = 0xE9; // JMP +0x00000FF9 -> p + 0x0FFE
         *(uint32_t*)(p + 0x0001) = 0x00000FF9;
@@ -1846,10 +1851,10 @@ procedure<0x0072>(VMCpu* vcpu, VMContext* ctx)
 
         PHYSICAL_ADDRESS HighestAcceptableAddress;
         HighestAcceptableAddress.QuadPart = 0xFFFFFFFFFFFFFFFFLL;
-        uint8_t* p = (uint8_t*)MmAllocateContiguousMemory(0x4000, HighestAcceptableAddress); // 连续 16K
+        uint8_t* p = (uint8_t*)MmAllocateContiguousMemory(0x2000, HighestAcceptableAddress); // 连续8K
         ASSERT(p);
 
-        memset(p, 0xCC, 0x4000);
+        memset(p, 0xCC, 0x2000);
 
         *(uint8_t*)(p + 0x0000) = 0xE9; // JMP +0x00000FF9 -> p + 0x0FFE
         *(uint32_t*)(p + 0x0001) = 0x00000FF9;
@@ -2297,12 +2302,13 @@ procedure<0x00A6>(VMCpu*, VMContext*)
 // 400h VMEXIT_NPF Nested paging: host-level page fault occurred (EXITINFO1 contains fault error code; EXITINFO2 contains the guest physical address causing the fault).
 template <>
 void
-procedure<0x0400>(VMCpu* vcpu, VMContext*)
+procedure<0x0400>(VMCpu* vcpu, VMContext* ctx)
 {
     int ViolationRW = {};
     int ViolationX = {};
 
     uint64_t RIP = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0178); // RIP
+    uint64_t NRIP = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00C8);        // nRIP - Next sequential instruction pointer
     uint64_t ExitInfo1 = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0078);   // EXITINFO1
     uint64_t ExitInfo2 = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x0080);   // EXITINFO2
 
@@ -2368,33 +2374,63 @@ procedure<0x0400>(VMCpu* vcpu, VMContext*)
     if (ViolationX) {
         // KdBreakPoint();
 
-        uint64_t RFLAGS = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170); // RFLAGS
-        uint32_t ExceptionBitmap = *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008);
+        do {
+            if (RIP == 0xFFFFF804425BA198)
+                break;
 
-        vcpu->RFLAGS = RFLAGS;
-        ++vcpu->MTF;
+            if (vcpu->MTF)
+                break;
 
-        ExceptionBitmap |= 1U << 1; // Debug Exception
-        RFLAGS |= 1ULL << 8;        // TF
+            uint64_t RFLAGS = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170); // RFLAGS
+            uint32_t ExceptionBitmap = *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008);
 
-        *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = ExceptionBitmap; // Intercept exception vectors 0-31, respectively
+            vcpu->RFLAGS = RFLAGS;
 
-        *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[2]; // N_CR3 - Nested page table CR3 to use for nested paging
-        vcpu->Test = (vcpu->Test + 1) % 2;
+            ExceptionBitmap |= 1U << 1; // Debug Exception
+            RFLAGS |= 1ULL << 8;        // TF
 
-        *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) = RFLAGS;
+            *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = ExceptionBitmap; // Intercept exception vectors 0-31, respectively
 
-        __asm__ __volatile__(".byte 0xEB, 0xFE" ::: "memory");
+            *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[2]; // N_CR3 - Nested page table CR3 to use for nested paging
+            vcpu->Test = (vcpu->Test + 1) % 2;
 
-        KdPrint(("procedure<0x0400>: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
+            *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) = RFLAGS;
+
+            ZydisDecodedInstruction DecodedInstruction;
+            ZydisDecodedOperand DecodedOperands[ZYDIS_MAX_OPERAND_COUNT];
+            ZydisRegisterContext RegisterContext;
+            ZyanU64 AbsoluteAddress;
+
+            if (!ZYAN_SUCCESS(ZydisDecoderDecodeFull(&vcpu->Decoder64, (void*)RIP, ZYDIS_MAX_INSTRUCTION_LENGTH, &DecodedInstruction, DecodedOperands)))
+                __asm__ __volatile__(".byte 0xEB, 0xFE" ::: "memory");
+
+            if (DecodedInstruction.mnemonic == ZydisMnemonic::ZYDIS_MNEMONIC_RET) {
+                uint64_t RSP = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01D8); // RSP
+                vcpu->MTF = *(size_t*)RSP;
+                break;
+            }
+
+            if (DecodedInstruction.meta.branch_type) {
+                RegisterContext.values[ZydisRegister::ZYDIS_REGISTER_RIP] = RIP;
+                RegisterContext.values[ZydisRegister::ZYDIS_REGISTER_RAX] = *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x01F8); // EAX
+
+                ZydisCalcAbsoluteAddressEx(&DecodedInstruction, DecodedOperands, RIP, &RegisterContext, &AbsoluteAddress);
+                vcpu->MTF = AbsoluteAddress;
+                break;
+            }
+
+            vcpu->MTF = RIP + DecodedInstruction.length;
+        } while (0);
+
+        KdPrint(("procedure<0x0400>: RIP=0x%016llX, nRIP=0x%016llX, PA=0x%016llX\n", RIP, NRIP, ExitInfo2));
     } else {
         BuildNPT<PageTranslation>(PML4[0], ExitInfo2, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
         BuildNPT<PageTranslation>(PML4[1], ExitInfo2, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
         BuildNPT<PageTranslation>(PML4[2], ExitInfo2, 1, 0, 0, 1, 0); // 动态补充的物理页一律视为MMIO内存,不允许缓存.
 
-        __asm__ __volatile__(".byte 0xEB, 0xFE" ::: "memory");
-
-        KdPrint(("BuildNPT MMIO: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
+        // __asm__ __volatile__(".byte 0xEB, 0xFE" ::: "memory");
+        //
+        // KdPrint(("BuildNPT MMIO: RIP=0x%016llX, PA=0x%016llX\n", RIP, ExitInfo2));
     }
 
     *(uint8_t*)((uint8_t*)vcpu->VmcbGuest + 0x005C) = 3; // TLB_CONTROL
@@ -3619,6 +3655,9 @@ vmxon<Hash("AuthenticAMD")>(PVOID)
     memset(vcpu->MsrPermissionsMap, 0, 0x2000);
     memset(vcpu->VmcbGuest, 0, 0x1000);
     memset(vcpu->VmcbHost, 0, 0x1000);
+
+    ZydisDecoderInit(&vcpu->Decoder32, ZYDIS_MACHINE_MODE_LONG_COMPAT_32, ZYDIS_STACK_WIDTH_32);
+    ZydisDecoderInit(&vcpu->Decoder64, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64);
 
     // MSRPM_STI(vcpu->MsrPermissionsMap, IA32_FS_BASE);
     // MSRPM_STI(vcpu->MsrPermissionsMap, IA32_GS_BASE);

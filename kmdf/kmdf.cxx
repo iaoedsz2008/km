@@ -331,7 +331,7 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
     p[0] = eax;
     p[1] = edx;
 
-    DbgPrint("Test 1 return: %lld ns\n", ((size_t (*)(void))val)());
+    DbgPrint("Test 1 return: 0x%llX\n", ((size_t (*)(void))val)());
     KeQuerySystemTimePrecise(&SystemTimeA);
     for (size_t i = 0; i < 0x10000; i++) {
         ((size_t (*)(void))val)();
@@ -345,7 +345,7 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
     p[0] = eax;
     p[1] = edx;
 
-    DbgPrint("Test 2 return: %lld ns\n", ((size_t (*)(void))val)());
+    DbgPrint("Test 2 return: 0x%llX\n", ((size_t (*)(void))val)());
     KeQuerySystemTimePrecise(&SystemTimeC);
     for (size_t i = 0; i < 0x10000; i++) {
         ((size_t (*)(void))val)();

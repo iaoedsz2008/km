@@ -91,11 +91,15 @@
     </DriverSign>
     <ClCompile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Support;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ZYAN_NO_LIBC;ZYCORE_STATIC_BUILD;ZYDIS_NO_LIBC;ZYDIS_STATIC_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)Support;$(SolutionDir)zydis\dependencies\zycore\include;$(SolutionDir)zydis\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>false</TreatWarningAsError>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(OutDir)Zycore.lib;$(OutDir)Zydis.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DriverSign>
@@ -103,11 +107,15 @@
     </DriverSign>
     <ClCompile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Support;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ZYAN_NO_LIBC;ZYCORE_STATIC_BUILD;ZYDIS_NO_LIBC;ZYDIS_STATIC_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)Support;$(SolutionDir)zydis\dependencies\zycore\include;$(SolutionDir)zydis\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>false</TreatWarningAsError>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(OutDir)Zycore.lib;$(OutDir)Zydis.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <DriverSign>
@@ -115,11 +123,15 @@
     </DriverSign>
     <ClCompile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Support;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ZYAN_NO_LIBC;ZYCORE_STATIC_BUILD;ZYDIS_NO_LIBC;ZYDIS_STATIC_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)Support;$(SolutionDir)zydis\dependencies\zycore\include;$(SolutionDir)zydis\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>false</TreatWarningAsError>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(OutDir)Zycore.lib;$(OutDir)Zydis.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <DriverSign>
@@ -127,11 +139,15 @@
     </DriverSign>
     <ClCompile>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir)Support;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ZYAN_NO_LIBC;ZYCORE_STATIC_BUILD;ZYDIS_NO_LIBC;ZYDIS_STATIC_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)Support;$(SolutionDir)zydis\dependencies\zycore\include;$(SolutionDir)zydis\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>false</TreatWarningAsError>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(OutDir)Zycore.lib;$(OutDir)Zydis.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <Inf Include="kmdf.inf" />
@@ -152,6 +168,12 @@
   <ItemGroup>
     <ProjectReference Include="..\Support\Support.vcxproj">
       <Project>{88d16ae3-ae25-af7e-6604-359dbe2945b6}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Zycore.vcxproj">
+      <Project>{1b86b43e-78f7-c7a4-2060-e31baaec22a1}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Zydis.vcxproj">
+      <Project>{3cafe49a-c3db-9f84-efef-67010ac361c1}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
