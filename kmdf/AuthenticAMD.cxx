@@ -2392,7 +2392,9 @@ procedure<0x0400>(VMCpu* vcpu, VMContext* ctx)
             *(uint32_t*)((uint8_t*)vcpu->VmcbGuest + 0x0008) = ExceptionBitmap; // Intercept exception vectors 0-31, respectively
 
             *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x00B0) = PML4PA[2]; // N_CR3 - Nested page table CR3 to use for nested paging
+
             vcpu->Test = (vcpu->Test + 1) % 2;
+            KdPrint(("vcpu->Test = %d\n", vcpu->Test));
 
             *(uint64_t*)((uint8_t*)vcpu->VmcbGuest + 0x400 + 0x0170) = RFLAGS;
 
@@ -2605,11 +2607,12 @@ initializeNPT(size_t PhysicalSize)
     for (size_t i = 0; i < PhysicalSize; i += PageTranslation) {
         BuildNPT<PageTranslation>(PML4[0], i, 1, 1, 0, 0, 0);
         BuildNPT<PageTranslation>(PML4[1], i, 1, 0, 0, 0, 0);
+        BuildNPT<PageTranslation>(PML4[2], i, 1, 1, 0, 1, 0);
     }
 
-    for (size_t i = 0; i < PhysicalSize; i += 0x40000000) {
-        BuildNPT<0x40000000>(PML4[2], i, 1, 1, 0, 1, 0);
-    }
+    KdPrint(("PML4PA[0] = 0x%016llX\n", PML4PA[0]));
+    KdPrint(("PML4PA[1] = 0x%016llX\n", PML4PA[1]));
+    KdPrint(("PML4PA[2] = 0x%016llX\n", PML4PA[2]));
 }
 
 template <>
