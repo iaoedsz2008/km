@@ -19,6 +19,9 @@ class lfqueue {
         enqueue_pos_(0),
         dequeue_pos_(0)
     {
+        if (capacity == 0 || (capacity & (capacity - 1)) != 0) {
+            return;
+        }
         sequence_ = static_cast<volatile LONG64*>(ExAllocatePool(NonPagedPool, sizeof(LONG64) * capacity));
         data_ = static_cast<PVOID*>(ExAllocatePool(NonPagedPool, sizeof(PVOID*) * capacity));
         if (!sequence_ || !data_) {
@@ -55,17 +58,17 @@ class lfqueue {
     lfqueue& operator=(const lfqueue&) = delete;
 
     bool
-    push(PVOID Block)
+    push(PVOID e)
     {
         LONG64 pos = ReadNoFence64(&enqueue_pos_);
         for (;;) {
             size_t index = static_cast<size_t>(pos) & mask_;
-            LONG64 seq = ReadNoFence64(&sequence_[index]);
+            const LONG64 seq = InterlockedCompareExchange64(&sequence_[index], 0, 0);
             LONG64 dif = seq - pos;
             if (dif == 0) {
                 LONG64 old = InterlockedCompareExchange64(&enqueue_pos_, pos + 1, pos);
                 if (old == pos) {
-                    data_[index] = Block;
+                    data_[index] = e;
                     InterlockedExchange64(const_cast<LONG64*>(&sequence_[index]), pos + 1);
                     return true;
                 }
@@ -84,14 +87,14 @@ class lfqueue {
         LONG64 pos = ReadNoFence64(&dequeue_pos_);
         for (;;) {
             size_t index = static_cast<size_t>(pos) & mask_;
-            LONG64 seq = ReadNoFence64(&sequence_[index]);
+            const LONG64 seq = InterlockedCompareExchange64(&sequence_[index], 0, 0);
             LONG64 dif = seq - (pos + 1);
             if (dif == 0) {
                 LONG64 old = InterlockedCompareExchange64(&dequeue_pos_, pos + 1, pos);
                 if (old == pos) {
-                    PVOID Block = data_[index];
+                    PVOID e = data_[index];
                     InterlockedExchange64(const_cast<LONG64*>(&sequence_[index]), pos + mask_ + 1);
-                    return Block;
+                    return e;
                 }
                 pos = old;
             } else if (dif < 0) {
@@ -134,7 +137,7 @@ class lfqueue {
     lfqueue& operator=(const lfqueue&) = delete;
 
     bool
-    push(PVOID* Block)
+    push(PVOID* e)
     {
         size_t pos = enqueue_pos_.load(std::memory_order_relaxed);
         for (;;) {
@@ -143,7 +146,7 @@ class lfqueue {
             intptr_t dif = static_cast<intptr_t>(seq) - static_cast<intptr_t>(pos);
             if (dif == 0) {
                 if (enqueue_pos_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed)) {
-                    data_[index] = Block;
+                    data_[index] = e;
                     sequence_[index].store(pos + 1, std::memory_order_release);
                     return true;
                 }
@@ -165,9 +168,9 @@ class lfqueue {
             intptr_t dif = static_cast<intptr_t>(seq) - static_cast<intptr_t>(pos + 1);
             if (dif == 0) {
                 if (dequeue_pos_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed)) {
-                    PVOID* Block = data_[index];
+                    PVOID* e = data_[index];
                     sequence_[index].store(pos + mask_ + 1, std::memory_order_release);
-                    return Block;
+                    return e;
                 }
             } else if (dif < 0) {
                 return nullptr;
