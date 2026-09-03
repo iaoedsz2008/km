@@ -215,15 +215,15 @@ DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
     PHYSICAL_ADDRESS HighestAcceptableAddress;
     HighestAcceptableAddress.QuadPart = 0xFFFFFFFFFFFFFFFFLL;
 
-    Contiguous4K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
-    Contiguous8K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
-    Contiguous16K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
-    Contiguous32K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
-    Mem4K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
-    Mem8K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
-    Mem16K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
-    Mem32K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
-    Mem64K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue();
+    Contiguous4K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue(PhysicalSize >> 12);
+    Contiguous8K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue(PhysicalSize >> 13);
+    Contiguous16K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue(PhysicalSize >> 14);
+    Contiguous32K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue(PhysicalSize >> 15);
+    Mem4K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue(PhysicalSize >> 12);
+    Mem8K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue(PhysicalSize >> 13);
+    Mem16K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue(PhysicalSize >> 14);
+    Mem32K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue(PhysicalSize >> 15);
+    Mem64K = new (ExAllocatePool(NonPagedPool, sizeof(lfqueue))) lfqueue(PhysicalSize >> 16);
 
     for (ULONG i = 0; i < KeQueryActiveProcessorCount(NULL); ++i) {
         for (size_t k = 0; k < 16; ++k) {

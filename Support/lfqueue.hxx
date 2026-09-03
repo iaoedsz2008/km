@@ -6,112 +6,189 @@
 #if !defined(__30e198a17ac6cb6863df7abc4772b825__)
 #define __30e198a17ac6cb6863df7abc4772b825__
 
-class lfqueue2 {
-  public:
-    lfqueue2() :
-        Head{},
-        Tail{}
-    {
-    }
+#if defined(_WIN32)
 
-    ~lfqueue2()
-    {
-    }
-
-    inline void
-    push(PVOID* Current)
-    {
-        PVOID* Old = NULL;
-
-        *Current = NULL;
-
-        do {
-            Old = static_cast<PVOID*>(InterlockedCompareExchangePointer((PVOID*)&Tail, NULL, NULL));
-            if (Old)
-                *Old = Current; // Old->Flink = Current;
-        } while (InterlockedCompareExchangePointer((PVOID*)&Tail, Current, Old) != Old);
-
-        InterlockedCompareExchangePointer((PVOID*)&Head, Current, NULL);
-    }
-
-    inline PVOID*
-    pop()
-    {
-        PVOID* Old = NULL;
-
-        do {
-            Old = static_cast<PVOID*>(InterlockedCompareExchangePointer((PVOID*)&Head, NULL, NULL));
-            if (Old == NULL)
-                return NULL;
-        } while (InterlockedCompareExchangePointer((PVOID*)&Head, *Old, Old) != Old);
-
-#if defined(_DEBUG)
-        *Old = NULL;
-#endif
-
-        InterlockedCompareExchangePointer((PVOID*)&Tail, NULL, Old);
-
-        return Old;
-    }
-
-  private:
-    PVOID* Head;
-    PVOID* Tail;
-};
+#if defined(_KERNEL_MODE)
 
 class lfqueue {
   public:
-    lfqueue()
+    explicit lfqueue(size_t capacity) :
+        sequence_(nullptr),
+        data_(nullptr),
+        mask_(capacity - 1),
+        enqueue_pos_(0),
+        dequeue_pos_(0)
     {
-        Head = NULL;
-        Tail = NULL;
+        sequence_ = static_cast<volatile LONG64*>(ExAllocatePool(NonPagedPool, sizeof(LONG64) * capacity));
+        data_ = static_cast<PVOID*>(ExAllocatePool(NonPagedPool, sizeof(PVOID*) * capacity));
+        if (!sequence_ || !data_) {
+            if (sequence_) {
+                ExFreePool(const_cast<LONG64*>(sequence_));
+                sequence_ = nullptr;
+            }
+            if (data_) {
+                ExFreePool(data_);
+                data_ = nullptr;
+            }
+            return;
+        }
+        for (size_t i = 0; i < capacity; ++i) {
+            sequence_[i] = static_cast<LONG64>(i);
+            data_[i] = nullptr;
+        }
     }
 
     ~lfqueue()
     {
+        if (sequence_) {
+            ExFreePool(const_cast<LONG64*>(sequence_));
+            sequence_ = nullptr;
+        }
+        if (data_) {
+            ExFreePool(data_);
+            data_ = nullptr;
+        }
     }
 
-    inline void
+    lfqueue(const lfqueue&) = delete;
+
+    lfqueue& operator=(const lfqueue&) = delete;
+
+    bool
     push(PVOID Block)
     {
-        LIST_ENTRY* Old = NULL;
-
-        do {
-            Old = static_cast<LIST_ENTRY*>(InterlockedCompareExchangePointer((PVOID*)&Head, NULL, NULL));
-            static_cast<LIST_ENTRY*>(Block)->Flink = Old;
-            static_cast<LIST_ENTRY*>(Block)->Blink = NULL;
-        } while (InterlockedCompareExchangePointer((PVOID*)&Head, Block, Old) != Old);
-
-        if (Old)
-            Old->Blink = static_cast<LIST_ENTRY*>(Block);
-
-        InterlockedCompareExchangePointer((PVOID*)&Tail, Block, NULL);
+        LONG64 pos = ReadNoFence64(&enqueue_pos_);
+        for (;;) {
+            size_t index = static_cast<size_t>(pos) & mask_;
+            LONG64 seq = ReadNoFence64(&sequence_[index]);
+            LONG64 dif = seq - pos;
+            if (dif == 0) {
+                LONG64 old = InterlockedCompareExchange64(&enqueue_pos_, pos + 1, pos);
+                if (old == pos) {
+                    data_[index] = Block;
+                    InterlockedExchange64(const_cast<LONG64*>(&sequence_[index]), pos + 1);
+                    return true;
+                }
+                pos = old;
+            } else if (dif < 0) {
+                return false;
+            } else {
+                pos = ReadNoFence64(&enqueue_pos_);
+            }
+        }
     }
 
-    inline PVOID
+    PVOID
     pop()
     {
-        LIST_ENTRY* Old = NULL;
-
-        do {
-            Old = static_cast<LIST_ENTRY*>(InterlockedCompareExchangePointer((PVOID*)&Tail, NULL, NULL));
-            if (Old == NULL)
-                break;
-        } while (InterlockedCompareExchangePointer((PVOID*)&Tail, Old->Blink, Old) != Old);
-
-#if defined(_DEBUG) // 不存在从Tail往后遍历的情况,所以不清零也是可以的.
-        if (Old && Old->Blink)
-            Old->Blink->Flink = NULL;
-#endif
-
-        InterlockedCompareExchangePointer((PVOID*)&Head, NULL, Old);
-
-        return Old;
+        LONG64 pos = ReadNoFence64(&dequeue_pos_);
+        for (;;) {
+            size_t index = static_cast<size_t>(pos) & mask_;
+            LONG64 seq = ReadNoFence64(&sequence_[index]);
+            LONG64 dif = seq - (pos + 1);
+            if (dif == 0) {
+                LONG64 old = InterlockedCompareExchange64(&dequeue_pos_, pos + 1, pos);
+                if (old == pos) {
+                    PVOID Block = data_[index];
+                    InterlockedExchange64(const_cast<LONG64*>(&sequence_[index]), pos + mask_ + 1);
+                    return Block;
+                }
+                pos = old;
+            } else if (dif < 0) {
+                return nullptr;
+            } else {
+                pos = ReadNoFence64(&dequeue_pos_);
+            }
+        }
     }
 
   private:
-    LIST_ENTRY* Head;
-    LIST_ENTRY* Tail;
+    volatile LONG64* sequence_;
+    PVOID* data_;
+
+    size_t mask_;
+
+    __declspec(align(64)) volatile LONG64 enqueue_pos_;
+    __declspec(align(64)) volatile LONG64 dequeue_pos_;
 };
+
+#else
+
+class lfqueue {
+  public:
+    explicit lfqueue(size_t capacity) :
+        sequence_(new std::atomic<size_t>[capacity]),
+        data_(new PVOID*[capacity]),
+        mask_(capacity - 1),
+        enqueue_pos_(0),
+        dequeue_pos_(0)
+    {
+        for (size_t i = 0; i < capacity; ++i) {
+            sequence_[i].store(i, std::memory_order_relaxed);
+            data_[i] = nullptr;
+        }
+    }
+
+    lfqueue(const lfqueue&) = delete;
+
+    lfqueue& operator=(const lfqueue&) = delete;
+
+    bool
+    push(PVOID* Block)
+    {
+        size_t pos = enqueue_pos_.load(std::memory_order_relaxed);
+        for (;;) {
+            size_t index = pos & mask_;
+            size_t seq = sequence_[index].load(std::memory_order_acquire);
+            intptr_t dif = static_cast<intptr_t>(seq) - static_cast<intptr_t>(pos);
+            if (dif == 0) {
+                if (enqueue_pos_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed)) {
+                    data_[index] = Block;
+                    sequence_[index].store(pos + 1, std::memory_order_release);
+                    return true;
+                }
+            } else if (dif < 0) {
+                return false;
+            } else {
+                pos = enqueue_pos_.load(std::memory_order_relaxed);
+            }
+        }
+    }
+
+    PVOID*
+    pop()
+    {
+        size_t pos = dequeue_pos_.load(std::memory_order_relaxed);
+        for (;;) {
+            size_t index = pos & mask_;
+            size_t seq = sequence_[index].load(std::memory_order_acquire);
+            intptr_t dif = static_cast<intptr_t>(seq) - static_cast<intptr_t>(pos + 1);
+            if (dif == 0) {
+                if (dequeue_pos_.compare_exchange_weak(pos, pos + 1, std::memory_order_relaxed)) {
+                    PVOID* Block = data_[index];
+                    sequence_[index].store(pos + mask_ + 1, std::memory_order_release);
+                    return Block;
+                }
+            } else if (dif < 0) {
+                return nullptr;
+            } else {
+                pos = dequeue_pos_.load(std::memory_order_relaxed);
+            }
+        }
+    }
+
+  private:
+    std::unique_ptr<std::atomic<size_t>[]> sequence_;
+    std::unique_ptr<PVOID*[]> data_;
+
+    size_t mask_;
+
+    alignas(64) std::atomic<size_t> enqueue_pos_;
+    alignas(64) std::atomic<size_t> dequeue_pos_;
+};
+
+#endif
+
+#endif
 
 #endif // !__30e198a17ac6cb6863df7abc4772b825__
